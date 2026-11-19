@@ -8,7 +8,11 @@ import SwiftUI
 public enum Themes {
     /// Every valid bundled theme, in picker order. A file that doesn't decode, has a newer schema,
     /// or whose id isn't its file name is left out and logged; the bundled-themes test fails on it.
-    public static let all: [Theme] = load(Bundle.themeResources.url(forResource: "Themes", withExtension: nil))
+    /// Loading them registers the fonts they draw with.
+    public static let all: [Theme] = {
+        registerFonts()
+        return load(Bundle.themeResources.url(forResource: "Themes", withExtension: nil))
+    }()
 
     /// The default, and what an unknown stored id falls back to.
     // ponytail: black.json always ships (ThemeTests), so there's no compiled copy to drift from it.
@@ -41,9 +45,13 @@ public enum Themes {
         return themes.sorted { $0.sortKey < $1.sortKey }
     }
 
-    /// Makes every font in Fonts/ available to this process. Call once at launch, before the
-    /// notch draws.
+    /// Makes every font in Fonts/ available to this process, once however often it's called. The app
+    /// calls it at launch, before the notch draws; loading the themes does too.
     public static func registerFonts() {
+        _ = fontsRegistered
+    }
+
+    private static let fontsRegistered: Void = {
         guard let fonts = Bundle.themeResources.url(forResource: "Fonts", withExtension: nil),
             let files = FileManager.default.enumerator(at: fonts, includingPropertiesForKeys: nil)
         else { return }
@@ -54,7 +62,7 @@ public enum Themes {
                 Log.surface.error("Font \(file.lastPathComponent, privacy: .public): \(reason, privacy: .public)")
             }
         }
-    }
+    }()
 }
 
 extension EnvironmentValues {
