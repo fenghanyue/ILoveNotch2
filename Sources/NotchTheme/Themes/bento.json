@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "id": "bento",
+  "name": "Bento",
+  "order": 30,
+  "appearance": "dark",
+  "surface": {
+    "kind": "solid",
+    "color": "#000000"
+  },
+  "colors": {
+    "ink": "#FAF1E4",
+    "secondary": "#FAF1E49E",
+    "tertiary": "#FAF1E466",
+    "fill": "#FAF1E41F",
+    "accent": "#E8573F",
+    "onAccent": "#FAF1E4",
+    "highlight": "#F1DC8C",
+    "onHighlight": "#1B1613"
+  },
+  "cards": {
+    "colors": ["#F4B98E", "#F1DC8C", "#B9DEC6", "#CFC4F2"],
+    "ink": "#1B1613"
+  },
+  "fonts": {
+    "display": {
+      "family": "Bricolage Grotesque",
+      "weight": "heavy"
+    },
+    "body": {
+      "family": "Inter"
+    },
+    "mono": {
+      "family": "Inter"
+    }
+  },
+  "icons": {
+    "set": "phosphor-duotone"
+  },
+  "radii": {
+    "notchTop": 16,
+    "notchBottom": 32
+  },
+  "tabs": "text",
+  "seekBar": {
+    "line": 3.5,
+    "cap": "round",
+    "rest": "solid",
+    "head": "bar",
+    "fill": "accent"
+  },
+  "waveform": {
+    "bar": 3,
+    "gap": 2,
+    "shape": "round",
+    "fill": "ink"
+  }
+}

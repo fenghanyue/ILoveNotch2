@@ -240,6 +240,9 @@ struct FeatureSnapshotTests {
         #expect(await eventually { prompter.current >= 6 }, "Scroll moves on by itself")
         prompter.pause()
         try render(prompter.view, name: "prompter-reading", settles: true)
+        // A light highlight on a dark sheet: the current word takes onHighlight.
+        try render(
+            prompter.view, name: "bento-prompter-reading", size: size, settles: true, theme: Themes.theme("bento"))
     }
 
     /// Without a size, at the default size and again at the smallest, where every tab is tightest.

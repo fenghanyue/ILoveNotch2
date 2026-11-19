@@ -1,0 +1,31 @@
+{
+  "name": "Phosphor Icons (Duotone)",
+  "version": "2.1.1",
+  "license": "MIT",
+  "url": "https://phosphoricons.com",
+  "kind": "fill",
+  "source": {
+    "home": "house-duotone",
+    "media": "music-notes-duotone",
+    "sound": "speaker-high-duotone",
+    "shelf": "tray-duotone",
+    "clipboard": "clipboard-text-duotone",
+    "calendar": "calendar-dot-duotone",
+    "tasks": "list-checks-duotone",
+    "notes": "notepad-duotone",
+    "shortcuts": "stack-duotone",
+    "timer": "alarm-duotone",
+    "network": "flying-saucer-duotone",
+    "mirror": "user-focus-duotone",
+    "prompter": "scroll-duotone",
+    "usage": "chart-donut-duotone",
+    "agents": "terminal-window-duotone",
+    "apps": "squares-four-duotone",
+    "apps-on": "squares-four-fill",
+    "pin": "push-pin-duotone",
+    "pin-on": "push-pin-fill",
+    "settings": "gear-duotone",
+    "edit": "pencil-simple-duotone",
+    "done": "check-duotone"
+  }
+}

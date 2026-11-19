@@ -371,12 +371,50 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
+## Phosphor Icons (MIT)
+
+https://phosphoricons.com (https://github.com/phosphor-icons/core)
+Copyright (c) 2023 Phosphor Icons
+
+The icons in `Sources/NotchTheme/Icons/phosphor-duotone` are Phosphor 2.1.1's
+duotone SVGs (fill for `apps-on` and `pin-on`), from npm
+`@phosphor-icons/core@2.1.1`, unchanged but renamed by role; `set.json` maps
+each role to its Phosphor name.
+
+```text
+MIT License
+
+Copyright (c) 2023 Phosphor Icons
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## Fonts (OFL-1.1)
 
 The themes' fonts sit in `Sources/NotchTheme/Fonts/<Family>`, unchanged from
 upstream, each with its own `OFL.txt`. Each family's copyright notice, then the
 license they share:
 
+- **Bricolage Grotesque**, https://github.com/ateliertriay/bricolage, Version 1.001, from google/fonts
+  `ofl/bricolagegrotesque` (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86):
+  `BricolageGrotesque[opsz,wdth,wght].ttf`. Copyright 2022 The Bricolage Grotesque Project Authors
+  (https://github.com/ateliertriay/bricolage).
 - **Archivo Black**, https://github.com/Omnibus-Type/ArchivoBlack, Version 1.006, from google/fonts
   `ofl/archivoblack` (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86): `ArchivoBlack-Regular.ttf`.
   Copyright 2017 The Archivo Black Project Authors (https://github.com/Omnibus-Type/ArchivoBlack).
