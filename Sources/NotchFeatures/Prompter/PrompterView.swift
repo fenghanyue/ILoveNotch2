@@ -234,6 +234,9 @@ private final class ScriptScrollView: NSScrollView {
         drawsBackground = false
         hasVerticalScroller = false
         automaticallyAdjustsContentInsets = false
+        // The document first: a text view that sizes itself before it's in the (flipped) clip view
+        // grows upward, and its first line would sit above the top for good.
+        documentView = text
         text.isEditable = false
         text.isSelectable = false
         text.drawsBackground = false
@@ -243,7 +246,6 @@ private final class ScriptScrollView: NSScrollView {
         text.isVerticallyResizable = true
         text.autoresizingMask = .width
         text.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: .greatestFiniteMagnitude)
-        documentView = text
     }
 
     required init?(coder: NSCoder) { fatalError("not used") }
@@ -291,7 +293,7 @@ private final class ScriptScrollView: NSScrollView {
 
     /// Keeps the current word's line second from the top, under one line already read.
     private func scrollToCurrent(animated: Bool) {
-        guard let layout = text.layoutManager, let container = text.textContainer else { return }
+        guard !script.isEmpty, let layout = text.layoutManager, let container = text.textContainer else { return }
         layout.ensureLayout(for: container)
         let height = layout.usedRect(for: container).height + 2 * Self.fade
         let line: CGFloat
