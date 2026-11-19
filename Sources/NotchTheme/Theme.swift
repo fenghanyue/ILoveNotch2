@@ -30,6 +30,18 @@ public struct Theme: Decodable, Identifiable, Sendable {
     public let seekBar: SeekBar
     public let waveform: Waveform
     public let skins: Skins?
+    /// A little character at the head of the tab row, by the name of one the app draws
+    /// (`Theme.mascots`); an unknown one draws nothing.
+    private let mascot: String?
+
+    /// The mascots the app draws.
+    public static let mascots: Set<String> = ["heart-eyes"]
+
+    /// The theme's mascot, if the app draws it.
+    public var mascotName: String? { mascot.flatMap { Self.mascots.contains($0) ? $0 : nil } }
+
+    /// The mascot as the file names it, for the bundled-themes test.
+    var namedMascot: String? { mascot }
 
     /// Where the picker puts it: by `order`, then by name.
     public var sortKey: (Int, String) { (order ?? 1000, name) }

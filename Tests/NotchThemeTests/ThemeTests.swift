@@ -51,6 +51,9 @@ struct ThemeTests {
         for case (let slot, let name?) in named {
             #expect(slot.shipped.contains(name), "\(theme.id): no \(name) skin for \(slot)")
         }
+        if let mascot = theme.namedMascot {
+            #expect(Theme.mascots.contains(mascot), "\(theme.id): no \(mascot) mascot")
+        }
     }
 
     @Test func storedNamesFromBeforeThemesWereFilesStillWork() {

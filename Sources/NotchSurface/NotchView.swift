@@ -335,6 +335,7 @@ struct NotchView: View {
                 if let editor {
                     EditingRow(editor: editor).background(GlassPlatter(shape: Capsule()))
                 } else {
+                    if theme.mascotName != nil { Mascot().padding(.trailing, Self.appsGap) }
                     tabBar(selected: tab)
                 }
                 headerButton(
@@ -419,8 +420,11 @@ struct NotchView: View {
     /// controls beside them (All Apps after its gap, then the pin and Settings side by side).
     private var tabRoom: CGFloat {
         NotchPreferences.minimumExpandedSize.width - contentPadding.leading - contentPadding.trailing
-            - Self.appsGap - 3 * Self.headerButtonWidth - 3 * Self.tabSpacing
+            - Self.appsGap - 3 * Self.headerButtonWidth - 3 * Self.tabSpacing - mascotRoom
     }
+
+    /// What a theme's mascot takes of the header, before the tabs.
+    private var mascotRoom: CGFloat { theme.mascotName == nil ? 0 : Mascot.side + Self.appsGap }
 
     private static let tabTextSize: CGFloat = 12
     private static let tabTextPadding: CGFloat = 8
@@ -744,6 +748,42 @@ private struct GlassPlatter<S: Shape>: View {
         } else {
             shape.fill(.themeInk.opacity(0.08))
         }
+    }
+}
+
+/// The heart-eyes mascot at the head of a theme's tab row: a face in the theme's ink with a little
+/// notch on top, two hearts in its accent for eyes, and a smile. Drawn once; it doesn't move.
+private struct Mascot: View {
+    static let side: CGFloat = 22
+    @Environment(\.theme) private var theme
+
+    var body: some View {
+        let heart = Image(systemName: "heart.fill").font(.system(size: 5.5, weight: .bold))
+        RoundedRectangle(cornerRadius: 7, style: .continuous)
+            .fill(.themeInk)
+            .overlay(alignment: .top) {
+                UnevenRoundedRectangle(bottomLeadingRadius: 2, bottomTrailingRadius: 2).fill(.black)
+                    .frame(width: 10, height: 3)
+            }
+            .overlay {
+                VStack(spacing: 2) {
+                    HStack(spacing: 4) {
+                        heart
+                        heart
+                    }
+                    .foregroundStyle(.themeAccent)
+                    Path { path in
+                        path.addArc(
+                            center: CGPoint(x: 4, y: 0), radius: 4, startAngle: .degrees(20), endAngle: .degrees(160),
+                            clockwise: false)
+                    }
+                    .stroke(theme.surface.color.color, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+                    .frame(width: 8, height: 4)
+                }
+                .offset(y: 2)
+            }
+            .frame(width: Self.side, height: Self.side)
+            .accessibilityHidden(true)
     }
 }
 
