@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 import AppKit
 import NotchCore
+import NotchTheme
 import SwiftUI
 import Testing
 
@@ -81,6 +82,19 @@ struct NotchSnapshotTests {
         try draw(name, metrics: metrics, events: [.show, .selectTab(.shelf)], preferences: preferences)
         try draw(name + "-closed", metrics: metrics, events: [.show], preferences: preferences)
         try draw(name + "-activity", metrics: metrics, events: [.show, .activity(song)], preferences: preferences)
+    }
+
+    /// Every bundled theme open on a tab, closed, and with an activity, so a new file in Themes/
+    /// draws; SNAPSHOT_DIR shows how (`theme-<id>*.png`).
+    @Test(arguments: Themes.all.map(\.id))
+    func everyThemeRenders(id: String) throws {
+        let preferences = Self.preferences()
+        preferences.themeID = id
+        for (suffix, events) in [
+            ("", [NotchEvent.show, .selectTab(.shelf)]), ("-closed", [.show]), ("-activity", [.show, .activity(song)]),
+        ] {
+            try draw("theme-\(id)\(suffix)", metrics: notched, events: events, preferences: preferences)
+        }
     }
 
     /// The densest layout: every tab, Edit Tabs, the pin, and Settings in the header, and the resize

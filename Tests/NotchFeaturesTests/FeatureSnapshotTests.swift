@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 import AppKit
+import NotchTheme
 import SwiftUI
 import Testing
 
@@ -64,14 +65,28 @@ struct FeatureSnapshotTests {
         try render(clipboard.view, name: "clipboard")
     }
 
-    /// The tab as the notch shows it: white on black, dark mode, in the content area.
-    private func inNotch(_ view: some View, size: CGSize) -> some View {
+    /// The tab as the notch shows it in `theme`: its ink on its surface, in the content area.
+    private func inNotch(_ view: some View, size: CGSize, theme: Theme) -> some View {
         view
             .frame(width: size.width, height: size.height)
             .padding(16)
-            .background(.black)
-            .foregroundStyle(.white)
-            .environment(\.colorScheme, .dark)
+            .background(theme.surface.color.color)
+            .foregroundStyle(.themeInk)
+            .environment(\.colorScheme, theme.appearance.colorScheme)
+            .environment(\.theme, theme)
+    }
+
+    /// A light theme's ink on its sheet: the player and the timer, in Paper.
+    @Test func theTabsReadInALightTheme() throws {
+        let paper = Themes.theme("paper")
+        let media = MediaFeature(bundle: Bundle(for: SnapshotMarker.self))
+        media.receive(
+            NowPlaying(
+                title: "Midnight City", artist: "M83", album: "Hurry Up, We're Dreaming", isPlaying: true,
+                duration: 243, elapsed: 61, timestamp: Date(), artwork: Self.sampleArtwork(),
+                appBundleID: "com.apple.Music", shuffle: true, repeatMode: .all))
+        try render(media.view, name: "paper-media", theme: paper)
+        try render(TimerFeature().view, name: "paper-timer", theme: paper)
     }
 
     @Test func timerPresetsAndARunningCountdown() throws {
@@ -224,12 +239,15 @@ struct FeatureSnapshotTests {
 
     /// Without a size, at the default size and again at the smallest, where every tab is tightest.
     /// `settles` draws it once what rises into place on appearing has (without animation, so at once).
-    private func render(_ view: some View, name: String, size: CGSize? = nil, settles: Bool = false) throws {
+    private func render(
+        _ view: some View, name: String, size: CGSize? = nil, settles: Bool = false, theme: Theme = Themes.black
+    ) throws {
         guard let size else {
-            try render(view, name: name, size: self.size, settles: settles)
-            return try render(view, name: name + "-smallest", size: Self.smallest, settles: settles)
+            try render(view, name: name, size: self.size, settles: settles, theme: theme)
+            return try render(view, name: name + "-smallest", size: Self.smallest, settles: settles, theme: theme)
         }
-        let host = NSHostingView(rootView: inNotch(view, size: size).transaction { if settles { $0.animation = nil } })
+        let host = NSHostingView(
+            rootView: inNotch(view, size: size, theme: theme).transaction { if settles { $0.animation = nil } })
         let window = NSWindow(
             contentRect: CGRect(x: 0, y: 0, width: size.width + 32, height: size.height + 32),
             styleMask: .borderless, backing: .buffered, defer: false)
