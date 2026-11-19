@@ -56,6 +56,12 @@ final class NotchController {
         Log.surface.info("Notch on display \(self.displayID, privacy: .public), notch: \(self.metrics.notch != nil)")
     }
 
+    /// Whether screen sharing, recordings, and screenshots leave the notch out.
+    var hidesFromCapture: Bool {
+        get { panel.sharingType == .none }
+        set { panel.sharingType = newValue ? .none : .readOnly }
+    }
+
     /// Makes the panel key so a text field in it can take typing, without activating the app. Key
     /// status moves the notch to its focused state, and closing hands the keyboard back.
     func focusKeyboard() {

@@ -55,6 +55,19 @@ public final class PanelCoordinator {
         broadcast(.selectTab(tab))
     }
 
+    /// Pins every notch that has `tab` open, so it stays open while the pointer is elsewhere.
+    public func pin(_ tab: FeatureID) {
+        for controller in controllers {
+            let presentation = controller.engine.state.presentation
+            if presentation.openTab == tab, !presentation.isPinned { controller.engine.send(.togglePin) }
+        }
+    }
+
+    /// Whether screen sharing, recordings, and screenshots leave every notch out.
+    public var hidesFromCapture = false {
+        didSet { for controller in controllers { controller.hidesFromCapture = hidesFromCapture } }
+    }
+
     /// Gives the keyboard to the first open notch, for typing started from a keyboard shortcut.
     public func focusKeyboard() {
         controllers.first { $0.engine.state.presentation.openTab != nil }?.focusKeyboard()
@@ -152,6 +165,7 @@ public final class PanelCoordinator {
                 guard let self else { return }
                 onPresentationsChange?(presentations)
             }
+            controller.hidesFromCapture = hidesFromCapture
             controller.engine.send(.setTabs(preferences.tabs))
             controller.engine.send(.setOngoing(shownOngoing))
             for reason in suspensions { controller.engine.send(.suspend(reason)) }
