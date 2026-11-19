@@ -16,9 +16,11 @@ public struct Theme: Decodable, Identifiable, Sendable {
     public let id: String
     public let name: String
     private let order: Int?
-    public let appearance: Appearance
+    public internal(set) var appearance: Appearance
     public let surface: Surface
-    public let colors: Colors
+    public internal(set) var colors: Colors
+    /// What's drawn on black: the closed notch, and a band or frame around the open sheet.
+    public let closed: Closed?
     public let fonts: Fonts
     public let icons: Icons
     public let radii: Radii
@@ -40,23 +42,62 @@ public struct Theme: Decodable, Identifiable, Sendable {
         public let kind: Kind
         /// The fill, and what glass falls back to before macOS 26 and with Reduce Transparency.
         public let color: ThemeColor
+        /// A band across the top, behind the camera and the header, with the sheet below it.
+        public let band: ThemeColor?
+        /// A frame around the sheet, `width` thick, drawn inside the notch's edge.
+        public let border: Border?
+        /// A texture over the sheet.
+        public let pattern: Pattern?
 
         public enum Kind: String, Decodable, Sendable {
             case solid, glass
         }
+
+        public struct Border: Decodable, Sendable {
+            public let color: ThemeColor
+            public let width: Double
+        }
+
+        public struct Pattern: Decodable, Sendable {
+            public let kind: Kind
+            public let color: ThemeColor
+            /// Points between dots.
+            public let spacing: Double
+
+            public enum Kind: String, Decodable, Sendable {
+                case dots
+            }
+        }
     }
 
     public struct Colors: Decodable, Sendable {
-        public let ink: ThemeColor
-        public let secondary: ThemeColor
-        public let tertiary: ThemeColor
+        public internal(set) var ink: ThemeColor
+        public internal(set) var secondary: ThemeColor
+        public internal(set) var tertiary: ThemeColor
         /// Platters, tracks, and chips.
         public let fill: ThemeColor
-        public let accent: ThemeColor
+        public internal(set) var accent: ThemeColor
         /// Text and icons on an accent fill.
         public let onAccent: ThemeColor
         /// The prompter's current word and search matches; the accent when a theme has none.
         public let highlight: ThemeColor?
+    }
+
+    public struct Closed: Decodable, Sendable {
+        /// Text and icons on black, for a light theme whose ink is dark.
+        public let ink: ThemeColor
+    }
+
+    /// The theme for what's drawn on black: the closed notch, and the header on a band. A light
+    /// theme's ink gives way to its closed ink there; a dark theme draws as it is.
+    public var onBlack: Theme {
+        guard let ink = closed?.ink else { return self }
+        var theme = self
+        theme.appearance = .dark
+        theme.colors.ink = ink
+        theme.colors.secondary = ink.opacity(0.7)
+        theme.colors.tertiary = ink.opacity(0.45)
+        return theme
     }
 
     public struct Fonts: Decodable, Sendable {
@@ -235,6 +276,8 @@ public enum SkinSlot: CaseIterable, Sendable {
 /// A color written "#RRGGBB" or "#RRGGBBAA", or "system" for macOS's accent color.
 public struct ThemeColor: Decodable, Sendable {
     public let color: Color
+    /// As the theme file writes it; nil for one derived in code.
+    public let text: String?
 
     public init(from decoder: any Decoder) throws {
         let text = try decoder.singleValueContainer().decode(String.self)
@@ -243,7 +286,15 @@ public struct ThemeColor: Decodable, Sendable {
                 .init(codingPath: decoder.codingPath, debugDescription: "\(text) isn't #RRGGBB, #RRGGBBAA, or system"))
         }
         self.color = color
+        self.text = text
     }
+
+    private init(_ color: Color) {
+        self.color = color
+        self.text = nil
+    }
+
+    func opacity(_ opacity: Double) -> ThemeColor { ThemeColor(color.opacity(opacity)) }
 
     static func parse(_ text: String) -> Color? {
         if text == "system" { return .accentColor }

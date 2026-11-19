@@ -97,7 +97,7 @@ struct NotchView: View {
         }
         // Closed, the notch is black in every theme, to hide in the camera housing.
         .environment(\.colorScheme, open ? theme.appearance.colorScheme : .dark)
-        .environment(\.theme, theme)
+        .environment(\.theme, open ? theme : theme.onBlack)
         .gradientSymbols()
         .contentShape(outline)
         .onHover { engine.send($0 ? .pointerEntered : .pointerExited) }
@@ -196,11 +196,50 @@ struct NotchView: View {
             }
             // A trace of black stays under the glass: the window server sends a click to the window
             // below wherever this one draws nothing, which closed the notch mid-click.
-            outline.fill(open && !glass ? theme.surface.color.color : .black).opacity(glass ? 0.01 : 1)
+            let framed = open && !glass && frame != nil
+            outline.fill(framed ? frame ?? .black : open && !glass ? theme.surface.color.color : .black)
+                .opacity(glass ? 0.01 : 1)
+            if framed { sheet.transition(.opacity) }
             if glass, metrics.notch != nil {
                 Self.shape(for: .compact, on: metrics).fill(.black)
                     .frame(width: metrics.compactSize.width, height: metrics.compactSize.height)
             }
+        }
+    }
+
+    /// A band across the top or a frame around the sheet, when the theme has one: the open notch is
+    /// that color, with the sheet inset in it.
+    private var frame: Color? {
+        (theme.surface.border?.color ?? theme.surface.band)?.color
+    }
+
+    /// The theme's surface, inset in its frame and below its band, with its texture. The band holds
+    /// the camera and the header; without one, the sheet starts under the camera.
+    private var sheet: some View {
+        let surface = theme.surface
+        let inset = surface.border?.width ?? 0
+        let side = (metrics.notch == nil ? 0 : theme.radii.notchTop) + inset
+        let top =
+            surface.band == nil ? (metrics.notch?.height ?? 0) + inset : contentPadding.top + Self.headerHeight + 4
+        let shape = RoundedRectangle(cornerRadius: max(theme.radii.notchBottom - inset, 4), style: .continuous)
+        return shape.fill(surface.color.color)
+            .overlay {
+                if let pattern = surface.pattern {
+                    shape.fill(ImagePaint(image: Image(nsImage: Self.tile(pattern))))
+                }
+            }
+            .padding(EdgeInsets(top: top, leading: side, bottom: inset, trailing: side))
+    }
+
+    /// One dot in a square as wide as the pattern's spacing; SwiftUI tiles it, so the texture costs
+    /// nothing as the notch resizes.
+    private static func tile(_ pattern: Theme.Surface.Pattern) -> NSImage {
+        let side = pattern.spacing
+        let color = NSColor(pattern.color.color)
+        return NSImage(size: NSSize(width: side, height: side), flipped: false) { _ in
+            color.setFill()
+            NSBezierPath(ovalIn: NSRect(x: 0, y: 0, width: 1, height: 1)).fill()
+            return true
         }
     }
 
@@ -309,6 +348,9 @@ struct NotchView: View {
                 }
             }
             .reportsFrame(to: editor, \.headerFrame)
+            // On a theme's band, the header is drawn on black, in the theme's closed ink.
+            .environment(\.theme, theme.surface.band == nil ? theme : theme.onBlack)
+            .environment(\.colorScheme, theme.surface.band == nil ? theme.appearance.colorScheme : .dark)
             if drawer {
                 AppDrawer(
                     preferences: preferences, current: tab, editor: editor, open: openFromDrawer,
@@ -334,10 +376,12 @@ struct NotchView: View {
         .padding(contentPadding)
         .overlay(alignment: .bottomTrailing) {
             // The grip's corner sits 10 pt in from the notch's visible corner along both edges, inside
-            // its 24–26 pt rounding, in the margin beside and under the content.
+            // its 24–26 pt rounding, in the margin beside and under the content; inside a theme's
+            // frame, 10 pt in from the sheet's.
+            let frame = theme.surface.border?.width ?? 0
             resizeGrip
-                .padding(.trailing, contentPadding.trailing - 22 + 10)
-                .padding(.bottom, 10)
+                .padding(.trailing, contentPadding.trailing - 22 + 10 + frame)
+                .padding(.bottom, 10 + frame)
         }
         .foregroundStyle(.themeInk)
     }
@@ -351,6 +395,8 @@ struct NotchView: View {
     }
 
     static let tabSpacing: CGFloat = 2
+    /// The header row's height: the tabs and buttons beside them.
+    private static let headerHeight: CGFloat = 26
     private static let headerButtonWidth: CGFloat = 26
     /// More room between the tabs' glass and All Apps' than the spacing, so the two read as apart.
     private static let appsGap: CGFloat = 4
