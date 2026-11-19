@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 import AppKit
 import NotchFeatures
+import NotchTheme
 import SwiftUI
 
 /// The Sound tab: the Mac's outputs and inputs on the left, to switch between, and faders on the
@@ -9,6 +10,8 @@ import SwiftUI
 /// apps than fit scroll sideways.
 public struct SoundView: View {
     let mixer: Mixer
+
+    @Environment(\.theme) private var theme
 
     public init(mixer: Mixer) {
         self.mixer = mixer
@@ -19,7 +22,7 @@ public struct SoundView: View {
             DeviceList(mixer: mixer)
                 .frame(width: 118)
             Rectangle()
-                .fill(.white.opacity(0.1))
+                .fill(.themeInk.opacity(0.1))
                 .frame(width: 1)
                 .padding(.vertical, 2)
                 .padding(.leading, 8)
@@ -46,7 +49,7 @@ public struct SoundView: View {
                     if let output = mixer.output { deviceFader(output, .output, names: names, slim: slim) }
                     if let input = mixer.input { deviceFader(input, .input, names: names, slim: slim) }
                     Capsule()
-                        .fill(.white.opacity(0.12))
+                        .fill(.themeInk.opacity(0.12))
                         .frame(width: 1)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 3)
@@ -67,7 +70,8 @@ public struct SoundView: View {
         }
     }
 
-    /// The output's fader is white and the microphone's orange, the color of macOS's mic light.
+    /// The output's fader is the theme's ink and the microphone's orange, the color of macOS's mic
+    /// light in every theme.
     private func deviceFader(_ device: DeviceLevel, _ direction: SoundDirection, names: Bool, slim: Bool)
         -> some View
     {
@@ -78,15 +82,16 @@ public struct SoundView: View {
             : device.symbol ?? (output ? Self.speaker(device.level) : "mic.fill")
         return Fader(
             title: Self.shortName(device.name), level: device.level, muted: device.isMuted,
-            tint: output ? .white : .orange, playing: false, enabled: device.hasVolume, names: names, slim: slim,
+            tint: output ? theme.color(.ink) : .orange, playing: false, enabled: device.hasVolume, names: names,
+            slim: slim,
             order: output ? 0 : 1, badge: nil, set: { mixer.setDeviceLevel($0, for: direction) },
             toggleMute: { mixer.toggleDeviceMute(direction) }, reset: nil,
             icon: {
                 Image(systemName: symbol)
-                    .font(.system(size: 12, weight: .semibold))
+                    .themeFont(.body, size: 12, weight: .semibold)
                     .contentTransition(.symbolEffect(.replace))
                     .frame(width: 24, height: 24)
-                    .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 6.5, style: .continuous))
+                    .background(.themeInk.opacity(0.14), in: RoundedRectangle(cornerRadius: 6.5, style: .continuous))
             })
     }
 
@@ -101,7 +106,7 @@ public struct SoundView: View {
                     .resizable()
                     .interpolation(.high)
                     .frame(width: 26, height: 26)
-                    .shadow(color: .black.opacity(0.5), radius: 2, y: 1)
+                    .shadow(color: .black.opacity(0.5), radius: 2, y: 1)  // a shadow, dark in every theme
             })
     }
 
@@ -131,11 +136,11 @@ public struct SoundView: View {
     private var empty: some View {
         VStack(spacing: 5) {
             Image(systemName: "waveform")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(.white.opacity(0.45))
+                .themeFont(.body, size: 16, weight: .medium)
+                .foregroundStyle(.themeInk.opacity(0.45))
             Text("Apps playing sound show up here")
-                .font(.system(size: 10))
-                .foregroundStyle(.white.opacity(0.55))
+                .themeFont(.body, size: 10)
+                .foregroundStyle(.themeInk.opacity(0.55))
                 .multilineTextAlignment(.center)
         }
         .frame(width: 92)
@@ -150,11 +155,11 @@ public struct SoundView: View {
                 .buttonStyle(.plain)
                 .fontWeight(.semibold)
         }
-        .font(.caption2)
+        .themeFont(.body, .caption2)
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(.black.opacity(0.8), in: Capsule())
-        .overlay(Capsule().strokeBorder(.white.opacity(0.15), lineWidth: 0.5))
+        .background(theme.surface.color.color.opacity(0.8), in: Capsule())
+        .overlay(Capsule().strokeBorder(.themeInk.opacity(0.15), lineWidth: 0.5))
         .accessibilityElement(children: .combine)
     }
 }
@@ -177,7 +182,7 @@ private struct DeviceList: View {
                 segment(.input, symbol: "mic.fill", title: "Input")
             }
             .padding(2)
-            .background(.white.opacity(0.07), in: Capsule())
+            .background(.themeInk.opacity(0.07), in: Capsule())
             ScrollView(.vertical) {
                 VStack(spacing: 2) {
                     ForEach(devices) { device in
@@ -200,15 +205,15 @@ private struct DeviceList: View {
             withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { direction = kind }
         } label: {
             HStack(spacing: 3) {
-                Image(systemName: symbol).font(.system(size: 8.5, weight: .semibold))
-                Text(title).font(.system(size: 10, weight: .semibold))
+                Image(systemName: symbol).themeFont(.body, size: 8.5, weight: .semibold)
+                Text(title).themeFont(.body, size: 10, weight: .semibold)
             }
-            .foregroundStyle(.white.opacity(chosen ? 1 : 0.5))
+            .foregroundStyle(.themeInk.opacity(chosen ? 1 : 0.5))
             .frame(maxWidth: .infinity)
             .frame(height: 18)
             .background {
                 if chosen {
-                    Capsule().fill(.white.opacity(0.16)).matchedGeometryEffect(id: "segment", in: selection)
+                    Capsule().fill(.themeInk.opacity(0.16)).matchedGeometryEffect(id: "segment", in: selection)
                 }
             }
             .contentShape(Capsule())
@@ -233,24 +238,24 @@ private struct DeviceRow: View {
         Button(action: choose) {
             HStack(spacing: 5) {
                 Image(systemName: device.symbol)
-                    .font(.system(size: 10.5, weight: .semibold))
+                    .themeFont(.body, size: 10.5, weight: .semibold)
                     .frame(width: 15)
                 Text(SoundView.shortName(device.name))
-                    .font(.system(size: 11))
+                    .themeFont(.body, size: 11)
                     .lineLimit(1)
                 Spacer(minLength: 0)
                 if current {
-                    Image(systemName: "checkmark").font(.system(size: 8.5, weight: .bold))
+                    Image(systemName: "checkmark").themeFont(.body, size: 8.5, weight: .bold)
                 }
             }
-            .foregroundStyle(.white.opacity(current ? 1 : hovering ? 0.85 : 0.6))
+            .foregroundStyle(.themeInk.opacity(current ? 1 : hovering ? 0.85 : 0.6))
             .padding(.horizontal, 6)
             .frame(height: 24)
             .background {
                 if current {
-                    shape.fill(.white.opacity(0.14)).matchedGeometryEffect(id: "device", in: selection)
+                    shape.fill(.themeInk.opacity(0.14)).matchedGeometryEffect(id: "device", in: selection)
                 } else if hovering {
-                    shape.fill(.white.opacity(0.06))
+                    shape.fill(.themeInk.opacity(0.06))
                 }
             }
             .contentShape(shape)
@@ -271,6 +276,7 @@ public struct MediaOutputView: View {
     let appID: String?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.theme) private var theme
     @Namespace private var selection
 
     public init(mixer: Mixer, appID: String?) {
@@ -296,7 +302,8 @@ public struct MediaOutputView: View {
                 if let output = mixer.output {
                     LevelSlider(
                         symbol: output.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill",
-                        title: SoundView.shortName(output.name), level: output.isMuted ? 0 : output.level, tint: .white,
+                        title: SoundView.shortName(output.name), level: output.isMuted ? 0 : output.level,
+                        tint: theme.color(.ink),
                         enabled: output.hasVolume
                     ) { mixer.setDeviceLevel($0, for: .output) }
                 }
@@ -347,16 +354,16 @@ private struct LevelSlider: View {
                 if let image {
                     Image(nsImage: image).resizable().frame(width: 13, height: 13)
                 } else if let symbol {
-                    Image(systemName: symbol).font(.system(size: 10, weight: .semibold)).frame(width: 13)
+                    Image(systemName: symbol).themeFont(.body, size: 10, weight: .semibold).frame(width: 13)
                 }
                 Text(title).lineLimit(1)
                 Spacer(minLength: 0)
-                Text("\(percent)%").monospacedDigit().foregroundStyle(.white.opacity(0.5))
+                Text("\(percent)%").monospacedDigit().foregroundStyle(.themeInk.opacity(0.5))
             }
-            .font(.system(size: 10.5, weight: .medium))
+            .themeFont(.body, size: 10.5, weight: .medium)
             GeometryReader { proxy in
                 Capsule()
-                    .fill(.white.opacity(0.12))
+                    .fill(.themeInk.opacity(0.12))
                     .overlay(alignment: .leading) {
                         Capsule().fill(tint).frame(width: max(6, proxy.size.width * min(max(level, 0), 1)))
                     }
@@ -424,6 +431,7 @@ private struct Fader<Icon: View>: View {
     @ViewBuilder let icon: Icon
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.theme) private var theme
     @State private var hovering = false
     @State private var dragging = false
     @State private var risen = false
@@ -439,8 +447,9 @@ private struct Fader<Icon: View>: View {
                     .opacity(muted ? 0.45 : 1)
                     .overlay(alignment: .bottomTrailing) {
                         if muted, let badge {
+                            // A dark badge over the app's icon, the same in every theme.
                             Image(systemName: badge)
-                                .font(.system(size: 6.5, weight: .bold))
+                                .themeFont(.body, size: 6.5, weight: .bold)
                                 .foregroundStyle(.white)
                                 .frame(width: 13, height: 13)
                                 .background(Color(white: 0.22), in: Circle())
@@ -458,8 +467,8 @@ private struct Fader<Icon: View>: View {
                 .opacity(playing ? 0.9 : 0)
             if names {
                 Text(title)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .themeFont(.body, size: 9, weight: .medium)
+                    .foregroundStyle(.themeInk.opacity(0.55))
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
                     .frame(width: 54)
@@ -490,22 +499,24 @@ private struct Fader<Icon: View>: View {
             let shape = RoundedRectangle(cornerRadius: 11, style: .continuous)
             let shown = risen ? min(max(level, 0), 1) : 0
             ZStack(alignment: .bottom) {
-                shape.fill(.white.opacity(hovering || dragging ? 0.13 : 0.08))
+                shape.fill(.themeInk.opacity(hovering || dragging ? 0.13 : 0.08))
                 fill
                     .frame(height: proxy.size.height * shown)
                     .animation(dragging ? nil : .easeOut(duration: 0.18), value: level)
                 if hovering || dragging {
                     Text("\(percent)")
-                        .font(.system(size: 10, weight: .bold, design: .rounded))
+                        .themeFont(.display, size: 10, weight: .bold, design: .rounded)
                         .monospacedDigit()
-                        .foregroundStyle(shown > 0.8 && !muted ? .black.opacity(0.7) : .white)
+                        .foregroundStyle(
+                            shown > 0.8 && !muted ? theme.color(.onAccent).opacity(0.7) : theme.color(.ink)
+                        )
                         .padding(.top, 6)
                         .frame(maxHeight: .infinity, alignment: .top)
                         .transition(.opacity)
                 }
             }
             .clipShape(shape)
-            .overlay(shape.strokeBorder(.white.opacity(dragging ? 0.3 : 0.1), lineWidth: 0.5))
+            .overlay(shape.strokeBorder(.themeInk.opacity(dragging ? 0.3 : 0.1), lineWidth: 0.5))
             .contentShape(shape)
             .gesture(
                 DragGesture(minimumDistance: 0)
@@ -525,10 +536,11 @@ private struct Fader<Icon: View>: View {
         .help(muted ? "\(title): muted" : "\(title): \(percent)%")
     }
 
-    /// The level: the tint with a gloss along its top and a lit edge; a faint gray while muted.
+    /// The level: the tint with a gloss along its top and a lit edge; a faint gray while muted. The
+    /// gloss and the edge are light catching the fader, white in every theme.
     private var fill: some View {
         Rectangle()
-            .fill(muted ? AnyShapeStyle(Color.white.opacity(0.14)) : AnyShapeStyle(tint))
+            .fill(muted ? AnyShapeStyle(.themeInk.opacity(0.14)) : AnyShapeStyle(tint))
             .overlay {
                 if !muted {
                     LinearGradient(
@@ -537,7 +549,9 @@ private struct Fader<Icon: View>: View {
                 }
             }
             .overlay(alignment: .top) {
-                Rectangle().fill(.white.opacity(muted ? 0.12 : 0.65)).frame(height: 1)
+                Rectangle()
+                    .fill(muted ? AnyShapeStyle(.themeInk.opacity(0.12)) : AnyShapeStyle(.white.opacity(0.65)))
+                    .frame(height: 1)
             }
     }
 }

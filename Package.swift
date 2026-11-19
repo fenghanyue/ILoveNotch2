@@ -47,7 +47,8 @@ let package = Package(
         .target(name: "NotchTransfer", dependencies: ["NotchCore", "NotchFeatures"], swiftSettings: strict),
         // The GitHub build's per-app volume, in the Media tab: Core Audio process taps, and a private
         // call that tells which app a helper process (Safari's WebKit, say) plays for.
-        .target(name: "NotchMixer", dependencies: ["NotchCore", "NotchFeatures"], swiftSettings: strict),
+        .target(
+            name: "NotchMixer", dependencies: ["NotchCore", "NotchTheme", "NotchFeatures"], swiftSettings: strict),
         .testTarget(name: "NotchCoreTests", dependencies: ["NotchCore"], swiftSettings: strict),
         .testTarget(name: "NotchThemeTests", dependencies: ["NotchTheme"], swiftSettings: strict),
         .testTarget(name: "NotchSurfaceTests", dependencies: ["NotchSurface"], swiftSettings: strict),
