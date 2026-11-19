@@ -281,6 +281,47 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
+## Textream (MIT)
+
+https://github.com/f/textream at commit
+2c02f3eee2d8eac238c10a20d3d0e4b021465656
+Copyright (c) 2026 Fatih Kadir Akin
+
+The Prompter tab adapts Textream's teleprompter logic into
+`Sources/NotchFeatures/Prompter`: following speech (`SpeechListener.swift`, from
+`SpeechRecognizer` and `VoiceActivityDetector`), matching what's heard to the
+script (`ScriptAlignment.swift`, from `SpeechRecognizer`'s word match and
+`SpeechTextAlignment`), and reading a PowerPoint deck's speaker notes
+(`PresentationNotes.swift`, from `PresentationNotesExtractor`). Each adapted
+file names its origin in its header. ILoveNotch's changes: positions counted in
+words rather than characters, recognition kept on this Mac, the system's own
+microphone, and its own notch view. ILoveNotch isn't affiliated with or
+endorsed by Textream.
+
+```text
+MIT License
+
+Copyright (c) 2026 Fatih Kadir Akin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 <!-- Entry format:
 ## Name (License)
 https://github.com/owner/repo
