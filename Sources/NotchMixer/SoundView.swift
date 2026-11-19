@@ -97,7 +97,8 @@ public struct SoundView: View {
 
     private func fader(_ app: MixerApp, names: Bool, slim: Bool, order: Int) -> some View {
         Fader(
-            title: app.name, level: mixer.level(of: app.id), muted: mixer.isMuted(app.id), tint: mixer.tint(for: app),
+            title: app.name, level: mixer.level(of: app.id), muted: mixer.isMuted(app.id),
+            tint: mixer.tint(for: app) ?? theme.color(.ink),
             playing: app.isPlaying, enabled: true, names: names, slim: slim, order: order, badge: "speaker.slash.fill",
             set: { mixer.setLevel($0, of: app.id) }, toggleMute: { mixer.toggleMute(app.id) },
             reset: mixer.isAdjusted(app.id) ? { mixer.reset(app.id) } : nil,
@@ -310,7 +311,8 @@ public struct MediaOutputView: View {
                 if let app = mixer.apps.first(where: { $0.id == appID }) {
                     LevelSlider(
                         image: mixer.icon(for: app), title: app.name,
-                        level: mixer.isMuted(app.id) ? 0 : mixer.level(of: app.id), tint: mixer.tint(for: app),
+                        level: mixer.isMuted(app.id) ? 0 : mixer.level(of: app.id),
+                        tint: mixer.tint(for: app) ?? theme.color(.ink),
                         enabled: true
                     ) { mixer.setLevel($0, of: app.id) }
                 }

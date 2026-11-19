@@ -121,7 +121,8 @@ public final class Mixer {
     /// A tap heard sound this session, so macOS lets ILoveNotch record system audio.
     @ObservationIgnored private var heard = false
     @ObservationIgnored private var icons: [String: NSImage] = [:]
-    @ObservationIgnored private var tints: [String: Color] = [:]
+    /// Each app's icon color, nil for a gray icon, read once.
+    @ObservationIgnored private var tints: [String: Color?] = [:]
 
     public convenience init() {
         self.init(defaults: .standard, live: true)
@@ -217,13 +218,13 @@ public final class Mixer {
         return icon
     }
 
-    /// The app icon's color, for its fader.
-    public func tint(for app: MixerApp) -> Color {
+    /// The app icon's color, for its fader; nil for a gray icon, whose fader takes the theme's ink.
+    public func tint(for app: MixerApp) -> Color? {
         if let tint = tints[app.id] { return tint }
         var rect = CGRect(x: 0, y: 0, width: 64, height: 64)
         let image = icon(for: app).cgImage(forProposedRect: &rect, context: nil, hints: nil)
-        let tint = image.flatMap(Self.tint(of:))?.color ?? .white
-        tints[app.id] = tint
+        let tint = image.flatMap(Self.tint(of:))?.color
+        tints[app.id] = .some(tint)
         return tint
     }
 
