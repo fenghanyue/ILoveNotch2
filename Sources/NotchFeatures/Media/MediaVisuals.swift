@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
+import NotchTheme
 import SwiftUI
 
 /// A seek bar whose played part is a travelling sine wave, in the spirit of the media players in
-/// Android 13 and One UI: it ripples while music plays and flattens smoothly when it pauses.
+/// Android 13 and One UI: it ripples while music plays and flattens smoothly when it pauses. The
+/// theme sets its line (`seekBar`); every theme keeps the wave.
 struct WavySeekBar: View, Animatable {
     /// How far through the track, 0...1.
     var progress: Double
@@ -12,21 +14,25 @@ struct WavySeekBar: View, Animatable {
     var phase: Double
     var tint: Color
 
+    @Environment(\.theme) private var theme
+
     nonisolated var animatableData: Double {
         get { amplitude }
         set { amplitude = newValue }
     }
 
     var body: some View {
-        Canvas { context, size in
+        let style = theme.seekBar
+        let rested = theme.color(.ink).opacity(0.22)
+        return Canvas { context, size in
             let midY = size.height / 2
-            let lineWidth: CGFloat = 3.5
+            let lineWidth = style.line
+            let cap = style.cap.lineCap
             let playedX = size.width * min(max(progress, 0), 1)
             var rest = Path()
             rest.move(to: CGPoint(x: playedX, y: midY))
             rest.addLine(to: CGPoint(x: size.width, y: midY))
-            context.stroke(
-                rest, with: .color(.white.opacity(0.22)), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            context.stroke(rest, with: .color(rested), style: StrokeStyle(lineWidth: lineWidth, lineCap: cap))
 
             let height = (size.height / 2 - lineWidth) * amplitude
             let wavelength: CGFloat = 24
@@ -36,7 +42,7 @@ struct WavySeekBar: View, Animatable {
             for x in stride(from: 2, through: playedX, by: 2) { wave.addLine(to: CGPoint(x: x, y: y(x))) }
             wave.addLine(to: CGPoint(x: playedX, y: y(playedX)))
             context.stroke(
-                wave, with: .color(tint), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
+                wave, with: .color(tint), style: StrokeStyle(lineWidth: lineWidth, lineCap: cap, lineJoin: .round))
 
             // The play head: a short rounded bar.
             let head = CGRect(x: playedX - 2.5, y: midY - 8, width: 5, height: 16)
@@ -57,15 +63,18 @@ struct Waveform: View, Animatable {
     /// Loudness per band, 0...1, lowest frequencies first; empty for the stand-in motion.
     var bands: [Float] = []
 
+    @Environment(\.theme) private var theme
+
     nonisolated var animatableData: Double {
         get { level }
         set { level = newValue }
     }
 
     var body: some View {
-        Canvas { context, size in
-            let step: CGFloat = 5
-            let barWidth: CGFloat = 3
+        let style = theme.waveform
+        return Canvas { context, size in
+            let step = style.bar + style.gap
+            let barWidth = style.bar
             let count = Int(size.width / step)
             let middle = Double(count - 1) / 2
             for index in 0..<count {

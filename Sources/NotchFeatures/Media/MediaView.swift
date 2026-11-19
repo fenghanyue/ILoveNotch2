@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 import AppKit
+import NotchTheme
 import SwiftUI
 
 /// The media tab: artwork and track details over a soft glow of the cover, a wavy seek bar you can
@@ -12,6 +13,7 @@ struct MediaView: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.theme) private var theme
     /// Where the seek bar is being dragged to, 0...1.
     @State private var scrub: Double?
     @State private var backTaps = 0
@@ -23,7 +25,9 @@ struct MediaView: View {
         case list, lyrics, output
     }
 
-    private var tint: Color { media.accent?.color ?? .white }
+    /// The player's color: the artwork's, or the theme's when its seek bar says so.
+    private var tint: Color { theme.color(theme.seekBar.fill, artwork: media.accent?.color) }
+    private var waveformTint: Color { theme.color(theme.waveform.fill, artwork: media.accent?.color) }
 
     var body: some View {
         if let now = media.nowPlaying {
@@ -98,7 +102,7 @@ struct MediaView: View {
                     if waveform {
                         let heard = media.audio.isHearing ? media.audio.bands : []
                         Spacer(minLength: 0)
-                        Waveform(level: animating ? 1 : 0, time: time, tint: tint, bands: heard)
+                        Waveform(level: animating ? 1 : 0, time: time, tint: waveformTint, bands: heard)
                             .frame(height: 18)
                             .fadingEdges(.horizontal, length: 28)
                             .animation(.easeInOut(duration: 0.5), value: animating)
@@ -124,7 +128,7 @@ struct MediaView: View {
                     LinearGradient(
                         colors: [tint.opacity(0.45), tint.opacity(0.12)], startPoint: .topLeading,
                         endPoint: .bottomTrailing)
-                    Image(systemName: "music.note").font(.system(size: size * 0.36)).opacity(0.7)
+                    Image(systemName: "music.note").themeFont(.body, size: size * 0.36).opacity(0.7)
                 }
             }
             .frame(width: size, height: size)
@@ -140,14 +144,14 @@ struct MediaView: View {
     private func details(_ now: NowPlaying, inline: Bool) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(now.title)
-                .font(.system(size: 16, weight: .semibold))
+                .themeFont(.display, size: 16, weight: .semibold)
                 .lineLimit(1)
                 .id(now.title)
                 .transition(.push(from: .bottom))
             if let subtitle = now.artist ?? now.album {
                 Text(subtitle)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .themeFont(.body, size: 13)
+                    .foregroundStyle(.themeInk.opacity(0.6))
                     .lineLimit(1)
                     .id(subtitle)
                     .transition(.push(from: .bottom))
@@ -210,8 +214,8 @@ struct MediaView: View {
                 Text(FileManager.default.displayName(atPath: app.path))
                     .lineLimit(1)
             }
-            .font(.system(size: 11))
-            .foregroundStyle(.white.opacity(0.45))
+            .themeFont(.body, size: 11)
+            .foregroundStyle(.themeInk.opacity(0.45))
         }
     }
 
@@ -247,8 +251,8 @@ struct MediaView: View {
             }
             .frame(minWidth: 38, alignment: .leading)
         }
-        .font(.caption2)
-        .foregroundStyle(.white.opacity(0.55))
+        .themeFont(.body, .caption2)
+        .foregroundStyle(.themeInk.opacity(0.55))
         .opacity(duration > 0 ? 1 : 0.4)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Playback position")
@@ -273,9 +277,9 @@ struct MediaView: View {
                 media.send(.togglePlayPause)
             } label: {
                 Image(systemName: now.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.system(size: 18, weight: .bold))
+                    .themeFont(.body, size: 18, weight: .bold)
                     .contentTransition(.symbolEffect(.replace.downUp))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(.themeOnAccent)
                     .frame(width: 40, height: 40)
                     .background(tint, in: Circle())
             }
@@ -290,7 +294,7 @@ struct MediaView: View {
             .accessibilityLabel(interval ? "Forward 15 seconds" : "Next track")
             if modes { repeatButton(size: 13) }
         }
-        .font(.system(size: 17, weight: .semibold))
+        .themeFont(.body, size: 17, weight: .semibold)
         .buttonStyle(PressableButtonStyle())
         .disabled(!media.hasControls)
     }
@@ -324,8 +328,8 @@ struct MediaView: View {
     {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: size, weight: .semibold))
-                .foregroundStyle(lit ? tint : .white.opacity(0.55))
+                .themeFont(.body, size: size, weight: .semibold)
+                .foregroundStyle(lit ? tint : theme.color(.ink).opacity(0.55))
                 .frame(width: size + 9, height: size + 7)
                 .contentShape(Rectangle())
         }
@@ -339,8 +343,8 @@ struct MediaView: View {
             NSWorkspace.shared.open(.privacySettings("Privacy_Automation"))
         } label: {
             Text("Allow ILoveNotch to control \(player.name) in Privacy & Security › Automation")
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.55))
+                .themeFont(.body, .caption2)
+                .foregroundStyle(.themeInk.opacity(0.55))
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
         }
@@ -357,16 +361,16 @@ struct MediaView: View {
                     show(nil)
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 11, weight: .bold))
+                        .themeFont(.body, size: 11, weight: .bold)
                         .frame(width: 20, height: 20)
-                        .background(.white.opacity(0.1), in: Circle())
+                        .background(.themeInk.opacity(0.1), in: Circle())
                 }
                 .buttonStyle(PressableButtonStyle())
                 .help("Back to the player")
                 .accessibilityLabel("Back to the player")
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(title(of: panel)).font(.system(size: 12, weight: .semibold))
-                    Text(now.title).font(.system(size: 10.5)).foregroundStyle(.white.opacity(0.5))
+                    Text(title(of: panel)).themeFont(.body, size: 12, weight: .semibold)
+                    Text(now.title).themeFont(.body, size: 10.5).foregroundStyle(.themeInk.opacity(0.5))
                 }
                 .lineLimit(1)
                 Spacer(minLength: 0)
@@ -399,8 +403,8 @@ struct MediaView: View {
         if let queue = media.queue {
             if queue.items.isEmpty {
                 Text(emptyList(queue))
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.55))
+                    .themeFont(.body, .caption)
+                    .foregroundStyle(.themeInk.opacity(0.55))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .multilineTextAlignment(.center)
             } else {
@@ -431,8 +435,8 @@ struct MediaView: View {
     private var lyricsText: some View {
         ScrollView(.vertical) {
             Text(media.lyrics ?? "")
-                .font(.system(size: 12.5, weight: .medium))
-                .foregroundStyle(.white.opacity(0.8))
+                .themeFont(.body, size: 12.5, weight: .medium)
+                .foregroundStyle(.themeInk.opacity(0.8))
                 .lineSpacing(3)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .textSelection(.enabled)
@@ -469,22 +473,22 @@ struct MediaView: View {
             Spacer(minLength: 0)
             if note {
                 Image(systemName: "music.note")
-                    .font(.system(size: 20, weight: .semibold))
+                    .themeFont(.body, size: 20, weight: .semibold)
                     .frame(width: 46, height: 46)
-                    .background(.white.opacity(0.08), in: Circle())
+                    .background(.themeInk.opacity(0.08), in: Circle())
             }
-            Text("Nothing playing").font(.headline)
+            Text("Nothing playing").themeFont(.body, .headline)
             Text(
                 media.source == .adapter
                     ? "Play something in Music, Spotify, a browser, or any app that reports what it's playing."
                     : "Play something in Music or Spotify."
             )
-            .font(.caption)
-            .foregroundStyle(.white.opacity(0.55))
+            .themeFont(.body, .caption)
+            .foregroundStyle(.themeInk.opacity(0.55))
             .multilineTextAlignment(.center)
             .frame(maxWidth: 320)
             Spacer(minLength: 0)
-            Waveform(level: 0, time: 0, tint: .white)
+            Waveform(level: 0, time: 0, tint: theme.color(theme.waveform.fill, artwork: nil))
                 .frame(height: 14)
                 .fadingEdges(.horizontal, length: 40)
                 .opacity(0.4)
@@ -506,28 +510,28 @@ private struct QueueRow: View {
         Button(action: play) {
             HStack(spacing: 8) {
                 Image(systemName: "play.fill")
-                    .font(.system(size: 8, weight: .bold))
+                    .themeFont(.body, size: 8, weight: .bold)
                     .foregroundStyle(tint)
                     .frame(width: 10)
                     .opacity(hovering ? 1 : 0)
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(item.title).font(.system(size: 12, weight: .medium))
+                    Text(item.title).themeFont(.body, size: 12, weight: .medium)
                     if let artist = item.artist {
-                        Text(artist).font(.system(size: 10.5)).foregroundStyle(.white.opacity(0.5))
+                        Text(artist).themeFont(.body, size: 10.5).foregroundStyle(.themeInk.opacity(0.5))
                     }
                 }
                 .lineLimit(1)
                 Spacer(minLength: 0)
                 if let duration = item.duration, duration > 0 {
                     Text(formatTime(duration, roundingUp: false))
-                        .font(.system(size: 10.5))
+                        .themeFont(.body, size: 10.5)
                         .monospacedDigit()
-                        .foregroundStyle(.white.opacity(0.45))
+                        .foregroundStyle(.themeInk.opacity(0.45))
                 }
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
-            .background(Color.white.opacity(hovering ? 0.08 : 0), in: shape)
+            .background(.themeInk.opacity(hovering ? 0.08 : 0), in: shape)
             .contentShape(shape)
         }
         .buttonStyle(.plain)

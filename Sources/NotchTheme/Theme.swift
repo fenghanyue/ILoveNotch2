@@ -198,6 +198,25 @@ public struct Theme: Decodable, Identifiable, Sendable {
             }
         return name.flatMap { slot.shipped.contains($0) ? $0 : nil }
     }
+
+    /// What a media visual with `fill` is tinted: `artwork` is the now-playing artwork's color, or
+    /// ink without one.
+    public func color(_ fill: Fill, artwork: Color?) -> Color {
+        switch fill {
+        case .artwork: artwork ?? color(.ink)
+        case .accent: color(.accent)
+        case .ink: color(.ink)
+        }
+    }
+}
+
+extension Theme.Icons.Cap {
+    public var lineCap: CGLineCap {
+        switch self {
+        case .round: .round
+        case .square: .square
+        }
+    }
 }
 
 /// The places a theme can draw its own view instead of the default one.
