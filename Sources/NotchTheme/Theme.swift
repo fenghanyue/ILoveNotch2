@@ -302,6 +302,18 @@ extension Theme {
         .heavy: NSFont.Weight.heavy.rawValue, .black: NSFont.Weight.black.rawValue,
     ]
 
+    /// The font for `role` for AppKit text, such as the prompter's script: with the system face,
+    /// exactly `NSFont.systemFont(ofSize:weight:)`.
+    public func nsFont(_ role: Fonts.Role, size: CGFloat, weight: Font.Weight = .regular) -> NSFont {
+        let face = fonts[role]
+        let weight = face.weight?.font ?? weight
+        let size = size * (face.scale ?? 1)
+        if face.isSystem {
+            return .systemFont(ofSize: size, weight: NSFont.Weight(Self.weightTraits[weight] ?? 0))
+        }
+        return Self.font(family: face.family, size: size, weight: weight) as NSFont
+    }
+
     /// The font for `role` in a text style, such as `.caption`. With the system face this is the
     /// style itself.
     public func font(_ role: Fonts.Role, _ style: Font.TextStyle) -> Font {
