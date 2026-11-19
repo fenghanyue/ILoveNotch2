@@ -193,9 +193,15 @@ public struct Theme: Decodable, Identifiable, Sendable {
         public let stroke: Double?
         /// Line sets only: round or square ends and joins.
         public let cap: Cap?
+        /// Symbol sets only: one color, or the system's layered shades of it.
+        public let rendering: Rendering?
 
         public enum Cap: String, Decodable, Sendable {
             case round, square
+        }
+
+        public enum Rendering: String, Decodable, Sendable {
+            case monochrome, hierarchical
         }
     }
 

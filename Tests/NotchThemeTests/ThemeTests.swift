@@ -95,7 +95,8 @@ struct IconTests {
         var sizes: [FeatureID: (size: Double, drop: Double)] = [:]
         for feature in FeatureID.allCases {
             let image = try #require(ThemeIcon.image(.feature(feature), in: set))
-            let ink = try #require(Self.ink(of: image, size: ThemeIcon.size))
+            let natural = ThemeIcon.symbol(.feature(feature), in: set) != nil
+            let ink = try #require(Self.ink(of: image, size: ThemeIcon.size, natural: natural))
             sizes[feature] = ((ink.width * ink.height).squareRoot(), ink.drop)
         }
         let median = sizes.values.map(\.size).sorted()[sizes.count / 2]
@@ -106,7 +107,11 @@ struct IconTests {
     }
 
     /// An image's ink drawn at 4×, in points: its size, and how far below the image's center it sits.
-    private static func ink(of image: NSImage, size: CGFloat) -> (width: Double, height: Double, drop: Double)? {
+    /// An SVG fills the icon's square, as the view resizes it; a symbol (`natural`) keeps its own
+    /// size, centered, as the system draws it.
+    private static func ink(of image: NSImage, size: CGFloat, natural: Bool = false)
+        -> (width: Double, height: Double, drop: Double)?
+    {
         let side = Int(size * 4)
         var pixels = [UInt8](repeating: 0, count: side * side * 4)
         guard
@@ -116,7 +121,13 @@ struct IconTests {
         else { return nil }
         let previous = NSGraphicsContext.current
         NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
-        image.draw(in: NSRect(x: 0, y: 0, width: side, height: side))
+        let drawn =
+            natural
+            ? CGSize(width: image.size.width * 4, height: image.size.height * 4) : CGSize(width: side, height: side)
+        image.draw(
+            in: NSRect(
+                x: (CGFloat(side) - drawn.width) / 2, y: (CGFloat(side) - drawn.height) / 2, width: drawn.width,
+                height: drawn.height))
         NSGraphicsContext.current = previous
         var (minX, maxX, minY, maxY) = (side, 0, side, 0)
         for y in 0..<side {
