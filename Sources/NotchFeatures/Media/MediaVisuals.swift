@@ -24,6 +24,7 @@ struct WavySeekBar: View, Animatable {
     var body: some View {
         let style = theme.seekBar
         let rested = theme.color(.ink).opacity(0.22)
+        let headTint = style.headFill.map { $0 == .artwork ? tint : theme.color($0, artwork: nil) } ?? tint
         return Canvas { context, size in
             let midY = size.height / 2
             let lineWidth = style.line
@@ -32,7 +33,7 @@ struct WavySeekBar: View, Animatable {
             var rest = Path()
             rest.move(to: CGPoint(x: playedX, y: midY))
             rest.addLine(to: CGPoint(x: size.width, y: midY))
-            context.stroke(rest, with: .color(rested), style: StrokeStyle(lineWidth: lineWidth, lineCap: cap))
+            context.stroke(rest, with: .color(rested), style: Self.stroke(style.rest, width: lineWidth, cap: cap))
 
             let height = (size.height / 2 - lineWidth) * amplitude
             let wavelength: CGFloat = 24
@@ -42,17 +43,27 @@ struct WavySeekBar: View, Animatable {
             for x in stride(from: 2, through: playedX, by: 2) { wave.addLine(to: CGPoint(x: x, y: y(x))) }
             wave.addLine(to: CGPoint(x: playedX, y: y(playedX)))
             context.stroke(
-                wave, with: .color(tint), style: StrokeStyle(lineWidth: lineWidth, lineCap: cap, lineJoin: .round))
+                wave, with: .color(tint), style: Self.stroke(style.played ?? .solid, width: lineWidth, cap: cap))
 
-            // The play head: a short rounded bar, or a dot.
+            // The play head: a short rounded bar, a dot, or a square-cornered block.
             switch style.head {
             case .bar:
                 let head = CGRect(x: playedX - 2.5, y: midY - 8, width: 5, height: 16)
-                context.fill(Path(roundedRect: head, cornerRadius: 2.5), with: .color(tint))
+                context.fill(Path(roundedRect: head, cornerRadius: 2.5), with: .color(headTint))
             case .dot:
                 context.fill(
-                    Path(ellipseIn: CGRect(x: playedX - 6, y: midY - 6, width: 12, height: 12)), with: .color(tint))
+                    Path(ellipseIn: CGRect(x: playedX - 6, y: midY - 6, width: 12, height: 12)), with: .color(headTint))
+            case .block:
+                context.fill(Path(CGRect(x: playedX - 3, y: midY - 9, width: 6, height: 18)), with: .color(headTint))
             }
+        }
+    }
+
+    /// A solid line, or round dots as wide as the line with a dot's width between them.
+    private static func stroke(_ line: Theme.SeekBar.Line, width: CGFloat, cap: CGLineCap) -> StrokeStyle {
+        switch line {
+        case .solid: StrokeStyle(lineWidth: width, lineCap: cap, lineJoin: .round)
+        case .dotted: StrokeStyle(lineWidth: width, lineCap: .round, dash: [0, width * 1.8])
         }
     }
 }
@@ -78,6 +89,7 @@ struct Waveform: View, Animatable {
 
     var body: some View {
         let style = theme.waveform
+        let peak = style.peak.map { $0 == .artwork ? tint : theme.color($0, artwork: nil) }
         return Canvas { context, size in
             let step = style.bar + style.gap
             let barWidth = style.bar
@@ -88,10 +100,20 @@ struct Waveform: View, Animatable {
                 let fromMiddle = middle > 0 ? abs(Double(index) - middle) / middle : 0
                 let energy = (bands.isEmpty ? motion(at: index) : loudness(at: fromMiddle)) * level
                 let height = max(3, size.height * (0.1 + 0.9 * energy))
-                let top = (size.height - height) / 2
-                let bar = CGRect(x: CGFloat(index) * step, y: top, width: barWidth, height: height)
-                context.fill(
-                    Path(roundedRect: bar, cornerRadius: corner), with: .color(tint.opacity(0.3 + 0.5 * energy)))
+                let x = CGFloat(index) * step
+                let lit = tint.opacity(0.3 + 0.5 * energy)
+                let color = energy > 0.82 ? peak ?? lit : lit
+                if style.shape == .led {
+                    // Lit segments, 3 pt with 2 pt between, standing on the bottom.
+                    let segments = max(1, Int((height + 2) / 5))
+                    for segment in 0..<segments {
+                        let y = size.height - CGFloat(segment + 1) * 5 + 2
+                        context.fill(Path(CGRect(x: x, y: y, width: barWidth, height: 3)), with: .color(color))
+                    }
+                } else {
+                    let bar = CGRect(x: x, y: (size.height - height) / 2, width: barWidth, height: height)
+                    context.fill(Path(roundedRect: bar, cornerRadius: corner), with: .color(color))
+                }
             }
         }
     }

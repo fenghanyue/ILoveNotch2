@@ -215,12 +215,19 @@ public struct Theme: Decodable, Identifiable, Sendable {
     public struct SeekBar: Decodable, Sendable {
         public let line: Double
         public let cap: Icons.Cap
-        public let rest: Rest
+        /// The unplayed part.
+        public let rest: Line
+        /// The played wave; solid unless the theme says so.
+        public let played: Line?
         public let head: Head
         public let fill: Fill
+        /// The head's color; the wave's unless the theme says so.
+        public let headFill: Fill?
 
-        public enum Rest: String, Decodable, Sendable {
+        public enum Line: String, Decodable, Sendable {
             case solid
+            /// Round dots along the line.
+            case dotted
         }
 
         public enum Head: String, Decodable, Sendable {
@@ -228,6 +235,8 @@ public struct Theme: Decodable, Identifiable, Sendable {
             case bar
             /// A round dot on the line.
             case dot
+            /// A square-cornered bar.
+            case block
         }
     }
 
@@ -236,12 +245,16 @@ public struct Theme: Decodable, Identifiable, Sendable {
         public let gap: Double
         public let shape: Shape
         public let fill: Fill
+        /// The color of a column at its loudest; the fill's unless the theme says so.
+        public let peak: Fill?
 
         public enum Shape: String, Decodable, Sendable {
             /// Bars with round ends.
             case round
             /// Bars with square ends.
             case square
+            /// Columns of lit segments, standing on the bottom, like a meter's LEDs.
+            case led
         }
     }
 
