@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
+import NotchTheme
 import SwiftUI
 
 /// Download in Vercel's Geist blue and upload in its amber: the dark-mode pair NetSpeed's palette
 /// validator picked to tell apart with any color vision, each with a lighter step for gradients.
+/// They mean down and up, so they're the same in every theme.
 enum NetworkTint {
     static let down = Color(red: 0.196, green: 0.569, blue: 1)  // #3291FF
     static let downLight = Color(red: 0.51, green: 0.76, blue: 1)  // #82C2FF
@@ -39,17 +41,19 @@ struct NetworkView: View {
 private struct Card: ViewModifier {
     let tint: Color
 
+    @Environment(\.theme) private var theme
+
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
         content
             .background(
                 shape.fill(
                     LinearGradient(
-                        colors: [tint.opacity(0.16), .white.opacity(0.03)], startPoint: .topLeading,
+                        colors: [tint.opacity(0.16), theme.color(.ink).opacity(0.03)], startPoint: .topLeading,
                         endPoint: .bottomTrailing))
             )
             .clipShape(shape)
-            .overlay(shape.strokeBorder(.white.opacity(0.08)))
+            .overlay(shape.strokeBorder(.themeInk.opacity(0.08)))
     }
 }
 
@@ -73,8 +77,8 @@ private struct LiveCard: View {
                         if let peak = network.recent.map(\.rate.down).max(), peak > 0 {
                             let speed = NetworkFeature.speed(peak)
                             Text("peak \(speed.value) \(speed.unit)")
-                                .font(.system(size: 9, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.45))
+                                .themeFont(.body, size: 9, weight: .medium)
+                                .foregroundStyle(.themeInk.opacity(0.45))
                                 .fixedSize()
                         }
                     }
@@ -84,22 +88,22 @@ private struct LiveCard: View {
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 if compact {
                     Image(systemName: "arrow.down")
-                        .font(.system(size: 11, weight: .heavy))
+                        .themeFont(.body, size: 11, weight: .heavy)
                         .foregroundStyle(NetworkTint.downLight)
                 }
                 // ponytail: no rolling digits. A numericText transition on a number that changes every
                 // second kept the open tab at 12-51% of a core (0.5% without); roll them only if that changes.
                 Text(down.value)
-                    .font(.system(size: compact ? 22 : 32, weight: .bold, design: .rounded))
+                    .themeFont(.display, size: compact ? 22 : 32, weight: .bold, design: .rounded)
                 Text(down.unit)
-                    .font(.system(size: compact ? 10 : 12, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.55))
+                    .themeFont(.body, size: compact ? 10 : 12, weight: .semibold)
+                    .foregroundStyle(.themeInk.opacity(0.55))
             }
             HStack(spacing: 3) {
-                Image(systemName: "arrow.up").font(.system(size: compact ? 8 : 9, weight: .heavy))
+                Image(systemName: "arrow.up").themeFont(.body, size: compact ? 8 : 9, weight: .heavy)
                 Text("\(up.value) \(up.unit)")
             }
-            .font(.system(size: compact ? 10.5 : 13, weight: .semibold, design: .rounded))
+            .themeFont(.display, size: compact ? 10.5 : 13, weight: .semibold, design: .rounded)
             .foregroundStyle(NetworkTint.upLight)
             Sparkline(samples: network.recent)
                 .padding(.horizontal, -padding)
@@ -121,8 +125,8 @@ private struct LiveCard: View {
             Circle().fill(color).frame(width: 6, height: 6).shadow(color: color, radius: 2)
             Text(title).textCase(.uppercase).tracking(0.6)
         }
-        .font(.system(size: 9, weight: .bold))
-        .foregroundStyle(.white.opacity(0.5))
+        .themeFont(.body, size: 9, weight: .bold)
+        .foregroundStyle(.themeInk.opacity(0.5))
         .fixedSize()
     }
 
@@ -137,10 +141,13 @@ private struct LiveCard: View {
 private struct Sparkline: View {
     let samples: [RateSample]
 
+    @Environment(\.theme) private var theme
+
     var body: some View {
-        Canvas { context, size in
+        let ink = theme.color(.ink)
+        return Canvas { context, size in
             let baseline = Path(CGRect(x: 0, y: size.height - 1, width: size.width, height: 1))
-            context.fill(baseline, with: .color(.white.opacity(0.06)))
+            context.fill(baseline, with: .color(ink.opacity(0.06)))
             guard samples.count > 1, let latest = samples.last?.at else { return }
             let peak = max(samples.map { max($0.rate.down, $0.rate.up) }.max() ?? 0, 100_000)
             let top: CGFloat = 8
@@ -174,7 +181,7 @@ private struct Sparkline: View {
                     style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
                 let head = down[down.count - 1]
                 let dot = CGRect(x: head.x - 3, y: head.y - 3, width: 6, height: 6)
-                glow.fill(Path(ellipseIn: dot), with: .color(.white))
+                glow.fill(Path(ellipseIn: dot), with: .color(ink))
             }
         }
         .accessibilityHidden(true)
@@ -201,6 +208,7 @@ private struct HistoryCard: View {
     let compact: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.theme) private var theme
     @State private var picked: Int?
     @Namespace private var selection
 
@@ -217,16 +225,16 @@ private struct HistoryCard: View {
                         picker(short: true)
                     } else {
                         Text(caption)
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(.white.opacity(0.75))
+                            .themeFont(.body, size: 10, weight: .semibold)
+                            .foregroundStyle(.themeInk.opacity(0.75))
                     }
                 }
                 .frame(height: 20)
             } else {
                 picker(short: false)
                 Text(caption)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.5))
+                    .themeFont(.body, size: 10, weight: .medium)
+                    .foregroundStyle(.themeInk.opacity(0.5))
             }
             Totals(traffic: traffic, compact: compact)
             Bars(buckets: buckets, range: network.range, picked: $picked)
@@ -238,14 +246,14 @@ private struct HistoryCard: View {
                     Spacer()
                     Text(network.range.axisLabel(last.start))
                 }
-                .font(.system(size: 9, weight: .medium))
-                .foregroundStyle(.white.opacity(0.4))
+                .themeFont(.body, size: 9, weight: .medium)
+                .foregroundStyle(.themeInk.opacity(0.4))
                 .accessibilityHidden(true)
             }
         }
         .padding(compact ? 8 : 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .modifier(Card(tint: .white))
+        .modifier(Card(tint: theme.color(.ink)))
         .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.82), value: network.range)
         .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: picked)
     }
@@ -261,13 +269,14 @@ private struct HistoryCard: View {
                     network.range = range
                 } label: {
                     Text(short ? range.shortTitle : range.title)
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(.white.opacity(chosen ? 1 : 0.5))
+                        .themeFont(.body, size: 10, weight: .semibold)
+                        .foregroundStyle(.themeInk.opacity(chosen ? 1 : 0.5))
                         .padding(.horizontal, short ? 6 : 8)
                         .frame(height: short ? 16 : 18)
                         .background {
                             if chosen {
-                                Capsule().fill(.white.opacity(0.16)).matchedGeometryEffect(id: "range", in: selection)
+                                Capsule().fill(.themeInk.opacity(0.16)).matchedGeometryEffect(
+                                    id: "range", in: selection)
                             }
                         }
                         .contentShape(Capsule())
@@ -279,7 +288,7 @@ private struct HistoryCard: View {
             }
         }
         .padding(2)
-        .background(.white.opacity(0.07), in: Capsule())
+        .background(.themeInk.opacity(0.07), in: Capsule())
         .fixedSize()
     }
 
@@ -290,6 +299,8 @@ private struct HistoryCard: View {
 private struct Totals: View {
     let traffic: Traffic
     let compact: Bool
+
+    @Environment(\.theme) private var theme
 
     var body: some View {
         Group {
@@ -302,7 +313,7 @@ private struct Totals: View {
                 HStack(alignment: .top, spacing: 8) {
                     column("Download", traffic.down, color: NetworkTint.downLight, dot: NetworkTint.down)
                     column("Upload", traffic.up, color: NetworkTint.upLight, dot: NetworkTint.up)
-                    column("Total", traffic.total, color: .white, dot: nil)
+                    column("Total", traffic.total, color: theme.color(.ink), dot: nil)
                 }
             }
         }
@@ -320,11 +331,11 @@ private struct Totals: View {
             Text("↑ \(NetworkFeature.bytes(traffic.up))").foregroundStyle(NetworkTint.upLight)
             Spacer(minLength: 0)
             HStack(spacing: 3) {
-                Text("Total").foregroundStyle(.white.opacity(0.5))
+                Text("Total").foregroundStyle(.themeInk.opacity(0.5))
                 Text(NetworkFeature.bytes(traffic.total))
             }
         }
-        .font(.system(size: size, weight: .semibold, design: .rounded))
+        .themeFont(.display, size: size, weight: .semibold, design: .rounded)
     }
 
     private func column(_ title: String, _ bytes: Int64, color: Color, dot: Color?) -> some View {
@@ -333,10 +344,10 @@ private struct Totals: View {
                 if let dot { Circle().fill(dot).frame(width: 5, height: 5) }
                 Text(title).textCase(.uppercase).tracking(0.4)
             }
-            .font(.system(size: 8.5, weight: .bold))
-            .foregroundStyle(.white.opacity(0.5))
+            .themeFont(.body, size: 8.5, weight: .bold)
+            .foregroundStyle(.themeInk.opacity(0.5))
             Text(NetworkFeature.bytes(bytes))
-                .font(.system(size: 15, weight: .bold, design: .rounded))
+                .themeFont(.display, size: 15, weight: .bold, design: .rounded)
                 .foregroundStyle(color)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -417,7 +428,7 @@ private struct Bar: View {
         let radius = min(width / 2, 3)
         ZStack(alignment: .bottom) {
             let empty = traffic.total == 0
-            Rectangle().fill(empty ? AnyShapeStyle(.white.opacity(0.08)) : AnyShapeStyle(NetworkTint.upFill))
+            Rectangle().fill(empty ? AnyShapeStyle(.themeInk.opacity(0.08)) : AnyShapeStyle(NetworkTint.upFill))
             Rectangle().fill(NetworkTint.downFill).frame(height: CGFloat(traffic.down) * scale)
         }
         .frame(width: width, height: max(CGFloat(traffic.total) * scale, 2))
