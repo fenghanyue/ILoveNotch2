@@ -27,7 +27,7 @@ struct ProviderStyle {
             case "zai": (0x3859_FF, 0x8B9C_FF)
             default: (0x9CA3_AF, 0xE5E7_EB)
             }
-        return ProviderStyle(start: Color(hex: start), end: Color(hex: end))
+        return ProviderStyle(start: Color(hex: start), end: Color(hex: end))  // brand colors, in every theme
     }
 }
 
@@ -54,7 +54,7 @@ struct ProviderLogo: View {
                 .frame(width: size, height: size)
                 .accessibilityHidden(true)
         } else {
-            Text(name.prefix(1))
+            Text(name.prefix(1))  // a stand-in for the provider's mark, in the system's face in every theme
                 .font(.system(size: size * 0.7, weight: .bold, design: .rounded))
                 .frame(width: size, height: size)
                 .accessibilityHidden(true)
