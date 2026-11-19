@@ -55,6 +55,7 @@ extension FeatureID {
         case .timer: "alarm"
         case .network: "ufo"  // beaming your data up and down
         case .mirror: "device-computer-camera"
+        case .prompter: "script"
         case .usage: "gauge"
         case .agents: "terminal-2"
         }

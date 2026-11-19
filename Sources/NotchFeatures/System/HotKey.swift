@@ -77,6 +77,8 @@ extension KeyShortcut {
     public static let escape = KeyShortcut(keyCode: UInt32(kVK_Escape), modifiers: 0, key: "⎋")
     /// Control-Option-N, which starts a new note.
     public static let newNote = KeyShortcut(keyCode: UInt32(kVK_ANSI_N), modifiers: control | option, key: "N")
+    /// Control-Option-P, which pauses and resumes the prompter while a script is up.
+    public static let prompter = KeyShortcut(keyCode: UInt32(kVK_ANSI_P), modifiers: control | option, key: "P")
 
     /// The shortcut a key press makes, or nil without Command, Option, or Control: a shortcut
     /// plain typing could set off isn't one.

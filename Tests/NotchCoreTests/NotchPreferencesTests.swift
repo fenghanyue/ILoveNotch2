@@ -47,7 +47,7 @@ struct NotchPreferencesTests {
     @Test func unknownStoredFeaturesAreIgnored() {
         defaults.set(["notes", "a-feature-from-the-future"], forKey: "disabledFeatures")
         let disabled = NotchPreferences(defaults: defaults).disabledFeatures
-        #expect(disabled == [.notes, .mirror], "and the mirror starts off")
+        #expect(disabled == [.notes, .mirror, .prompter], "and the mirror and prompter start off")
     }
 
     @Test func tabsMoveAndKeepTheirPlaceWhileHidden() {

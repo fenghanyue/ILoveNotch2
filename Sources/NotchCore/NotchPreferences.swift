@@ -209,8 +209,9 @@ public final class NotchPreferences {
             return CGSize(width: (size.width * scale).rounded(), height: (size.height * scale).rounded())
         }
 
-    /// Features that start off, like the camera mirror: turning those on is the user's call.
-    public nonisolated static let offByDefault: Set<FeatureID> = [.mirror]
+    /// Features that start off, like the camera mirror and the prompter's microphone: turning those
+    /// on is the user's call.
+    public nonisolated static let offByDefault: Set<FeatureID> = [.mirror, .prompter]
 
     @ObservationIgnored private let defaults: UserDefaults
     /// Features this build can offer, in tab order. The App Store edition leaves out the ones the

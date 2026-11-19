@@ -11,7 +11,7 @@
 	<!-- The Mirror tab. -->
 	<key>com.apple.security.device.camera</key>
 	<true/>
-	<!-- System audio for the media waveform. -->
+	<!-- System audio for the media waveform, and the microphone for the Prompter. -->
 	<key>com.apple.security.device.audio-input</key>
 	<true/>
 	<!-- A notes folder the user picks, such as one in iCloud Drive. -->

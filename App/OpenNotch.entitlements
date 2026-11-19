@@ -4,7 +4,8 @@
 <dict>
 	<key>com.apple.security.personal-information.calendars</key>
 	<true/>
-	<!-- Capturing system audio for the media waveform (Core Audio process tap). -->
+	<!-- Capturing system audio for the media waveform (Core Audio process tap), and the microphone
+	     for the Prompter's Voice and Words modes. -->
 	<key>com.apple.security.device.audio-input</key>
 	<true/>
 	<!-- The Mirror tab. -->

@@ -207,6 +207,21 @@ struct FeatureSnapshotTests {
         try render(ShortcutsFeature().view, name: "shortcuts-loading")
     }
 
+    @Test func prompterEditingThenReading() async throws {
+        let prompter = PrompterFeature(defaults: UserDefaults(suiteName: "P-\(UUID())")!)
+        prompter.phase = .foreground
+        try render(prompter.view, name: "prompter-empty")
+        prompter.script =
+            "Good morning, everyone. Today we're launching the notch teleprompter. It follows your voice as you "
+            + "read, scrolls at your pace, and stays out of screen sharing while your script is up."
+        prompter.mode = .scroll  // no microphone
+        prompter.speed = 3
+        prompter.start()
+        #expect(await eventually { prompter.current >= 6 }, "Scroll moves on by itself")
+        prompter.pause()
+        try render(prompter.view, name: "prompter-reading", settles: true)
+    }
+
     /// Without a size, at the default size and again at the smallest, where every tab is tightest.
     /// `settles` draws it once what rises into place on appearing has (without animation, so at once).
     private func render(_ view: some View, name: String, size: CGSize? = nil, settles: Bool = false) throws {

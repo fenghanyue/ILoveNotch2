@@ -11,6 +11,10 @@ as they land, written for the people who use the app
 
 ## [Unreleased]
 
+### Added
+
+- **A teleprompter in the notch.** The new Prompter tab puts your script just under the camera, with what you've read dimmed and the next word lit. It can follow your voice, recognized on your Mac and never sent anywhere, scroll at a steady 0.5× to 3×, or move on only while you speak. Paste your script, or import a text or Markdown file or a PowerPoint deck's speaker notes. Flip it for teleprompter glass, and pause from any app with Control-Option-P. While a script is up, the notch stays out of screen sharing, and the closed notch shows how long is left. Turn it on in Settings › Prompter. The microphone is asked for the first time you need it.
+
 ## [1.5.1] - 2026-11-11
 
 ILoveNotch 1.5.1 keeps the Media tab following Chrome and other apps, instead of getting stuck on the last track.

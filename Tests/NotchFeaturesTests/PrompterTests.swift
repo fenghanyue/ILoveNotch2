@@ -57,4 +57,10 @@ struct PrompterTests {
         #expect(ScriptAlignment.isFuzzyMatch("launching", "lunching"))
         #expect(!ScriptAlignment.isFuzzyMatch("morning", "evening"))
     }
+
+    @Test func markdownReadsAsPlainText() {
+        let markdown = "# Intro\nHello **everyone**, see [our site](https://example.com).\n- First point\n> Quote"
+        let plain = "Intro\nHello everyone, see our site.\nFirst point\nQuote"
+        #expect(PrompterFeature.plainText(markdown: markdown) == plain)
+    }
 }

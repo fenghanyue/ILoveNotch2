@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let timer = TimerFeature()
     private let network = NetworkFeature()
     private let mirror = MirrorFeature()
+    private let prompter = PrompterFeature()
     private lazy var features = FeatureHost(featureList)
     // System live activities, which belong to no tab.
     private let volume = VolumeMonitor()
@@ -51,6 +52,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let quickNoteKey = HotKey()
     /// Opens the Clipboard tab from any app, ready to search.
     private let clipboardKey = HotKey()
+    /// Pauses and resumes the prompter from any app, while a script is up.
+    private let prompterKey = HotKey()
 
     override init() {
         let eventStore = EventStore()  // shared, and only created when Calendar or Tasks first needs it
@@ -73,9 +76,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var featureList: [any NotchFeature] {
         #if APP_STORE
-            [media, shelf, clipboard, calendar, tasks, notes, shortcuts, timer, network, mirror]
+            [media, shelf, clipboard, calendar, tasks, notes, shortcuts, timer, network, mirror, prompter]
         #else
-            [media, shelf, clipboard, calendar, tasks, notes, shortcuts, timer, network, mirror, usage, agents]
+            [
+                media, shelf, clipboard, calendar, tasks, notes, shortcuts, timer, network, mirror, prompter, usage,
+                agents,
+            ]
         #endif
     }
 
@@ -102,6 +108,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .timer: return AnyView(timer.view)
         case .network: return AnyView(network.view)
         case .mirror: return AnyView(mirror.view)
+        case .prompter: return AnyView(prompter.view)
         case .usage:
             #if APP_STORE
                 return AnyView(EmptyView())
@@ -143,6 +150,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .shortcuts: return section(shortcuts.settingsView)
         case .notes: return section(notes.settingsView)
         case .network: return section(network.settingsView)
+        case .prompter: return section(prompter.settingsView)
         case .timer, .mirror: return nil
         case .usage:
             #if APP_STORE
@@ -197,6 +205,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         network.onOngoing = { [weak coordinator] in coordinator?.setOngoing($0, for: .network) }
         shortcuts.onActivity = { [weak coordinator] in coordinator?.broadcast(.activity($0)) }
         tasks.onActivity = { [weak coordinator] in coordinator?.broadcast(.activity($0)) }
+        prompter.onOngoing = { [weak coordinator] in coordinator?.setOngoing($0, for: .prompter) }
+        // A script stays up while you read, wherever the pointer goes.
+        prompter.keepOpen = { [weak coordinator] in coordinator?.pin(.prompter) }
+        prompterKey.onPress = { [weak self] in self?.togglePrompter() }
         notes.onSendToTasks = { [tasks] in tasks.add($0) }
         quickNoteKey.onPress = { [weak self] in self?.startQuickNote() }
         volume.onActivity = { [weak coordinator] in coordinator?.broadcast(.activity($0)) }
@@ -237,6 +249,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let self else { return }
             notchKey.shortcut = preferences.notchShortcut
             clipboardKey.shortcut = preferences.isEnabled(.clipboard) ? preferences.clipboardShortcut : nil
+        }
+        // While a script is up: its shortcut, and the notch left out of screen sharing.
+        observeContinuously { [weak self, weak coordinator] in
+            guard let self else { return }
+            let reading = preferences.isEnabled(.prompter) && prompter.isReading
+            prompterKey.shortcut = reading ? .prompter : nil
+            coordinator?.hidesFromCapture = reading && prompter.hidesFromScreenSharing
         }
         // Accessibility access arrives while running; this is posted when it changes.
         DistributedNotificationCenter.default().addObserver(
@@ -296,6 +315,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             notes.quickCapture()
             self.coordinator?.focusKeyboard()
         }
+    }
+
+    /// The prompter's shortcut: pauses the script, or opens the notch on it and carries on.
+    private func togglePrompter() {
+        if !prompter.isRunning { coordinator?.open(.prompter) }
+        prompter.toggle()
     }
 
     /// Runs each system activity's listener, and the quick note shortcut, only while Settings has it

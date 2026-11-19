@@ -227,6 +227,26 @@ private struct NetworkSettings: View {
     }
 }
 
+extension PrompterFeature {
+    public var settingsView: some View {
+        @Bindable var prompter = self
+        return Group {
+            Toggle(isOn: $prompter.hidesFromScreenSharing) {
+                Text("Hide from screen sharing while reading")
+                Text(
+                    "Calls and screen recordings leave the notch out while a script is up. Not every app "
+                        + "respects this, so check yours before you rely on it.")
+            }
+            LabeledContent {
+                Text("⌃⌥P")
+            } label: {
+                Text("Pause and resume")
+                Text("From any app, while a script is up.")
+            }
+        }
+    }
+}
+
 extension ShelfFeature {
     public var settingsView: some View {
         LabeledContent(items.count == 1 ? "1 item on the shelf" : "\(items.count) items on the shelf") {
