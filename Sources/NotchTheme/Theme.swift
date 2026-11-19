@@ -23,6 +23,13 @@ public struct Theme: Decodable, Identifiable, Sendable {
     public let closed: Closed?
     /// Accents the user can pick in Settings; `colors.accent` is the default.
     public let accentChoices: [ThemeColor]?
+    /// The Home tab's cards: their colors in turn, and the ink on them.
+    public let cards: Cards?
+
+    public struct Cards: Decodable, Sendable {
+        public let colors: [ThemeColor]
+        public let ink: ThemeColor
+    }
     public let fonts: Fonts
     public let icons: Icons
     private let tabs: TabLabels?

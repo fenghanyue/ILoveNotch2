@@ -103,6 +103,9 @@ public final class UsageFeature: NotchFeature {
 
     public var view: some View { UsageView(usage: self) }
 
+    /// Home's card: the first provider that's on, its headline limit as a ring.
+    public var homeView: some View { UsageHomeCard(usage: self) }
+
     /// Every provider, in OpenUsage's order.
     public var providers: [UsageProvider] {
         allRuntimes().map { runtime in

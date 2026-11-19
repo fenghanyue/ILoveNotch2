@@ -3,14 +3,18 @@ import Foundation
 
 /// A feature that can own the expanded notch.
 public enum FeatureID: String, CaseIterable, Hashable, Sendable {
-    case media, sound, shelf, clipboard, calendar, tasks, notes, shortcuts, timer, network, mirror, prompter, usage,
-        agents
+    case home, media, sound, shelf, clipboard, calendar, tasks, notes, shortcuts, timer, network, mirror, prompter,
+        usage, agents
+
+    /// What the Home tab glances at: they run in full while it's open, as if their own tab were.
+    public static let onHome: Set<FeatureID> = [.media, .calendar, .tasks, .usage]
 
     /// SF Symbol for the tab's page in Settings, beside System Settings' own symbols. The notch draws
     /// its theme's icon set instead (NotchTheme's `ThemeIcon`). Every name here exists on macOS 14.6,
     /// the oldest supported.
     public var symbol: String {
         switch self {
+        case .home: "square.grid.2x2"
         case .media: "play.circle"
         case .sound: "speaker.wave.2"
         case .shelf: "tray.full"
@@ -36,6 +40,7 @@ public enum FeatureID: String, CaseIterable, Hashable, Sendable {
 
     public var title: String {
         switch self {
+        case .home: "Home"
         case .media: "Media"
         case .sound: "Sound"
         case .shelf: "Shelf"

@@ -15,6 +15,26 @@ struct Tone {
     }
 }
 
+/// The Home tab's AI card: the first provider that's on, its headline limit as a ring. It takes its
+/// card's ink, not the theme's, as the Home cards draw on colors of their own.
+struct UsageHomeCard: View {
+    let usage: UsageFeature
+
+    var body: some View {
+        if let provider = usage.enabledProviders.first, let meter = usage.snapshots[provider.id]?.meters.first {
+            HStack(spacing: 8) {
+                UsageRing(meter: meter, style: ProviderStyle.of(provider.id), size: 34)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(provider.name).themeFont(.display, size: 13, weight: .semibold)
+                    Text(meter.label).themeFont(.body, size: 11).opacity(0.7)
+                }
+            }
+        } else {
+            Text("No AI plans on").themeFont(.body, size: 12).opacity(0.7)
+        }
+    }
+}
+
 /// A limit as a ring: an angular gradient that glows faintly, with the value in the middle. It fills
 /// from empty when it first appears and springs to each new value.
 struct UsageRing: View {

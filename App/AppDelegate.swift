@@ -39,6 +39,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let network = NetworkFeature()
     private let mirror = MirrorFeature()
     private let prompter = PrompterFeature()
+    private let home = HomeFeature()
     private lazy var features = FeatureHost(featureList)
     // System live activities, which belong to no tab.
     private let volume = VolumeMonitor()
@@ -77,17 +78,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var featureList: [any NotchFeature] {
         #if APP_STORE
-            [media, shelf, clipboard, calendar, tasks, notes, shortcuts, timer, network, mirror, prompter]
+            [home, media, shelf, clipboard, calendar, tasks, notes, shortcuts, timer, network, mirror, prompter]
         #else
             [
-                media, shelf, clipboard, calendar, tasks, notes, shortcuts, timer, network, mirror, prompter, usage,
-                agents,
+                home, media, shelf, clipboard, calendar, tasks, notes, shortcuts, timer, network, mirror, prompter,
+                usage, agents,
             ]
         #endif
     }
 
     private func tabView(for feature: FeatureID) -> AnyView {
         switch feature {
+        case .home:
+            #if APP_STORE
+                let usage: AnyView? = nil
+            #else
+                let usage: AnyView? = preferences.isEnabled(.usage) ? AnyView(self.usage.homeView) : nil
+            #endif
+            return AnyView(
+                HomeView(media: media, calendar: calendar, prompter: prompter, usage: usage) { [weak self] tab in
+                    self?.coordinator?.open(tab)
+                })
         case .media: return AnyView(media.view)
         case .sound:
             #if APP_STORE
@@ -152,7 +163,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         case .notes: return section(notes.settingsView)
         case .network: return section(network.settingsView)
         case .prompter: return section(prompter.settingsView)
-        case .timer, .mirror: return nil
+        case .home, .timer, .mirror: return nil
         case .usage:
             #if APP_STORE
                 return nil

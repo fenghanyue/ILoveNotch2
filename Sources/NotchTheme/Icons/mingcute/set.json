@@ -5,6 +5,7 @@
   "url": "https://www.mingcute.com",
   "kind": "fill",
   "source": {
+    "home": "regular/buildings/home_2",
     "media": "regular/media/music",
     "sound": "regular/media/volume",
     "shelf": "regular/files/inbox",

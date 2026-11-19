@@ -216,8 +216,9 @@ public final class NotchPreferences {
         }
 
     /// Features that start off, like the camera mirror and the prompter's microphone: turning those
-    /// on is the user's call.
-    public nonisolated static let offByDefault: Set<FeatureID> = [.mirror, .prompter]
+    /// on is the user's call. Home, a glance at other tabs, joins a row people already arranged only
+    /// when they ask.
+    public nonisolated static let offByDefault: Set<FeatureID> = [.home, .mirror, .prompter]
 
     @ObservationIgnored private let defaults: UserDefaults
     /// Features this build can offer, in tab order. The App Store edition leaves out the ones the

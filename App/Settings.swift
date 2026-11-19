@@ -155,6 +155,7 @@ extension SettingsSelection.Page {
             case .network: ("arrow.up.arrow.down", .blue)
             case .mirror: (feature.symbol, .green)
             case .prompter: (feature.symbol, .cyan)
+            case .home: (feature.symbol, .indigo)
             case .usage: (feature.symbol, .purple)
             case .agents: (feature.symbol, .gray)
             }
@@ -183,6 +184,7 @@ extension SettingsSelection.Page {
             case .network: "Your download and upload speed, and how much you've used."
             case .mirror: "Your camera, on only while its tab is open."
             case .prompter: "A script under the camera that follows your voice or scrolls on its own."
+            case .home: "Music, today, and your script at a glance, as cards that open their tabs."
             case .usage: "How much of each AI coding plan you've used."
             case .agents: "When Claude Code or Codex needs you or finishes, in the closed notch."
             }

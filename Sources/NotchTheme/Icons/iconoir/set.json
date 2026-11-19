@@ -5,6 +5,7 @@
   "url": "https://iconoir.com",
   "kind": "line",
   "source": {
+    "home": "regular/home",
     "media": "regular/music-double-note",
     "sound": "regular/sound-high",
     "shelf": "regular/box",

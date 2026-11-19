@@ -40,6 +40,7 @@ Required unless marked optional.
 | `surface.glow` | optional: `{"colors", "strength", "radius"}`, light in those colors fading in from the edge, and a rim of them on it. `strength` (0...1) is where the Glow slider in Settings starts. It stays inside the notch, so it never catches a click, doesn't move, and Reduce Transparency keeps only the rim. |
 | `closed.ink` | optional: text and icons on black (the closed notch, the header on a band). Needed by a light theme, whose ink is dark. |
 | `accentChoices` | optional: accents to pick from in Settings; `colors.accent` is the default |
+| `cards` | optional: `{"colors": [...], "ink"}`, the Home tab's cards in those colors in turn, their words in that ink; without it they sit on `colors.fill` |
 | `tabs` | optional: `icons` (the default) or `text`, the tabs' names while they all fit the header |
 | `colors.ink`, `.secondary`, `.tertiary` | text and icons |
 | `colors.fill` | platters, tracks, and chips |

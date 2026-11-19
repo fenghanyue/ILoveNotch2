@@ -27,11 +27,14 @@ extension NotchPresentationState {
     }
 
     /// Activation policy: the visible feature runs fully, the others keep only cheap observers,
-    /// and nothing runs while the notch is hidden or suspended.
+    /// and nothing runs while the notch is hidden or suspended. Home shows what it glances at
+    /// (`FeatureID.onHome`), so those run fully while it's open.
     public func phase(for feature: FeatureID) -> FeaturePhase {
         switch self {
         case .hidden, .suspended: .stopped
-        default: visibleFeature == feature ? .foreground : .background
+        default:
+            visibleFeature == feature || (visibleFeature == .home && FeatureID.onHome.contains(feature))
+                ? .foreground : .background
         }
     }
 }

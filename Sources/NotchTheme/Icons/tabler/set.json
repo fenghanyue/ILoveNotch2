@@ -5,6 +5,7 @@
   "url": "https://tabler.io/icons",
   "kind": "line",
   "source": {
+    "home": "home",
     "media": "music",
     "sound": "volume",
     "shelf": "inbox",

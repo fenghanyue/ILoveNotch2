@@ -47,7 +47,7 @@ struct NotchPreferencesTests {
     @Test func unknownStoredFeaturesAreIgnored() {
         defaults.set(["notes", "a-feature-from-the-future"], forKey: "disabledFeatures")
         let disabled = NotchPreferences(defaults: defaults).disabledFeatures
-        #expect(disabled == [.notes, .mirror, .prompter], "and the mirror and prompter start off")
+        #expect(disabled == [.notes, .home, .mirror, .prompter], "and Home, the mirror, and the prompter start off")
     }
 
     @Test func tabsMoveAndKeepTheirPlaceWhileHidden() {
@@ -57,7 +57,9 @@ struct NotchPreferencesTests {
         preferences.setEnabled(.shelf, false)
         preferences.place(.notes, at: 1)
         #expect(preferences.tabs.prefix(3) == [.timer, .notes, .media])
-        #expect(preferences.tabOrder.prefix(5) == [.timer, .notes, .media, .sound, .shelf], "the hidden shelf stayed")
+        #expect(
+            preferences.tabOrder.prefix(6) == [.home, .timer, .notes, .media, .sound, .shelf],
+            "the hidden Home and shelf stayed")
         preferences.place(.shelf, at: preferences.tabs.count)
         #expect(preferences.tabs.last == .shelf && preferences.isEnabled(.shelf), "placing a hidden tab shows it")
         #expect(NotchPreferences(defaults: defaults).tabs == preferences.tabs, "and the order persists")

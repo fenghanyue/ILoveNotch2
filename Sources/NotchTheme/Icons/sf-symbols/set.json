@@ -5,6 +5,7 @@
   "url": "https://developer.apple.com/sf-symbols/",
   "kind": "symbols",
   "symbols": {
+    "home": "house",
     "media": "music.note.list",
     "sound": "speaker.wave.2",
     "shelf": "tray",

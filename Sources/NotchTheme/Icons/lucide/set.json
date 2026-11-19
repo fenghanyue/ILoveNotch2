@@ -5,6 +5,7 @@
   "url": "https://lucide.dev",
   "kind": "line",
   "source": {
+    "home": "house",
     "media": "eighth-notes",
     "sound": "volume-2",
     "shelf": "inbox",
