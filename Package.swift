@@ -44,7 +44,8 @@ let package = Package(
             ]),
         // The GitHub build's Android sharing: Quick Share over the local network, on Apple's own
         // frameworks only (docs/filesharing.md).
-        .target(name: "NotchTransfer", dependencies: ["NotchCore", "NotchFeatures"], swiftSettings: strict),
+        .target(
+            name: "NotchTransfer", dependencies: ["NotchCore", "NotchTheme", "NotchFeatures"], swiftSettings: strict),
         // The GitHub build's per-app volume, in the Media tab: Core Audio process taps, and a private
         // call that tells which app a helper process (Safari's WebKit, say) plays for.
         .target(

@@ -2,6 +2,7 @@
 import AppKit
 import CoreImage.CIFilterBuiltins
 import NotchFeatures
+import NotchTheme
 import SwiftUI
 
 extension TransferFeature {
@@ -42,6 +43,8 @@ private struct IncomingCard: View {
     let transfer: TransferFeature
     let incoming: Incoming
 
+    @Environment(\.theme) private var theme
+
     var body: some View {
         ViewThatFits(in: .vertical) {
             card(compact: false)
@@ -66,7 +69,7 @@ private struct IncomingCard: View {
         }
         .padding(compact ? 10 : 14)
         .frame(maxWidth: .infinity)
-        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(.themeInk.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func request(_ offer: InboundSession.Offer, compact: Bool) -> some View {
@@ -74,14 +77,14 @@ private struct IncomingCard: View {
             HStack(spacing: 12) {
                 DeviceBadge(symbol: offer.kind.symbol)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(offer.device).font(.headline).lineLimit(1)
-                    Text("wants to send \(offer.what)").font(.callout).foregroundStyle(.white.opacity(0.65))
-                        .lineLimit(1)
+                    Text(offer.device).themeFont(.body, .headline).lineLimit(1)
+                    Text("wants to send \(offer.what)").themeFont(.body, .callout)
+                        .foregroundStyle(.themeInk.opacity(0.65)).lineLimit(1)
                 }
                 Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 0) {
-                    Text("CODE").font(.caption2.weight(.semibold)).foregroundStyle(.white.opacity(0.45))
-                    Text(offer.pin).font(.system(size: 22, weight: .semibold, design: .rounded)).monospacedDigit()
+                    Text("CODE").themeFont(.body, .caption2, weight: .semibold).foregroundStyle(.themeInk.opacity(0.45))
+                    Text(offer.pin).themeFont(.display, size: 22, weight: .semibold, design: .rounded).monospacedDigit()
                         .kerning(1.5)
                 }
                 .accessibilityElement(children: .ignore)
@@ -89,7 +92,8 @@ private struct IncomingCard: View {
                 .help("The same code shows on the phone")
             }
             // Middle-truncated, so the last name and the size stay in view.
-            let detail = Text(offer.detail ?? "").font(.caption).foregroundStyle(.white.opacity(0.5)).lineLimit(1)
+            let detail = Text(offer.detail ?? "").themeFont(.body, .caption).foregroundStyle(.themeInk.opacity(0.5))
+                .lineLimit(1)
                 .truncationMode(.middle).frame(maxWidth: .infinity, alignment: .leading)
             if !compact, offer.detail != nil { detail }
             HStack(spacing: 8) {
@@ -105,14 +109,15 @@ private struct IncomingCard: View {
             HStack(spacing: 12) {
                 DeviceBadge(symbol: offer.kind.symbol)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Receiving from \(offer.device)").font(.headline).lineLimit(1)
-                    Text("\(offer.what.capitalizedFirst) · \(Int(progress * 100))%").font(.callout).monospacedDigit()
-                        .foregroundStyle(.white.opacity(0.65)).lineLimit(1)
+                    Text("Receiving from \(offer.device)").themeFont(.body, .headline).lineLimit(1)
+                    Text("\(offer.what.capitalizedFirst) · \(Int(progress * 100))%").themeFont(.body, .callout)
+                        .monospacedDigit()
+                        .foregroundStyle(.themeInk.opacity(0.65)).lineLimit(1)
                 }
                 Spacer(minLength: 8)
                 CapsuleButton("Cancel", prominent: false, action: transfer.cancelIncoming)
             }
-            ProgressView(value: progress).progressViewStyle(.linear).tint(.white)
+            ProgressView(value: progress).progressViewStyle(.linear).tint(theme.color(.ink))
                 .accessibilityLabel("Receiving")
         }
     }
@@ -122,14 +127,15 @@ private struct IncomingCard: View {
             HStack(spacing: 12) {
                 DeviceBadge(symbol: text.isLink ? "link" : "text.alignleft")
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("\(incoming.device) sent \(text.isLink ? "a link" : "text")").font(.headline).lineLimit(1)
-                    Label("Copied to the clipboard", systemImage: "checkmark").font(.callout)
-                        .foregroundStyle(.white.opacity(0.65))
+                    Text("\(incoming.device) sent \(text.isLink ? "a link" : "text")").themeFont(.body, .headline)
+                        .lineLimit(1)
+                    Label("Copied to the clipboard", systemImage: "checkmark").themeFont(.body, .callout)
+                        .foregroundStyle(.themeInk.opacity(0.65))
                 }
                 Spacer(minLength: 0)
             }
-            let sent = Text(text.text).font(.callout).lineLimit(compact ? 1 : 3).truncationMode(.middle)
-                .textSelection(.enabled).foregroundStyle(.white.opacity(0.85))
+            let sent = Text(text.text).themeFont(.body, .callout).lineLimit(compact ? 1 : 3).truncationMode(.middle)
+                .textSelection(.enabled).foregroundStyle(.themeInk.opacity(0.85))
                 .frame(maxWidth: .infinity, alignment: .leading)
             if !compact { sent }
             HStack(spacing: 8) {
@@ -147,9 +153,9 @@ private struct DeviceBadge: View {
 
     var body: some View {
         Image(systemName: symbol)
-            .font(.system(size: 17, weight: .medium))
+            .themeFont(.body, size: 17, weight: .medium)
             .frame(width: 38, height: 38)
-            .background(.white.opacity(0.12), in: Circle())
+            .background(.themeInk.opacity(0.12), in: Circle())
             .accessibilityHidden(true)
     }
 }
@@ -160,6 +166,8 @@ private struct CapsuleButton: View {
     let prominent: Bool
     let action: () -> Void
 
+    @Environment(\.theme) private var theme
+
     init(_ title: String, prominent: Bool, action: @escaping () -> Void) {
         self.title = title
         self.prominent = prominent
@@ -169,10 +177,10 @@ private struct CapsuleButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.callout.weight(.semibold))
+                .themeFont(.body, .callout, weight: .semibold)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 5)
-                .background(prominent ? Color.accentColor : .white.opacity(0.14), in: Capsule())
+                .background(prominent ? theme.color(.accent) : theme.color(.ink).opacity(0.14), in: Capsule())
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -211,7 +219,7 @@ private struct ReceiveControl: View {
                 .accessibilityLabel("Visible to Android. Stop")
             } else if transfer.isVisible {
                 Label("Visible", systemImage: "dot.radiowaves.left.and.right")
-                    .foregroundStyle(.white.opacity(0.6))
+                    .foregroundStyle(.themeInk.opacity(0.6))
                     .help("Android phones on this Wi-Fi can send files to this Mac with Quick Share")
             } else {
                 Button(action: transfer.receiveForTenMinutes) {
@@ -316,6 +324,7 @@ struct SendView: View {
                         .resizable()
                         .frame(width: 128, height: 128)
                         .padding(8)
+                        // A QR code reads on white; this is the Send window, not the notch.
                         .background(.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         .accessibilityLabel("QR code for Quick Share")
                 }
