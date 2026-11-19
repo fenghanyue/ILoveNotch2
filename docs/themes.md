@@ -34,7 +34,7 @@ Required unless marked optional.
 | `appearance` | `dark` or `light`: the open notch's color scheme, for system controls and `.primary`/`.secondary`. Closed, the notch is always dark. |
 | `surface.kind` | `solid`, or `glass` (Liquid Glass on macOS 26 and later, with a live blur under it) |
 | `surface.color` | the open notch's fill, and glass's fallback (before macOS 26, Reduce Transparency, Increase Contrast). Closed, the notch is black in every theme, to hide in the camera housing. |
-| `surface.band` | optional: a band of this color across the top, behind the camera and the header, with the sheet below it |
+| `surface.band` | optional: a band of this color across the top, behind the camera and the header, with the sheet below it; over glass, a strip as tall as the camera housing |
 | `surface.border` | optional: `{"color", "width"}`, a frame around the sheet, drawn inside the notch's edge |
 | `surface.pattern` | optional: `{"kind", "color", "spacing"}`, a texture over the sheet: `dots`, or `grid` (graph paper) |
 | `surface.glow` | optional: `{"colors", "strength", "radius"}`, light in those colors fading in from the edge, and a rim of them on it. `strength` (0...1) is where the Glow slider in Settings starts. It stays inside the notch, so it never catches a click, doesn't move, and Reduce Transparency keeps only the rim. |

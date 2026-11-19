@@ -6,19 +6,21 @@
   "appearance": "dark",
   "surface": {
     "kind": "glass",
-    "color": "#000000"
+    "color": "#000000",
+    "band": "#000000"
   },
   "colors": {
     "ink": "#FFFFFF",
-    "secondary": "#FFFFFFB3",
-    "tertiary": "#FFFFFF73",
-    "fill": "#FFFFFF14",
-    "accent": "system",
+    "secondary": "#FFFFFFC7",
+    "tertiary": "#FFFFFF8C",
+    "fill": "#FFFFFF1F",
+    "accent": "#FFFFFF",
     "onAccent": "#000000"
   },
   "fonts": {
     "display": {
-      "family": "system"
+      "family": "system",
+      "weight": "semibold"
     },
     "body": {
       "family": "system"
@@ -29,12 +31,14 @@
     }
   },
   "icons": {
-    "set": "tabler"
+    "set": "lucide",
+    "stroke": 1.5
   },
   "radii": {
-    "notchTop": 10,
-    "notchBottom": 26
+    "notchTop": 16,
+    "notchBottom": 34
   },
+  "tabs": "text",
   "seekBar": {
     "line": 3.5,
     "cap": "round",

@@ -1,0 +1,30 @@
+{
+  "name": "Lucide",
+  "version": "1.76.0",
+  "license": "ISC",
+  "url": "https://lucide.dev",
+  "kind": "line",
+  "source": {
+    "media": "eighth-notes",
+    "sound": "volume-2",
+    "shelf": "inbox",
+    "clipboard": "clipboard-list",
+    "calendar": "calendar",
+    "tasks": "list-checks",
+    "notes": "notepad-text",
+    "shortcuts": "workflow",
+    "timer": "alarm-clock",
+    "network": "arrow-down-up",
+    "mirror": "webcam",
+    "prompter": "scroll",
+    "usage": "gauge",
+    "agents": "square-terminal",
+    "apps": "layout-grid",
+    "apps-on": "layout-grid",
+    "pin": "pin",
+    "pin-on": "pin",
+    "settings": "settings",
+    "edit": "pencil",
+    "done": "check"
+  }
+}
