@@ -134,7 +134,8 @@ network requests, so App Store Connect doesn't ask on each upload.
 ## App Privacy (answered in App Store Connect)
 
 Data collection: **None** ("Data Not Collected"). ILoveNotch doesn't collect data or track.
-Calendar, Reminders, camera, and system audio stay on the Mac and are never sent anywhere. Only the
+Calendar, Reminders, camera, microphone, speech (recognized on the device), and system audio stay on
+the Mac and are never sent anywhere. Only the
 website can answer this; the API can't.
 
 ## Review notes
@@ -147,7 +148,10 @@ the app drawer, the grid button after the tabs), and uses the camera only while 
 system audio recording permission and analyzes the sound on the Mac without recording it. Its
 playback, shuffle, and repeat buttons control Music and Spotify through the scripting access groups
 they publish (`com.apple.security.scripting-targets`); macOS asks for Automation permission the
-first time one is pressed. No account or sign-in is needed, and the app makes no network requests.
+first time one is pressed. The Prompter tab is off until turned on in Settings › Prompter; with a
+script typed in and Voice or Words selected, clicking Start asks for the microphone (and, for Voice,
+Speech Recognition, which runs on the device only), and the microphone stops when the script
+pauses. No account or sign-in is needed, and the app makes no network requests.
 
 New in 1.5.0: open the notch, click the grid button after the tabs (All Apps), and click Edit: the
 tabs wiggle in place; click − on a tab to keep it in the drawer, + on an app to add it to the row,

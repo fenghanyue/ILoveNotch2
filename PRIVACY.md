@@ -14,6 +14,13 @@ ILoveNotch is local-first.
   feature.
 - The Mirror tab is off until you turn it on, and uses the camera only while
   that tab is open. Nothing is recorded or saved.
+- The Prompter tab is off until you turn it on. Its Voice and Words modes use
+  the microphone, and macOS asks the first time one starts; Voice also asks for
+  Speech Recognition. The microphone runs only while your script is moving, and
+  stops when you pause, switch to Scroll, or close the notch. Words are
+  recognized on this Mac (Apple's on-device recognition, never its servers),
+  used to find your place in the script, and never recorded, stored, or sent.
+  Your script is kept in ILoveNotch's settings on this Mac.
 - Replacing the macOS volume display is off until you turn it on. It asks for
   Accessibility access to catch the volume keys; ILoveNotch takes only the three
   volume keys and passes every other event through untouched.
