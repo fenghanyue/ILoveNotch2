@@ -60,14 +60,17 @@ version in the [changelog](CHANGELOG.md).
 
 ## Coming from NotchNook?
 
-NotchNook's license server went offline in September 2026, so paid licenses
-stopped activating, and lo.cafe
-[told customers to use an alternative](https://x.com/locafe_24h/status/2095262917486665735).
-ILoveNotch covers the everyday things: now playing and every app's volume, a
-file shelf, and your calendar, plus Reminders, notes, Shortcuts, timers, and
-your network speed. There's no license,
-account, or server that can go away, and it's MIT licensed, so the code stays
-public and buildable whatever happens to the project.
+NotchNook Pro 2.0 came out on 28 October 2026 (2.0.11 on 17 November), for
+Apple silicon Macs on macOS 14.6 or later, monthly or lifetime, with a 48-hour
+trial. If you're looking around, here's what ILoveNotch offers:
+
+- **Free and MIT licensed** to download here or with Homebrew; the
+  [Mac App Store edition](https://apps.apple.com/app/id6815805975) is $1.99.
+- **0.0% CPU at rest**, measured with the notch closed ([Efficiency](#efficiency)).
+- **AI Usage** for 11 providers, and an **Agents** tab that tells you when Claude
+  Code or Codex is waiting for your approval (both in the GitHub build).
+- The everyday things: now playing and every app's volume, a file shelf, your
+  calendar and Reminders, notes, Shortcuts, timers, and your network speed.
 
 ## What it does
 
@@ -142,11 +145,17 @@ public and buildable whatever happens to the project.
 
 ## Why
 
-Notch utilities are genuinely useful, but the popular closed-source one drew
-complaints about heavy RAM/CPU use, and in September 2026 its license server
-went offline, so paid licenses stopped working. ILoveNotch is a free, efficient
-alternative with nothing to switch off: no license, no account, no server, and
-code anyone can inspect, build, and improve.
+Notch utilities are genuinely useful. NotchNook Pro is a paid app, and Boring
+Notch is free under the GPL-3.0. ILoveNotch is:
+
+- **MIT licensed**: free, with code anyone can read, build, and reuse.
+- **Signed and notarized by Apple**, so it opens like any other app, with no
+  security warning to get past, and updates itself.
+- **On the Mac App Store** too, as a sandboxed edition.
+- **Measured efficiency**: 0.0% CPU at rest, and it never kept the Mac awake
+  over a 20-hour workday ([Efficiency](#efficiency)).
+- **AI Usage** for 11 providers, from Claude and Codex to Cursor and Copilot, in
+  the GitHub build.
 
 ## Efficiency
 
