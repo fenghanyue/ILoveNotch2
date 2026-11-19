@@ -122,6 +122,16 @@ struct NotchPreferencesTests {
         #expect(NotchPreferences(defaults: defaults).themeAccents.isEmpty)
     }
 
+    @Test func aThemesGlowStaysBetweenNoneAndFull() {
+        let preferences = NotchPreferences(defaults: defaults)
+        preferences.setGlow(0.4, for: "aurora")
+        #expect(NotchPreferences(defaults: defaults).themeGlows == ["aurora": 0.4])
+        preferences.setGlow(3, for: "aurora")
+        #expect(preferences.themeGlows["aurora"] == 1)
+        preferences.reset()
+        #expect(NotchPreferences(defaults: defaults).themeGlows.isEmpty)
+    }
+
     @Test func theNotchSizePersistsWithinItsLimits() {
         let preferences = NotchPreferences(defaults: defaults)
         preferences.resizeExpanded(to: CGSize(width: 600, height: 380))

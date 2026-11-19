@@ -138,6 +138,16 @@ public final class NotchPreferences {
         themeAccents[themeID] = accent
     }
 
+    /// How strong each glowing theme's glow is, 0...1, by theme id.
+    public private(set) var themeGlows: [String: Double] {
+        didSet { defaults.set(themeGlows, forKey: Key.themeGlows) }
+    }
+
+    /// Sets the theme `themeID`'s glow, held between 0 and 1.
+    public func setGlow(_ strength: Double, for themeID: String) {
+        themeGlows[themeID] = min(max(strength, 0), 1)
+    }
+
     /// A live activity when the volume changes or mutes.
     public var showsVolume: Bool {
         didSet { defaults.set(showsVolume, forKey: Key.showsVolume) }
@@ -238,6 +248,7 @@ public final class NotchPreferences {
         animationStyle = defaults.string(forKey: Key.animationStyle).flatMap(NotchAnimationStyle.init) ?? .spring
         themeID = defaults.string(forKey: Key.theme) ?? Self.defaultThemeID
         themeAccents = defaults.dictionary(forKey: Key.themeAccents) as? [String: String] ?? [:]
+        themeGlows = defaults.dictionary(forKey: Key.themeGlows) as? [String: Double] ?? [:]
         showsVolume = defaults.object(forKey: Key.showsVolume) as? Bool ?? true
         showsBattery = defaults.object(forKey: Key.showsBattery) as? Bool ?? true
         replacesVolumeDisplay = defaults.bool(forKey: Key.replacesVolumeDisplay)
@@ -322,6 +333,7 @@ public final class NotchPreferences {
         animationStyle = .spring
         themeID = Self.defaultThemeID
         themeAccents = [:]
+        themeGlows = [:]
         expandedSize = Self.defaultExpandedSize
         showsVolume = true
         showsBattery = true
@@ -341,6 +353,7 @@ public final class NotchPreferences {
         static let animationStyle = "animationStyle"
         static let theme = "theme"
         static let themeAccents = "themeAccents"
+        static let themeGlows = "themeGlows"
         static let expandedSize = "expandedSize"
         static let showsVolume = "showsVolume"
         static let showsBattery = "showsBattery"

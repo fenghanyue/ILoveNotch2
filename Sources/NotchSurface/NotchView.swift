@@ -61,7 +61,8 @@ struct NotchView: View {
     /// The chosen theme, with the accent picked for it, which everything inside the notch reads from
     /// the environment.
     private var theme: Theme {
-        Themes.theme(preferences.themeID).withAccent(preferences.themeAccents[preferences.themeID])
+        let id = preferences.themeID
+        return Themes.theme(id).withAccent(preferences.themeAccents[id]).withGlow(preferences.themeGlows[id])
     }
 
     var body: some View {
@@ -207,11 +208,34 @@ struct NotchView: View {
             } else if open, !glass, let pattern = theme.surface.pattern {
                 outline.fill(ImagePaint(image: Image(nsImage: Self.tile(pattern)))).transition(.opacity)
             }
+            if open, !glass, let glow = theme.surface.glow { glowing(outline, glow).transition(.opacity) }
             if glass, metrics.notch != nil {
                 Self.shape(for: .compact, on: metrics).fill(.black)
                     .frame(width: metrics.compactSize.width, height: metrics.compactSize.height)
             }
         }
+    }
+
+    /// Light in the glow's colors along the inside of the edge, around the notch, and a rim of the same
+    /// colors on the edge itself, both at the glow's strength. Inside the outline, so it never catches
+    /// a click meant for the window below, and it doesn't move. The light fades inward through
+    /// widening strokes, 1.5 pt apart, not a blur, so it draws the same everywhere and costs nothing
+    /// once drawn. Reduce Transparency keeps only the rim.
+    private func glowing(_ outline: NotchShape, _ glow: Theme.Surface.Glow) -> some View {
+        let colors = glow.colors.map(\.color)
+        let ring = AngularGradient(colors: colors + colors.prefix(1), center: .center)
+        let steps = Int(glow.radius / 1.5)
+        return ZStack {
+            if !reduceTransparency {
+                ForEach(1...max(steps, 1), id: \.self) { step in
+                    outline.stroke(ring, lineWidth: 2 * glow.radius * Double(step) / Double(steps))
+                        .opacity(0.75 / Double(steps))
+                }
+            }
+            outline.stroke(ring, lineWidth: 1.5)
+        }
+        .opacity(glow.strength)
+        .allowsHitTesting(false)
     }
 
     /// A band across the top or a frame around the sheet, when the theme has one: the open notch is

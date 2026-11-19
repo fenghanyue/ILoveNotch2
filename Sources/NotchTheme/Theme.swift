@@ -17,7 +17,7 @@ public struct Theme: Decodable, Identifiable, Sendable {
     public let name: String
     private let order: Int?
     public internal(set) var appearance: Appearance
-    public let surface: Surface
+    public internal(set) var surface: Surface
     public internal(set) var colors: Colors
     /// What's drawn on black: the closed notch, and a band or frame around the open sheet.
     public let closed: Closed?
@@ -70,9 +70,20 @@ public struct Theme: Decodable, Identifiable, Sendable {
         public let border: Border?
         /// A texture over the sheet.
         public let pattern: Pattern?
+        /// Light along the inside of the notch's edge, and a rim in the same colors.
+        public internal(set) var glow: Glow?
 
         public enum Kind: String, Decodable, Sendable {
             case solid, glass
+        }
+
+        public struct Glow: Decodable, Sendable {
+            /// Around the edge, in order; the rim, the seek wave, and the waveform take them too.
+            public let colors: [ThemeColor]
+            /// 0...1; the user's slider in Settings starts here.
+            public internal(set) var strength: Double
+            /// How far in from the edge the light reaches, in points.
+            public let radius: Double
         }
 
         public struct Border: Decodable, Sendable {
@@ -111,6 +122,17 @@ public struct Theme: Decodable, Identifiable, Sendable {
         /// Text and icons on black, for a light theme whose ink is dark.
         public let ink: ThemeColor
     }
+
+    /// The glow at the strength the user set, held between 0 and 1; nil keeps the theme's own.
+    public func withGlow(_ strength: Double?) -> Theme {
+        guard let strength, surface.glow != nil else { return self }
+        var theme = self
+        theme.surface.glow?.strength = min(max(strength, 0), 1)
+        return theme
+    }
+
+    /// The colors a `gradient` fill runs through: the glow's.
+    public var gradient: [Color] { surface.glow?.colors.map(\.color) ?? [color(.accent)] }
 
     /// The theme with the accent the user picked, when it's one of its choices; a stale or unknown
     /// pick keeps the default.
@@ -279,6 +301,8 @@ public struct Theme: Decodable, Identifiable, Sendable {
         /// The now-playing artwork's color, or ink without one.
         case artwork
         case accent, ink
+        /// The glow's colors, along the wave or across the bars; the accent where one color is needed.
+        case gradient
     }
 
     /// Views a theme swaps in for the default one in a slot. Each names a skin the app ships
@@ -305,7 +329,7 @@ public struct Theme: Decodable, Identifiable, Sendable {
     public func color(_ fill: Fill, artwork: Color?) -> Color {
         switch fill {
         case .artwork: artwork ?? color(.ink)
-        case .accent: color(.accent)
+        case .accent, .gradient: color(.accent)
         case .ink: color(.ink)
         }
     }

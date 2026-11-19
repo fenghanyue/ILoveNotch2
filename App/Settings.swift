@@ -383,6 +383,18 @@ private struct AppearancePage: View {
                         ) { preferences.setAccent($0, for: theme.id) }
                     }
                 }
+                if let glow = theme.surface.glow {
+                    LabeledContent("Glow") {
+                        Slider(
+                            value: Binding(
+                                get: { preferences.themeGlows[theme.id] ?? glow.strength },
+                                set: { preferences.setGlow($0, for: theme.id) }),
+                            in: 0...1
+                        )
+                        .frame(width: 160)
+                        .accessibilityLabel("Glow strength")
+                    }
+                }
             } footer: {
                 if let themeNote { Text(themeNote).foregroundStyle(.secondary) }
             }

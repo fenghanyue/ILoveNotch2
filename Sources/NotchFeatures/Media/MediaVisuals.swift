@@ -25,6 +25,7 @@ struct WavySeekBar: View, Animatable {
         let style = theme.seekBar
         let rested = theme.color(.ink).opacity(0.22)
         let headTint = style.headFill.map { $0 == .artwork ? tint : theme.color($0, artwork: nil) } ?? tint
+        let gradient = style.fill == .gradient ? Gradient(colors: theme.gradient) : nil
         return Canvas { context, size in
             let midY = size.height / 2
             let lineWidth = style.line
@@ -42,8 +43,14 @@ struct WavySeekBar: View, Animatable {
             wave.move(to: CGPoint(x: 0, y: y(0)))
             for x in stride(from: 2, through: playedX, by: 2) { wave.addLine(to: CGPoint(x: x, y: y(x))) }
             wave.addLine(to: CGPoint(x: playedX, y: y(playedX)))
+            // A gradient fill runs the glow's colors along the whole bar, so the wave changes color as
+            // it plays.
+            let shading: GraphicsContext.Shading =
+                gradient.map {
+                    .linearGradient($0, startPoint: .zero, endPoint: CGPoint(x: size.width, y: 0))
+                } ?? .color(tint)
             context.stroke(
-                wave, with: .color(tint), style: Self.stroke(style.played ?? .solid, width: lineWidth, cap: cap))
+                wave, with: shading, style: Self.stroke(style.played ?? .solid, width: lineWidth, cap: cap))
 
             // The play head: a short rounded bar, a dot, or a square-cornered block.
             switch style.head {
@@ -91,6 +98,7 @@ struct Waveform: View, Animatable {
     var body: some View {
         let style = theme.waveform
         let peak = style.peak.map { $0 == .artwork ? tint : theme.color($0, artwork: nil) }
+        let colors = style.fill == .gradient ? theme.gradient : nil
         return Canvas { context, size in
             let step = style.bar + style.gap
             let barWidth = style.bar
@@ -102,7 +110,9 @@ struct Waveform: View, Animatable {
                 let energy = (bands.isEmpty ? motion(at: index) : loudness(at: fromMiddle)) * level
                 let height = max(3, size.height * (0.1 + 0.9 * energy))
                 let x = CGFloat(index) * step
-                let lit = tint.opacity(0.3 + 0.5 * energy)
+                // A gradient fill steps through the glow's colors from left to right.
+                let base = colors.map { $0[min(index * $0.count / max(count, 1), $0.count - 1)] } ?? tint
+                let lit = base.opacity(0.3 + 0.5 * energy)
                 let color = energy > 0.82 ? peak ?? lit : lit
                 if style.shape == .led {
                     // Lit segments, 3 pt with 2 pt between, standing on the bottom.
