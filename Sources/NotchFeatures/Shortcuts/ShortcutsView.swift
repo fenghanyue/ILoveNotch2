@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+import NotchTheme
 import SwiftUI
 
 /// The shortcuts tab: a grid of shortcuts; click one to run it.
@@ -42,14 +43,14 @@ struct ShortcutsView: View {
                 if running {
                     ProgressView().controlSize(.mini)
                 } else {
-                    Image(systemName: "play.fill").font(.system(size: 10))
+                    Image(systemName: "play.fill").themeFont(.body, size: 10)
                 }
-                Text(name).font(.caption.weight(.medium)).lineLimit(2).multilineTextAlignment(.leading)
+                Text(name).themeFont(.body, .caption, weight: .medium).lineLimit(2).multilineTextAlignment(.leading)
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 10)
             .frame(maxWidth: .infinity, minHeight: 38)
-            .background(.white.opacity(running ? 0.18 : 0.1), in: RoundedRectangle(cornerRadius: 9))
+            .background(.themeInk.opacity(running ? 0.18 : 0.1), in: RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
         .disabled(running)
