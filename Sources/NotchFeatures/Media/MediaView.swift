@@ -279,7 +279,10 @@ struct MediaView: View {
                 Image(systemName: now.isPlaying ? "pause.fill" : "play.fill")
                     .themeFont(.body, size: 18, weight: .bold)
                     .contentTransition(.symbolEffect(.replace.downUp))
-                    .foregroundStyle(.themeOnAccent)
+                    // On an ink disc, the glyph is the notch's own color; on accent or artwork, onAccent.
+                    .foregroundStyle(
+                        theme.seekBar.fill == .ink ? theme.surface.color.color : theme.color(.onAccent)
+                    )
                     .frame(width: 40, height: 40)
                     .background(tint, in: Circle())
             }
