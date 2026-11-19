@@ -95,9 +95,17 @@ extension Theme {
 /// write `.foregroundStyle(.themeInk.opacity(0.55))` without reading the theme itself.
 public struct ThemeStyle: ShapeStyle {
     let token: ThemeToken
+    var opacity: Double = 1
 
     public func resolve(in environment: EnvironmentValues) -> Color {
-        environment.theme.color(token)
+        let color = environment.theme.color(token)
+        return opacity == 1 ? color : color.opacity(opacity)
+    }
+
+    /// The color at `opacity`, as `Color.opacity` makes it. ShapeStyle's own `opacity` fades the
+    /// drawn layer instead, which edges text a level darker than `.white.opacity(x)` did.
+    public func opacity(_ opacity: Double) -> ThemeStyle {
+        ThemeStyle(token: token, opacity: self.opacity * opacity)
     }
 }
 
