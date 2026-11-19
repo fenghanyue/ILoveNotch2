@@ -218,7 +218,10 @@ public struct Theme: Decodable, Identifiable, Sendable {
         }
 
         public enum Head: String, Decodable, Sendable {
+            /// A short rounded bar across the line.
             case bar
+            /// A round dot on the line.
+            case dot
         }
     }
 
@@ -229,7 +232,10 @@ public struct Theme: Decodable, Identifiable, Sendable {
         public let fill: Fill
 
         public enum Shape: String, Decodable, Sendable {
+            /// Bars with round ends.
             case round
+            /// Bars with square ends.
+            case square
         }
     }
 

@@ -44,9 +44,15 @@ struct WavySeekBar: View, Animatable {
             context.stroke(
                 wave, with: .color(tint), style: StrokeStyle(lineWidth: lineWidth, lineCap: cap, lineJoin: .round))
 
-            // The play head: a short rounded bar.
-            let head = CGRect(x: playedX - 2.5, y: midY - 8, width: 5, height: 16)
-            context.fill(Path(roundedRect: head, cornerRadius: 2.5), with: .color(tint))
+            // The play head: a short rounded bar, or a dot.
+            switch style.head {
+            case .bar:
+                let head = CGRect(x: playedX - 2.5, y: midY - 8, width: 5, height: 16)
+                context.fill(Path(roundedRect: head, cornerRadius: 2.5), with: .color(tint))
+            case .dot:
+                context.fill(
+                    Path(ellipseIn: CGRect(x: playedX - 6, y: midY - 6, width: 12, height: 12)), with: .color(tint))
+            }
         }
     }
 }
@@ -75,6 +81,7 @@ struct Waveform: View, Animatable {
         return Canvas { context, size in
             let step = style.bar + style.gap
             let barWidth = style.bar
+            let corner = style.shape == .round ? barWidth / 2 : 0
             let count = Int(size.width / step)
             let middle = Double(count - 1) / 2
             for index in 0..<count {
@@ -84,7 +91,7 @@ struct Waveform: View, Animatable {
                 let top = (size.height - height) / 2
                 let bar = CGRect(x: CGFloat(index) * step, y: top, width: barWidth, height: height)
                 context.fill(
-                    Path(roundedRect: bar, cornerRadius: barWidth / 2), with: .color(tint.opacity(0.3 + 0.5 * energy)))
+                    Path(roundedRect: bar, cornerRadius: corner), with: .color(tint.opacity(0.3 + 0.5 * energy)))
             }
         }
     }
