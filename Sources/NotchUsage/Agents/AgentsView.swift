@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: MIT
 import NotchFeatures
+import NotchTheme
 import SwiftUI
 
 /// The Agents tab: every session the connected tools reported, the ones waiting for approval
-/// first in line to be noticed, with a way back to each one's terminal.
+/// first in line to be noticed, with a way back to each one's terminal. Waiting is orange in every
+/// theme.
 struct AgentsView: View {
     let agents: AgentsFeature
+
+    @Environment(\.theme) private var theme
 
     var body: some View {
         if agents.connected.isEmpty {
@@ -37,14 +41,14 @@ struct AgentsView: View {
                 ForEach(agents.available) { tool in
                     Button("Connect \(tool.name)") { agents.connect(tool) }
                         .buttonStyle(.plain)
-                        .font(.caption.weight(.semibold))
+                        .themeFont(.body, .caption, weight: .semibold)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(.white.opacity(0.15), in: Capsule())
+                        .background(.themeInk.opacity(0.15), in: Capsule())
                 }
             }
             if let failure = agents.failure {
-                Text(failure).font(.caption).foregroundStyle(.orange).multilineTextAlignment(.center)
+                Text(failure).themeFont(.body, .caption).foregroundStyle(.orange).multilineTextAlignment(.center)
             }
         }
         .frame(maxHeight: .infinity)
@@ -56,20 +60,20 @@ struct AgentsView: View {
             ProviderLogo(providerID: session.tool.rawValue, name: session.tool.name, size: 18)
                 .foregroundStyle(ProviderStyle.of(session.tool.rawValue).gradient)
             VStack(alignment: .leading, spacing: 1) {
-                Text(session.project).font(.callout.weight(.medium)).lineLimit(1)
+                Text(session.project).themeFont(.body, .callout, weight: .medium).lineLimit(1)
                 status(session)
-                    .font(.caption)
-                    .foregroundStyle(waiting ? .orange : .white.opacity(0.55))
+                    .themeFont(.body, .caption)
+                    .foregroundStyle(waiting ? .orange : theme.color(.ink).opacity(0.55))
                     .lineLimit(1)
             }
             Spacer(minLength: 0)
             if session.app != nil {
                 Button("Go") { agents.open(session) }
                     .buttonStyle(.plain)
-                    .font(.caption.weight(.semibold))
+                    .themeFont(.body, .caption, weight: .semibold)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(waiting ? Color.orange.opacity(0.85) : .white.opacity(0.14), in: Capsule())
+                    .background(waiting ? Color.orange.opacity(0.85) : theme.color(.ink).opacity(0.14), in: Capsule())
                     .help("Go to its terminal")
             }
         }
