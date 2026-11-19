@@ -72,6 +72,16 @@ struct ThemeTests {
         #expect(Themes.black.withAccent("#D2462F").colors.accent.text == "system", "Black offers none")
     }
 
+    /// A theme's stroke and caps reach every path, since some sets repeat them per path, and the
+    /// rewritten file still draws.
+    @Test func aLineSetsStrokeAndCapsAreRewrittenOnEveryPath() {
+        let svg = #"<svg stroke-width="2" stroke-linecap="round"><p stroke-width="1.5" stroke-linejoin="round"/>"#
+        let square = #"<svg stroke-width="2.5" stroke-linecap="square"><p stroke-width="2.5" stroke-linejoin="miter"/>"#
+        #expect(ThemeIcon.restroke(svg, width: 2.5, cap: .square) == square)
+        #expect(ThemeIcon.restroke(svg, width: nil, cap: .round) == svg)
+        #expect(ThemeIcon.image(.feature(.media), in: "tabler", stroke: 2.5, cap: .square) != nil)
+    }
+
     @Test func colorsAreHexOrTheSystemAccent() {
         #expect(ThemeColor.parse("#1F1D1A") != nil)
         #expect(ThemeColor.parse("#FFFFFF80") != nil)

@@ -61,7 +61,9 @@ public struct ThemeIcon: View {
                 Image(systemName: symbol)
                     .font(.system(size: size * Self.symbolScale))
                     .symbolRenderingMode(theme.icons.rendering == .hierarchical ? .hierarchical : .monochrome)
-            } else if let image = Self.image(role, in: theme.icons.set) {
+            } else if let image = Self.image(
+                role, in: theme.icons.set, stroke: theme.icons.stroke, cap: theme.icons.cap)
+            {
                 Image(nsImage: image).renderingMode(.template).resizable()
             } else {
                 Color.clear
@@ -99,12 +101,15 @@ public struct ThemeIcon: View {
         return info?.symbols?[role.name]
     }
 
-    /// Each icon loads once per set; macOS draws SVG natively, sharp at any size. For a symbol set,
-    /// the symbol at the icon's size, which the tests measure.
+    /// Each icon loads once per set and line; macOS draws SVG natively, sharp at any size. A line
+    /// set's `stroke` and `cap` rewrite every stroke in the file. For a symbol set, the symbol at the
+    /// icon's size, which the tests measure.
     @MainActor private static var images: [String: NSImage] = [:]
 
-    @MainActor static func image(_ role: IconRole, in set: String) -> NSImage? {
-        let key = "\(set)/\(role.name)"
+    @MainActor static func image(
+        _ role: IconRole, in set: String, stroke: Double? = nil, cap: Theme.Icons.Cap? = nil
+    ) -> NSImage? {
+        let key = "\(set)/\(role.name)/\(stroke.map { "\($0)" } ?? "")/\(cap?.rawValue ?? "")"
         if let cached = images[key] { return cached }
         if let symbol = symbol(role, in: set) {
             let image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?
@@ -113,16 +118,33 @@ public struct ThemeIcon: View {
             images[key] = image
             return image
         }
-        guard
-            let url = Bundle.themeResources.url(
-                forResource: role.name, withExtension: "svg", subdirectory: "Icons/\(set)"),
-            let image = NSImage(contentsOf: url)
-        else {
+        let url = Bundle.themeResources.url(
+            forResource: role.name, withExtension: "svg", subdirectory: "Icons/\(set)")
+        let image: NSImage?
+        if stroke == nil, cap == nil {
+            image = url.flatMap(NSImage.init(contentsOf:))
+        } else {
+            let svg = url.flatMap { try? String(contentsOf: $0, encoding: .utf8) }
+            image = svg.flatMap { NSImage(data: Data(Self.restroke($0, width: stroke, cap: cap).utf8)) }
+        }
+        guard let image else {
             Log.surface.error("No \(role.name, privacy: .public) icon in \(set, privacy: .public)")
             return nil
         }
         image.isTemplate = true
         images[key] = image
         return image
+    }
+
+    /// The SVG with every stroke `width` wide, and square ends and mitered joins for `.square`.
+    /// Some sets repeat the attributes on each path, so every one is replaced, not just the root's.
+    static func restroke(_ svg: String, width: Double?, cap: Theme.Icons.Cap?) -> String {
+        var svg = svg
+        if let width { svg.replace(/stroke-width="[^"]*"/, with: "stroke-width=\"\(width)\"") }
+        if cap == .square {
+            svg.replace("stroke-linecap=\"round\"", with: "stroke-linecap=\"square\"")
+            svg.replace("stroke-linejoin=\"round\"", with: "stroke-linejoin=\"miter\"")
+        }
+        return svg
     }
 }
