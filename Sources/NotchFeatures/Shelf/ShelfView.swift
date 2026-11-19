@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 import AppKit
+import NotchTheme
 import SwiftUI
 
 /// The shelf tab: dropped files in a scrolling row. Drag them back out, double-click to preview,
@@ -16,7 +17,7 @@ struct ShelfView: View {
                     message: "Drag files onto the notch to keep them handy, then drag them back out when you need them."
                 )
                 if let control = shelf.androidControl {
-                    control.font(.caption).padding(.bottom, 4)
+                    control.themeFont(.body, .caption).padding(.bottom, 4)
                 }
             }
         } else {
@@ -32,7 +33,7 @@ struct ShelfView: View {
                 .fadingEdges(.horizontal)
                 HStack(spacing: 12) {
                     Text(shelf.items.count == 1 ? "1 item" : "\(shelf.items.count) items")
-                        .foregroundStyle(.white.opacity(0.5))
+                        .foregroundStyle(.themeInk.opacity(0.5))
                     shelf.androidControl
                     Spacer()
                     if let send = shelf.sendToAndroid {
@@ -41,7 +42,7 @@ struct ShelfView: View {
                     Button("AirDrop All") { shelf.airDrop(shelf.items) }
                     Button("Clear") { shelf.removeAll() }
                 }
-                .font(.caption)
+                .themeFont(.body, .caption)
                 .buttonStyle(.plain)
                 .lineLimit(1)
             }
@@ -62,11 +63,11 @@ private struct ShelfItemView: View {
                 .opacity(url == nil ? 0.35 : 1)
             // One line, middle-truncated, so the extension stays readable (never "Screenshot.p-ng").
             Text(item.name)
-                .font(.caption2)
+                .themeFont(.body, .caption2)
                 .lineLimit(1)
                 .truncationMode(.middle)
             if url == nil {
-                Text("Missing").font(.caption2.bold()).foregroundStyle(.orange)
+                Text("Missing").themeFont(.body, .caption2).bold().foregroundStyle(.orange)  // a warning
             }
         }
         .frame(width: 76)
