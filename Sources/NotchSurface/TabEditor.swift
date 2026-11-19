@@ -136,7 +136,7 @@ struct EditingRow: View {
                 switch place {
                 case .gap:
                     Capsule()
-                        .strokeBorder(.white.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+                        .strokeBorder(.themeInk.opacity(0.5), style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
                         .padding(2)
                         .frame(width: width, height: 26)
                         .transition(.scale(scale: 0.5).combined(with: .opacity))
@@ -152,9 +152,10 @@ struct EditingRow: View {
         let lifted = editor.drag?.feature == feature
         return ThemeIcon(feature)
             .frame(width: width, height: 26)
-            .background(.white.opacity(0.12), in: Capsule().inset(by: 2))
+            .background(.themeInk.opacity(0.12), in: Capsule().inset(by: 2))
             .overlay(alignment: .topLeading) {
                 if removable, !lifted {
+                    // A gray badge, as the plus is green, in every theme.
                     EditBadge(symbol: "minus", tint: Color(white: 0.32), label: "Keep \(feature.title) in the drawer") {
                         editor.hide(feature)
                     }
@@ -218,12 +219,12 @@ struct LiftedTab: View {
         if let drag = editor.drag {
             ThemeIcon(drag.feature, size: 18)
                 .frame(width: 42, height: 34)
-                .background(.white.opacity(0.24), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(.themeInk.opacity(0.24), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(
-                        .white.opacity(0.4), lineWidth: 0.5)
+                        .themeInk.opacity(0.4), lineWidth: 0.5)
                 )
-                .shadow(color: .black.opacity(0.55), radius: 10, y: 5)
+                .shadow(color: .black.opacity(0.55), radius: 10, y: 5)  // a shadow, dark in every theme
                 .position(editor.pointer)
                 .allowsHitTesting(false)
                 .transition(.scale(scale: 0.7).combined(with: .opacity))
@@ -231,18 +232,21 @@ struct LiftedTab: View {
     }
 }
 
-/// Ends editing: white, as iOS's Done is the one bright thing on a jiggling Home Screen.
+/// Ends editing: in the theme's ink, as iOS's Done is the one bright thing on a jiggling Home
+/// Screen, its word in the notch's own color.
 struct DoneButton: View {
     let action: () -> Void
+
+    @Environment(\.theme) private var theme
 
     var body: some View {
         Button(action: action) {
             Text("Done")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.black)
+                .themeFont(.body, size: 11, weight: .semibold)
+                .foregroundStyle(theme.surface.color.color)
                 .padding(.horizontal, 12)
                 .frame(height: 22)
-                .background(.white, in: Capsule())
+                .background(.themeInk, in: Capsule())
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -251,6 +255,7 @@ struct DoneButton: View {
 }
 
 /// A small round button on a tab's corner: minus to keep it in the drawer, plus to add it to the row.
+/// A white glyph on its own color over the icon, the same in every theme.
 private struct EditBadge: View {
     let symbol: String
     let tint: Color
@@ -260,7 +265,7 @@ private struct EditBadge: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 7, weight: .heavy))
+                .themeFont(.body, size: 7, weight: .heavy)
                 .foregroundStyle(.white)
                 .frame(width: 14, height: 14)
                 .background(tint, in: Circle())
