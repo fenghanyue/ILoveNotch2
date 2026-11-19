@@ -209,9 +209,15 @@ struct NotchView: View {
                 outline.fill(ImagePaint(image: Image(nsImage: Self.tile(pattern)))).transition(.opacity)
             }
             if open, !glass, let glow = theme.surface.glow { glowing(outline, glow).transition(.opacity) }
+            // Over glass, the camera housing stays black, or a theme's band runs the whole width at
+            // its height.
             if glass, metrics.notch != nil {
-                Self.shape(for: .compact, on: metrics).fill(.black)
-                    .frame(width: metrics.compactSize.width, height: metrics.compactSize.height)
+                if let band = theme.surface.band {
+                    Rectangle().fill(band.color).frame(height: metrics.housing.height).clipShape(outline)
+                } else {
+                    Self.shape(for: .compact, on: metrics).fill(.black)
+                        .frame(width: metrics.compactSize.width, height: metrics.compactSize.height)
+                }
             }
         }
     }
