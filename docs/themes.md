@@ -52,6 +52,7 @@ Required unless marked optional.
 | `radii.notchTop`, `.notchBottom` | the open notch's corners |
 | `seekBar` | `line` (width), `cap` (`round`, `square`), `rest` (`solid`, `dotted`, `dashed`), `head` (`bar`, `dot`, `block`), `fill` (`artwork`, `accent`, `ink`); optional `played` (`solid`, `dotted`, `dashed`) and `headFill` |
 | `waveform` | `bar` (width), `gap`, `shape` (`round`, `square`, `led`), `fill` (`artwork`, `accent`, `ink`); optional `peak`, a column's color at its loudest |
+| `mascot` | optional: a little character at the head of the tab row, by the name of one the app draws (`Theme.mascots`: `heart-eyes`); an unknown one draws nothing |
 | `skins` | optional: `musicPlayer`, `tabRow`, `closedNotch`, each the name of a skin the app ships (`SkinSlot.shipped`). A missing or unknown one draws the default view. |
 
 Colors are `#RRGGBB` or `#RRGGBBAA`. `artwork` is the now-playing artwork's color, or ink without

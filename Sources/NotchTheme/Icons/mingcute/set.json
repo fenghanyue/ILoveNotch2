@@ -1,0 +1,30 @@
+{
+  "name": "MingCute Icons",
+  "version": "3.1.0",
+  "license": "Apache-2.0",
+  "url": "https://www.mingcute.com",
+  "kind": "fill",
+  "source": {
+    "media": "regular/media/music",
+    "sound": "regular/media/volume",
+    "shelf": "regular/files/inbox",
+    "clipboard": "regular/files/clipboard",
+    "calendar": "regular/business/calendar",
+    "tasks": "regular/editing/list_check_2",
+    "notes": "regular/files/document",
+    "shortcuts": "regular/system/layers_2",
+    "timer": "regular/devices/alarm_2",
+    "network": "regular/arrow/transfer_4",
+    "mirror": "regular/devices/computer_camera",
+    "prompter": "regular/files/paper",
+    "usage": "regular/devices/dashboard_3",
+    "agents": "regular/development/terminal_box",
+    "apps": "regular/system/grid",
+    "apps-on": "filled/system/grid",
+    "pin": "regular/files/pin",
+    "pin-on": "filled/files/pin",
+    "settings": "regular/system/settings_3",
+    "edit": "regular/editing/pencil",
+    "done": "regular/system/check"
+  }
+}

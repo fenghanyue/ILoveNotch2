@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "id": "cozy",
+  "name": "Cozy",
+  "order": 50,
+  "appearance": "dark",
+  "surface": {
+    "kind": "solid",
+    "color": "#1C1714",
+    "band": "#000000",
+    "border": {
+      "color": "#000000",
+      "width": 12
+    }
+  },
+  "colors": {
+    "ink": "#FAF1E4",
+    "secondary": "#FAF1E4AD",
+    "tertiary": "#FAF1E4A6",
+    "fill": "#FAF1E41A",
+    "accent": "#E8573F",
+    "onAccent": "#FAF1E4",
+    "highlight": "#E8573F"
+  },
+  "fonts": {
+    "display": {
+      "family": "Nunito",
+      "weight": "black"
+    },
+    "body": {
+      "family": "Nunito",
+      "weight": "bold"
+    },
+    "mono": {
+      "family": "Nunito",
+      "weight": "bold"
+    }
+  },
+  "icons": {
+    "set": "mingcute"
+  },
+  "radii": {
+    "notchTop": 18,
+    "notchBottom": 38
+  },
+  "seekBar": {
+    "line": 5,
+    "cap": "round",
+    "rest": "solid",
+    "head": "dot",
+    "fill": "accent",
+    "headFill": "ink"
+  },
+  "waveform": {
+    "bar": 5,
+    "gap": 4,
+    "shape": "round",
+    "fill": "ink"
+  },
+  "mascot": "heart-eyes"
+}

@@ -290,6 +290,31 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## MingCute Icons (Apache-2.0)
+
+https://www.mingcute.com (https://github.com/mingcute-design/mingcute-icons, formerly
+Richard9394/MingCute)
+Copyright MingCute Design
+
+The icons in `Sources/NotchTheme/Icons/mingcute` are MingCute Icons 3.1.0's
+Core Regular SVGs (Core Filled for `apps-on` and `pin-on`), unchanged but
+renamed by role; `set.json` maps each role to its path under the release's
+`assets/svg/core`. The full license ships beside them as `LICENSE`.
+
+```text
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
 ## Fonts (OFL-1.1)
 
 The themes' fonts sit in `Sources/NotchTheme/Fonts/<Family>`, unchanged from
@@ -303,6 +328,9 @@ license they share:
   google/fonts `ofl/spacegrotesk` (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86):
   `SpaceGrotesk[wght].ttf`. Copyright 2020 The Space Grotesk Project Authors
   (https://github.com/floriankarsten/space-grotesk).
+- **Nunito**, https://github.com/googlefonts/nunito, Version 3.602, from google/fonts `ofl/nunito`
+  (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86): `Nunito[wght].ttf`. Copyright 2014 The Nunito
+  Project Authors (https://github.com/googlefonts/nunito).
 - **Doto**, https://github.com/oliverlalan/Doto, Version 1.000, from google/fonts `ofl/doto`
   (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86): `Doto[ROND,wght].ttf`. Copyright 2024 The
   Doto Project Authors (https://github.com/oliverlalan/Doto).
