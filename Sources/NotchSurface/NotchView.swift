@@ -461,15 +461,15 @@ struct NotchView: View {
 
     /// Whether every tab's name fits the header at the notch's width, for a theme that names its
     /// tabs; otherwise they show their icons.
-    private func namesFit(_ tabs: [FeatureID]) -> Bool {
+    private func namesFit(_ names: [String]) -> Bool {
         let font = theme.nsFont(.body, size: Self.tabTextSize, weight: .medium)
-        let names = tabs.reduce(0) { width, tab in
-            width + (tab.title as NSString).size(withAttributes: [.font: font]).width + 2 * Self.tabTextPadding
+        let width = names.reduce(0) { width, name in
+            width + (name as NSString).size(withAttributes: [.font: font]).width + 2 * Self.tabTextPadding
         }
         let room =
             preferences.expandedSize.width - contentPadding.leading - contentPadding.trailing - Self.appsGap
-            - 3 * Self.headerButtonWidth - CGFloat(tabs.count + 2) * Self.tabSpacing
-        return names.rounded(.up) <= room
+            - 3 * Self.headerButtonWidth - CGFloat(names.count + 2) * Self.tabSpacing
+        return width.rounded(.up) <= room
     }
 
     /// The widest tab that still fits `count` tabs into `room`, up to 32 pt. Tabs keep that width at
@@ -531,9 +531,13 @@ struct NotchView: View {
         let row = preferences.rowTabs
         let tabs = row.contains(selected) ? row : row + [selected]
         let tabWidth = Self.tabWidth(count: tabs.count, room: tabRoom)
-        let named = theme.tabLabels == .text && namesFit(tabs)
+        // The terminal skin numbers its tabs like a shell's windows ("1:media 2:shelf"), and lights
+        // the open one as an inverted block.
+        let terminal = theme.skin(.tabRow) == "terminal"
+        let names = tabs.enumerated().map { index, tab in terminal ? "\(index + 1):\(tab.rawValue)" : tab.title }
+        let named = theme.tabLabels == .text && namesFit(names)
         return HStack(spacing: Self.tabSpacing) {
-            ForEach(tabs, id: \.self) { tab in
+            ForEach(Array(zip(tabs, names)), id: \.0) { tab, name in
                 let lit = tab == selected && !drawer
                 Button {
                     // Content slides the same way the selection travels.
@@ -546,13 +550,16 @@ struct NotchView: View {
                     // tab stands out by its pill and brightness, never by a bigger or filled glyph.
                     Group {
                         if named {
-                            Text(tab.title).themeFont(.body, size: Self.tabTextSize, weight: .medium)
+                            Text(name)
+                                .themeFont(.body, size: Self.tabTextSize, weight: terminal && lit ? .bold : .medium)
                                 .padding(.horizontal, Self.tabTextPadding)
                         } else {
                             ThemeIcon(tab).frame(width: tabWidth)
                         }
                     }
-                    .foregroundStyle(.themeInk.opacity(lit ? 1 : Self.unlit))
+                    .foregroundStyle(
+                        terminal && lit ? ThemeStyle.themeOnAccent : .themeInk.opacity(lit ? 1 : Self.unlit)
+                    )
                     .frame(height: 26)
                     .contentShape(Rectangle())
                 }
@@ -566,27 +573,34 @@ struct NotchView: View {
         .background {
             // One capsule travels between tabs, inside the row's glass: a bouncy spring carries it,
             // and a quick stretch-and-settle makes the move read as jelly instead of a jump.
-            Capsule()
-                .fill(.themeInk.opacity(drawer ? 0 : 0.16))
-                .padding(2)
-                .matchedGeometryEffect(id: selected, in: selection, isSource: false)
-                .keyframeAnimator(initialValue: CGSize(width: 1, height: 1), trigger: selected) { capsule, scale in
-                    capsule.scaleEffect(scale)
-                } keyframes: { _ in
-                    let stretch: CGFloat = reduceMotion ? 1 : 1.3
-                    KeyframeTrack(\.width) {
-                        SpringKeyframe(stretch, duration: 0.12)
-                        SpringKeyframe(reduceMotion ? 1 : 0.94, duration: 0.14)
-                        SpringKeyframe(1, duration: 0.24)
-                    }
-                    KeyframeTrack(\.height) {
-                        SpringKeyframe(2 - stretch, duration: 0.12)
-                        SpringKeyframe(reduceMotion ? 1 : 1.05, duration: 0.14)
-                        SpringKeyframe(1, duration: 0.24)
-                    }
+            Group {
+                if terminal {
+                    Rectangle().fill(.themeAccent.opacity(drawer ? 0 : 1))
+                } else {
+                    Capsule().fill(.themeInk.opacity(drawer ? 0 : 0.16))
                 }
+            }
+            .padding(2)
+            .matchedGeometryEffect(id: selected, in: selection, isSource: false)
+            .keyframeAnimator(initialValue: CGSize(width: 1, height: 1), trigger: selected) { capsule, scale in
+                capsule.scaleEffect(scale)
+            } keyframes: { _ in
+                let stretch: CGFloat = reduceMotion ? 1 : 1.3
+                KeyframeTrack(\.width) {
+                    SpringKeyframe(stretch, duration: 0.12)
+                    SpringKeyframe(reduceMotion ? 1 : 0.94, duration: 0.14)
+                    SpringKeyframe(1, duration: 0.24)
+                }
+                KeyframeTrack(\.height) {
+                    SpringKeyframe(2 - stretch, duration: 0.12)
+                    SpringKeyframe(reduceMotion ? 1 : 1.05, duration: 0.14)
+                    SpringKeyframe(1, duration: 0.24)
+                }
+            }
         }
-        .background(GlassPlatter(shape: Capsule()))
+        .background {
+            if !terminal { GlassPlatter(shape: Capsule()) }  // a terminal's tabs sit bare on the band
+        }
         .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.64), value: selected)
         .contextMenu {
             Button("Edit Tabs\u{2026}", action: startEditing)

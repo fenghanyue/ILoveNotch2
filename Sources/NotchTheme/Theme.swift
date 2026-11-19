@@ -361,7 +361,9 @@ public enum SkinSlot: CaseIterable, Sendable {
     /// the slot's default view; its name goes here so the bundled-themes test can check it.
     public var shipped: Set<String> {
         switch self {
-        case .musicPlayer, .tabRow, .closedNotch: []
+        case .musicPlayer: ["terminal"]
+        case .tabRow: ["terminal"]
+        case .closedNotch: []
         }
     }
 }

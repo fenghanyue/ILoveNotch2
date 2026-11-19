@@ -28,6 +28,7 @@ struct MediaView: View {
     /// The player's color: the artwork's, or the theme's when its seek bar says so.
     private var tint: Color { theme.color(theme.seekBar.fill, artwork: media.accent?.color) }
     private var waveformTint: Color { theme.color(theme.waveform.fill, artwork: media.accent?.color) }
+    private var terminal: Bool { theme.skin(.musicPlayer) == "terminal" }
 
     var body: some View {
         if let now = media.nowPlaying {
@@ -66,11 +67,21 @@ struct MediaView: View {
     /// Shorter notches drop the waveform first, then shrink the artwork, then move the controls up
     /// beside the track, so the player never clips.
     private func player(_ now: NowPlaying) -> some View {
-        ViewThatFits(in: .vertical) {
-            player(now, artwork: 72, waveform: true)
-            player(now, artwork: 72, waveform: false)
-            player(now, artwork: 52, waveform: false)
-            player(now, artwork: 52, waveform: false, inline: true)
+        Group {
+            if terminal {
+                ViewThatFits(in: .vertical) {
+                    terminalPlayer(now, art: true, waveform: true)
+                    terminalPlayer(now, art: true, waveform: false)
+                    terminalPlayer(now, art: false, waveform: false)
+                }
+            } else {
+                ViewThatFits(in: .vertical) {
+                    player(now, artwork: 72, waveform: true)
+                    player(now, artwork: 72, waveform: false)
+                    player(now, artwork: 52, waveform: false)
+                    player(now, artwork: 52, waveform: false, inline: true)
+                }
+            }
         }
         .background {
             SwipeCatcher { forward in
@@ -99,15 +110,7 @@ struct MediaView: View {
                 VStack(spacing: 8) {
                     seekBar(now, at: context.date, phase: time * 2.4)
                     if !inline { controls(now, modes: media.hasModes) }
-                    if waveform {
-                        let heard = media.audio.isHearing ? media.audio.bands : []
-                        Spacer(minLength: 0)
-                        Waveform(level: animating ? 1 : 0, time: time, tint: waveformTint, bands: heard)
-                            .frame(height: 18)
-                            .fadingEdges(.horizontal, length: 28)
-                            .animation(.easeInOut(duration: 0.5), value: animating)
-                            .accessibilityHidden(true)
-                    }
+                    if waveform { liveWaveform(animating: animating, time: time) }
                 }
             }
             if media.automationDenied, let player = media.scriptedPlayer {
@@ -117,6 +120,18 @@ struct MediaView: View {
     }
 
     // MARK: Parts
+
+    private func liveWaveform(animating: Bool, time: Double) -> some View {
+        let heard = media.audio.isHearing ? media.audio.bands : []
+        return Group {
+            Spacer(minLength: 0)
+            Waveform(level: animating ? 1 : 0, time: time, tint: waveformTint, bands: heard)
+                .frame(height: 18)
+                .fadingEdges(.horizontal, length: 28)
+                .animation(.easeInOut(duration: 0.5), value: animating)
+                .accessibilityHidden(true)
+        }
+    }
 
     private func artwork(_ size: CGFloat) -> some View {
         Button(action: media.openPlayer) {
@@ -354,6 +369,160 @@ struct MediaView: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: Terminal skin
+
+    /// The Terminal theme's player: a prompt over the cover drawn in characters, the track as key and
+    /// value lines with the panels' buttons beside them, then the seek line, bracketed words for
+    /// buttons, and the waveform. Shorter notches drop the waveform, then the art, the prompt, the
+    /// album, and the app.
+    private func terminalPlayer(_ now: NowPlaying, art: Bool, waveform: Bool) -> some View {
+        let animating = now.isPlaying && !reduceMotion
+        return VStack(alignment: .leading, spacing: 8) {
+            if art {
+                Text("$ now-playing").foregroundStyle(.themeSecondary)
+            }
+            HStack(alignment: .top, spacing: 14) {
+                if art { textArt }
+                terminalDetails(now, full: art)
+                VStack(alignment: .trailing, spacing: 4) { terminalPanelButtons }
+            }
+            TimelineView(.animation(minimumInterval: 1 / 30, paused: !animating)) { context in
+                let time = context.date.timeIntervalSinceReferenceDate
+                VStack(spacing: 8) {
+                    seekBar(now, at: context.date, phase: time * 2.4)
+                    terminalControls(now)
+                    if waveform { liveWaveform(animating: animating, time: time) }
+                }
+            }
+            if media.automationDenied, let player = media.scriptedPlayer {
+                permissionHint(player)
+            }
+        }
+        .themeFont(.mono, size: 12)
+    }
+
+    /// The cover in characters, brighter where it's lighter; a click opens the player.
+    private var textArt: some View {
+        Button(action: media.openPlayer) {
+            // ponytail: redrawn with the player's top half (never per frame), 112 cells; cache by
+            // image if it ever shows in a profile.
+            Text(media.artwork.map { Self.textArt(of: $0) } ?? Self.blankArt)
+                .themeFont(.mono, size: 11)
+                .fixedSize()
+        }
+        .buttonStyle(PressableButtonStyle())
+        .help("Open the player")
+        .accessibilityLabel("Open the player")
+    }
+
+    /// About square in a monospaced face, whose cells are about twice as tall as wide.
+    static let artColumns = 16
+    static let artRows = 7
+    static let blankArt = Array(repeating: String(repeating: ".", count: artColumns), count: artRows)
+        .joined(separator: "\n")
+
+    /// `image` as `artRows` lines of `artColumns` characters, from a ramp of dark to light, one per
+    /// cell of its gray.
+    static func textArt(of image: NSImage) -> String {
+        let ramp = Array(" .:-=+*#%@")
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return blankArt }
+        var gray = [UInt8](repeating: 0, count: artColumns * artRows)
+        gray.withUnsafeMutableBytes { pixels in
+            let context = CGContext(
+                data: pixels.baseAddress, width: artColumns, height: artRows, bitsPerComponent: 8,
+                bytesPerRow: artColumns, space: CGColorSpaceCreateDeviceGray(),
+                bitmapInfo: CGImageAlphaInfo.none.rawValue)
+            context?.interpolationQuality = .medium
+            context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: artColumns, height: artRows))
+        }
+        return stride(from: 0, to: gray.count, by: artColumns).map { start in
+            String(gray[start..<start + artColumns].map { ramp[Int($0) * (ramp.count - 1) / 255] })
+        }
+        .joined(separator: "\n")
+    }
+
+    /// The track as `key value` lines, the keys dim; `full` adds the album and the app it plays in.
+    private func terminalDetails(_ now: NowPlaying, full: Bool) -> some View {
+        let app = now.appBundleID.flatMap { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) }
+        let lines: [(key: String, value: String?)] = [
+            ("title", Optional(now.title)), ("artist", now.artist), ("album", full ? now.album : nil),
+            ("source", full ? app.map { $0.deletingPathExtension().lastPathComponent.lowercased() } : nil),
+        ]
+        return Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 3) {
+            ForEach(lines.filter { $0.value != nil }, id: \.key) { line in
+                GridRow {
+                    Text(line.key).foregroundStyle(.themeSecondary)
+                    Text(line.value ?? "")
+                        .themeFont(line.key == "title" ? .display : .mono, size: line.key == "title" ? 13 : 12)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipped()
+    }
+
+    @ViewBuilder private var terminalPanelButtons: some View {
+        if let player = media.scriptedPlayer {
+            let spotify = player == .spotify
+            bracket(spotify ? "history" : "up next", label: spotify ? "Recently played" : "Up next") { show(.list) }
+        }
+        if media.lyrics != nil {
+            bracket("lyrics", label: "Lyrics") { show(.lyrics) }
+        }
+        if media.outputControl != nil {
+            bracket("output", label: "Output and volume") { show(.output) }
+        }
+    }
+
+    /// Back, play or pause, and ahead, with shuffle and repeat at either end.
+    private func terminalControls(_ now: NowPlaying) -> some View {
+        let interval = now.skipsByInterval
+        let repeatMode = media.repeatMode ?? .off
+        return HStack(spacing: 8) {
+            if media.hasModes {
+                bracket("shuffle", label: "Shuffle", lit: media.shuffle == true, action: media.toggleShuffle)
+            }
+            Spacer(minLength: 0)
+            bracket(interval ? "-15s" : "prev", label: interval ? "Back 15 seconds" : "Previous track") {
+                media.send(interval ? .skipBackward : .previousTrack)
+            }
+            bracket(now.isPlaying ? "PAUSE" : "PLAY", label: now.isPlaying ? "Pause" : "Play", inverted: true) {
+                media.send(.togglePlayPause)
+            }
+            bracket(interval ? "+15s" : "next", label: interval ? "Forward 15 seconds" : "Next track") {
+                media.send(interval ? .skipForward : .nextTrack)
+            }
+            Spacer(minLength: 0)
+            if media.hasModes {
+                bracket(
+                    repeatMode == .one ? "repeat 1" : "repeat", label: "Repeat", lit: repeatMode != .off,
+                    action: media.cycleRepeat)
+            }
+        }
+        .disabled(!media.hasControls)
+    }
+
+    /// A word in brackets that acts as a button, in the dim ink, or the full ink while it's on (`lit`);
+    /// `inverted` sets it in a block of the accent, for play and pause.
+    private func bracket(
+        _ word: String, label: String, lit: Bool = false, inverted: Bool = false, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text("[\(word)]")  // no inner spaces, so all five fit the smallest notch
+                .themeFont(.mono, size: 12, weight: inverted ? .bold : .regular)
+                .foregroundStyle(inverted ? ThemeStyle.themeOnAccent : lit ? .themeInk : .themeSecondary)
+                .padding(.horizontal, 4)
+                .frame(height: 24)
+                .background(inverted ? ThemeStyle.themeAccent : .themeAccent.opacity(0))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(PressableButtonStyle())
+        .help(label)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(lit ? .isSelected : [])
+    }
+
     // MARK: Panels
 
     /// A panel in the player's place: a back button and its title, over its content.
@@ -449,7 +618,7 @@ struct MediaView: View {
 
     /// A soft, saturated blur of the cover behind the whole notch; the notch clips it to its outline.
     @ViewBuilder private var glow: some View {
-        if let image = media.artwork, !reduceTransparency {
+        if let image = media.artwork, !reduceTransparency, !terminal {
             Image(nsImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fill)

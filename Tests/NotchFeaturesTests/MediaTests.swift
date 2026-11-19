@@ -347,3 +347,21 @@ struct SpectrumAnalyzerTests {
         #expect(!MediaFeature.listensToAudio(phase: .foreground, enabled: true, playing: true, reduceMotion: true))
     }
 }
+
+/// The Terminal skin draws the cover in characters, upright: light at the top of a cover that's
+/// white over black, with the densest character, and blank where it's black.
+@MainActor
+@Test func theCoverInCharactersKeepsItsTopUp() {
+    let cover = NSImage(size: NSSize(width: 64, height: 64), flipped: false) { rect in
+        NSColor.black.setFill()
+        rect.fill()
+        NSColor.white.setFill()
+        NSRect(x: 0, y: rect.midY, width: rect.width, height: rect.height / 2).fill()  // the top half
+        return true
+    }
+    let lines = MediaView.textArt(of: cover).split(separator: "\n", omittingEmptySubsequences: false)
+    #expect(lines.count == MediaView.artRows)
+    #expect(lines.allSatisfy { $0.count == MediaView.artColumns })
+    #expect(lines.first?.allSatisfy { $0 == "@" } == true, "the top line is the white half")
+    #expect(lines.last?.allSatisfy { $0 == " " } == true, "the bottom line is the black half")
+}
