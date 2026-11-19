@@ -58,8 +58,11 @@ struct NotchView: View {
     @State private var fromDrawer = false
     @Namespace private var selection
 
-    /// The chosen theme, which everything inside the notch reads from the environment.
-    private var theme: Theme { Themes.theme(preferences.themeID) }
+    /// The chosen theme, with the accent picked for it, which everything inside the notch reads from
+    /// the environment.
+    private var theme: Theme {
+        Themes.theme(preferences.themeID).withAccent(preferences.themeAccents[preferences.themeID])
+    }
 
     var body: some View {
         let presentation = engine.state.presentation

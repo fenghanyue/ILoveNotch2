@@ -374,6 +374,15 @@ private struct AppearancePage: View {
                 }
                 // Shows the new look right away, the way Preview shows an animation.
                 .onChange(of: preferences.themeID) { previewAnimation() }
+                let theme = Themes.theme(preferences.themeID)
+                if let choices = theme.accentChoices, !choices.isEmpty {
+                    LabeledContent("Accent") {
+                        AccentPicker(
+                            choices: choices,
+                            picked: preferences.themeAccents[theme.id] ?? theme.colors.accent.text
+                        ) { preferences.setAccent($0, for: theme.id) }
+                    }
+                }
             } footer: {
                 if let themeNote { Text(themeNote).foregroundStyle(.secondary) }
             }
@@ -475,6 +484,33 @@ private struct ThemePicker: View {
         }
         .frame(width: 84, height: 52)
         .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+}
+
+/// A theme's accents as swatches, the picked one ringed.
+private struct AccentPicker: View {
+    let choices: [ThemeColor]
+    let picked: String?
+    let pick: (String?) -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(Array(choices.enumerated()), id: \.offset) { index, choice in
+                let selected = choice.text == picked
+                Button {
+                    pick(choice.text)
+                } label: {
+                    Circle()
+                        .fill(choice.color)
+                        .frame(width: 18, height: 18)
+                        .padding(3)
+                        .overlay(Circle().strokeBorder(selected ? Color.accentColor : .clear, lineWidth: 2))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Accent \(index + 1) of \(choices.count)")
+                .accessibilityAddTraits(selected ? .isSelected : [])
+            }
+        }
     }
 }
 

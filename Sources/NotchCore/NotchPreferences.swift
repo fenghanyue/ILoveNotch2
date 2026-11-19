@@ -128,6 +128,16 @@ public final class NotchPreferences {
 
     public nonisolated static let defaultThemeID = "black"
 
+    /// The accent picked for each theme that offers a choice, by theme id, as the theme writes it.
+    public private(set) var themeAccents: [String: String] {
+        didSet { defaults.set(themeAccents, forKey: Key.themeAccents) }
+    }
+
+    /// Picks `accent` for the theme `themeID`; nil goes back to the theme's own.
+    public func setAccent(_ accent: String?, for themeID: String) {
+        themeAccents[themeID] = accent
+    }
+
     /// A live activity when the volume changes or mutes.
     public var showsVolume: Bool {
         didSet { defaults.set(showsVolume, forKey: Key.showsVolume) }
@@ -227,6 +237,7 @@ public final class NotchPreferences {
         pillDisplays = Set(defaults.stringArray(forKey: Key.pillDisplays) ?? [])
         animationStyle = defaults.string(forKey: Key.animationStyle).flatMap(NotchAnimationStyle.init) ?? .spring
         themeID = defaults.string(forKey: Key.theme) ?? Self.defaultThemeID
+        themeAccents = defaults.dictionary(forKey: Key.themeAccents) as? [String: String] ?? [:]
         showsVolume = defaults.object(forKey: Key.showsVolume) as? Bool ?? true
         showsBattery = defaults.object(forKey: Key.showsBattery) as? Bool ?? true
         replacesVolumeDisplay = defaults.bool(forKey: Key.replacesVolumeDisplay)
@@ -310,6 +321,7 @@ public final class NotchPreferences {
         pillDisplays = []
         animationStyle = .spring
         themeID = Self.defaultThemeID
+        themeAccents = [:]
         expandedSize = Self.defaultExpandedSize
         showsVolume = true
         showsBattery = true
@@ -328,6 +340,7 @@ public final class NotchPreferences {
         static let pillDisplays = "pillDisplays"
         static let animationStyle = "animationStyle"
         static let theme = "theme"
+        static let themeAccents = "themeAccents"
         static let expandedSize = "expandedSize"
         static let showsVolume = "showsVolume"
         static let showsBattery = "showsBattery"

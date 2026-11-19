@@ -112,6 +112,16 @@ struct NotchPreferencesTests {
         #expect(NotchPreferences(defaults: defaults).themeID == "chrome-from-the-future")
     }
 
+    @Test func eachThemeKeepsItsOwnAccentUntilReset() {
+        let preferences = NotchPreferences(defaults: defaults)
+        preferences.setAccent("#D2462F", for: "paper")
+        preferences.setAccent("#FFD60A", for: "brutal")
+        preferences.setAccent(nil, for: "brutal")
+        #expect(NotchPreferences(defaults: defaults).themeAccents == ["paper": "#D2462F"])
+        preferences.reset()
+        #expect(NotchPreferences(defaults: defaults).themeAccents.isEmpty)
+    }
+
     @Test func theNotchSizePersistsWithinItsLimits() {
         let preferences = NotchPreferences(defaults: defaults)
         preferences.resizeExpanded(to: CGSize(width: 600, height: 380))

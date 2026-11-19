@@ -21,6 +21,8 @@ public struct Theme: Decodable, Identifiable, Sendable {
     public internal(set) var colors: Colors
     /// What's drawn on black: the closed notch, and a band or frame around the open sheet.
     public let closed: Closed?
+    /// Accents the user can pick in Settings; `colors.accent` is the default.
+    public let accentChoices: [ThemeColor]?
     public let fonts: Fonts
     public let icons: Icons
     public let radii: Radii
@@ -86,6 +88,15 @@ public struct Theme: Decodable, Identifiable, Sendable {
     public struct Closed: Decodable, Sendable {
         /// Text and icons on black, for a light theme whose ink is dark.
         public let ink: ThemeColor
+    }
+
+    /// The theme with the accent the user picked, when it's one of its choices; a stale or unknown
+    /// pick keeps the default.
+    public func withAccent(_ text: String?) -> Theme {
+        guard let choice = accentChoices?.first(where: { $0.text == text }) else { return self }
+        var theme = self
+        theme.colors.accent = choice
+        return theme
     }
 
     /// The theme for what's drawn on black: the closed notch, and the header on a band. A light
