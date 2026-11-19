@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "id": "island",
+  "name": "Island",
+  "order": 10,
+  "appearance": "dark",
+  "surface": {
+    "kind": "solid",
+    "color": "#000000"
+  },
+  "colors": {
+    "ink": "#FFFFFF",
+    "secondary": "#FFFFFF9E",
+    "tertiary": "#FFFFFF8C",
+    "fill": "#FFFFFF1A",
+    "accent": "#FF9F43",
+    "onAccent": "#000000",
+    "highlight": "#FF9F43"
+  },
+  "fonts": {
+    "display": {
+      "family": "system",
+      "weight": "semibold"
+    },
+    "body": {
+      "family": "system"
+    },
+    "mono": {
+      "family": "system"
+    }
+  },
+  "icons": {
+    "set": "sf-symbols",
+    "rendering": "monochrome"
+  },
+  "radii": {
+    "notchTop": 16,
+    "notchBottom": 32
+  },
+  "seekBar": {
+    "line": 3.5,
+    "cap": "round",
+    "rest": "solid",
+    "head": "bar",
+    "fill": "artwork"
+  },
+  "waveform": {
+    "bar": 3,
+    "gap": 3,
+    "shape": "round",
+    "fill": "artwork"
+  }
+}

@@ -47,6 +47,7 @@ Required unless marked optional.
 | `colors.highlight` | optional: the prompter's current word, search matches; the accent without one |
 | `fonts.display`, `.body`, `.mono` | `{"family": "system"}` or a family in Fonts/; optional `design` (system only: `default`, `rounded`, `serif`, `monospaced`), `weight` (overrides the view's: `ultralight` … `black`), `scale` (size multiplier) |
 | `icons.set` | a folder in Icons/ |
+| `icons.rendering` | optional, symbol sets only: `monochrome` (the default) or `hierarchical` |
 | `radii.notchTop`, `.notchBottom` | the open notch's corners |
 | `seekBar` | `line` (width), `cap` (`round`), `rest` (`solid`), `head` (`bar`, `dot`), `fill` (`artwork`, `accent`, `ink`) |
 | `waveform` | `bar` (width), `gap`, `shape` (`round`, `square`), `fill` (`artwork`, `accent`, `ink`) |
@@ -62,6 +63,9 @@ artwork.
 the `FeatureID` raw values (`media`, `sound`, `shelf`, …) and the header's `apps`, `apps-on`,
 `pin`, `pin-on`, `settings`, `edit`, `done`. A new feature adds one file to every set; `ThemeTests`
 names any set missing one, and checks that a set's tab icons look one size in the row.
+
+A symbol set (`sf-symbols`) ships no SVGs: its `set.json` has `"kind": "symbols"` and a `symbols`
+map of role to SF Symbol name, which the system draws. Pick names that exist on macOS 14.6.
 
 ## Fonts
 

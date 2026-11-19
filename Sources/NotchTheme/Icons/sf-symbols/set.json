@@ -1,0 +1,30 @@
+{
+  "name": "SF Symbols",
+  "version": "5",
+  "license": "Apple",
+  "url": "https://developer.apple.com/sf-symbols/",
+  "kind": "symbols",
+  "symbols": {
+    "media": "music.note.list",
+    "sound": "speaker.wave.2",
+    "shelf": "tray",
+    "clipboard": "list.bullet.clipboard",
+    "calendar": "calendar",
+    "tasks": "checklist",
+    "notes": "note.text",
+    "shortcuts": "square.3.layers.3d",
+    "timer": "alarm",
+    "network": "arrow.up.arrow.down",
+    "mirror": "web.camera",
+    "prompter": "scroll",
+    "usage": "gauge.with.needle",
+    "agents": "terminal",
+    "apps": "square.grid.2x2",
+    "apps-on": "square.grid.2x2.fill",
+    "pin": "pin",
+    "pin-on": "pin.fill",
+    "settings": "gearshape",
+    "edit": "pencil",
+    "done": "checkmark"
+  }
+}
