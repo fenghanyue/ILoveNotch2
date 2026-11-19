@@ -296,6 +296,12 @@ The themes' fonts sit in `Sources/NotchTheme/Fonts/<Family>`, unchanged from
 upstream, each with its own `OFL.txt`. Each family's copyright notice, then the
 license they share:
 
+- **Doto**, https://github.com/oliverlalan/Doto, Version 1.000, from google/fonts `ofl/doto`
+  (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86): `Doto[ROND,wght].ttf`. Copyright 2024 The
+  Doto Project Authors (https://github.com/oliverlalan/Doto).
+- **JetBrains Mono**, https://github.com/JetBrains/JetBrainsMono, Version 2.211, from google/fonts
+  `ofl/jetbrainsmono` (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86): `JetBrainsMono[wght].ttf`.
+  Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono).
 - **Inter**, https://github.com/rsms/inter, Version 4.001, from google/fonts
   `ofl/inter` (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86):
   `Inter[opsz,wght].ttf`. Copyright 2020 The Inter Project Authors

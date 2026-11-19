@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "id": "matrix",
+  "name": "Matrix",
+  "order": 40,
+  "appearance": "dark",
+  "surface": {
+    "kind": "solid",
+    "color": "#000000",
+    "pattern": {
+      "kind": "dots",
+      "color": "#FFFFFF0F",
+      "spacing": 6
+    }
+  },
+  "colors": {
+    "ink": "#FFFFFF",
+    "secondary": "#FFFFFF8C",
+    "tertiary": "#FFFFFF73",
+    "fill": "#FFFFFF2E",
+    "accent": "#FF3B30",
+    "onAccent": "#000000",
+    "highlight": "#FF3B30"
+  },
+  "fonts": {
+    "display": {
+      "family": "Doto",
+      "weight": "black"
+    },
+    "body": {
+      "family": "JetBrains Mono"
+    },
+    "mono": {
+      "family": "JetBrains Mono"
+    }
+  },
+  "icons": {
+    "set": "tabler",
+    "cap": "square"
+  },
+  "radii": {
+    "notchTop": 16,
+    "notchBottom": 28
+  },
+  "tabs": "text",
+  "seekBar": {
+    "line": 4,
+    "cap": "round",
+    "rest": "dotted",
+    "played": "dotted",
+    "head": "block",
+    "fill": "ink",
+    "headFill": "accent"
+  },
+  "waveform": {
+    "bar": 4,
+    "gap": 2,
+    "shape": "led",
+    "fill": "ink",
+    "peak": "accent"
+  }
+}

@@ -48,9 +48,10 @@ Required unless marked optional.
 | `fonts.display`, `.body`, `.mono` | `{"family": "system"}` or a family in Fonts/; optional `design` (system only: `default`, `rounded`, `serif`, `monospaced`), `weight` (overrides the view's: `ultralight` … `black`), `scale` (size multiplier) |
 | `icons.set` | a folder in Icons/ |
 | `icons.rendering` | optional, symbol sets only: `monochrome` (the default) or `hierarchical` |
+| `icons.stroke`, `icons.cap` | optional, line sets only: replace every stroke-width in the set's SVGs, and `square` gives square ends and mitered joins |
 | `radii.notchTop`, `.notchBottom` | the open notch's corners |
-| `seekBar` | `line` (width), `cap` (`round`), `rest` (`solid`), `head` (`bar`, `dot`), `fill` (`artwork`, `accent`, `ink`) |
-| `waveform` | `bar` (width), `gap`, `shape` (`round`, `square`), `fill` (`artwork`, `accent`, `ink`) |
+| `seekBar` | `line` (width), `cap` (`round`, `square`), `rest` (`solid`, `dotted`), `head` (`bar`, `dot`, `block`), `fill` (`artwork`, `accent`, `ink`); optional `played` (`solid`, `dotted`) and `headFill` |
+| `waveform` | `bar` (width), `gap`, `shape` (`round`, `square`, `led`), `fill` (`artwork`, `accent`, `ink`); optional `peak`, a column's color at its loudest |
 | `skins` | optional: `musicPlayer`, `tabRow`, `closedNotch`, each the name of a skin the app ships (`SkinSlot.shipped`). A missing or unknown one draws the default view. |
 
 Colors are `#RRGGBB` or `#RRGGBBAA`. `artwork` is the now-playing artwork's color, or ink without
