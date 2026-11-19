@@ -238,14 +238,19 @@ struct NotchView: View {
             .padding(EdgeInsets(top: top, leading: side, bottom: inset, trailing: side))
     }
 
-    /// One dot in a square as wide as the pattern's spacing; SwiftUI tiles it, so the texture costs
-    /// nothing as the notch resizes.
+    /// One dot, or a corner of graph paper, in a square as wide as the pattern's spacing; SwiftUI tiles
+    /// it, so the texture costs nothing as the notch resizes.
     private static func tile(_ pattern: Theme.Surface.Pattern) -> NSImage {
         let side = pattern.spacing
         let color = NSColor(pattern.color.color)
         return NSImage(size: NSSize(width: side, height: side), flipped: false) { _ in
             color.setFill()
-            NSBezierPath(ovalIn: NSRect(x: 0, y: 0, width: 1, height: 1)).fill()
+            switch pattern.kind {
+            case .dots: NSBezierPath(ovalIn: NSRect(x: 0, y: 0, width: 1, height: 1)).fill()
+            case .grid:
+                NSRect(x: 0, y: 0, width: side, height: 0.5).fill()
+                NSRect(x: 0, y: 0, width: 0.5, height: side).fill()
+            }
             return true
         }
     }

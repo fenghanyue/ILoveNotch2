@@ -64,6 +64,7 @@ struct WavySeekBar: View, Animatable {
         switch line {
         case .solid: StrokeStyle(lineWidth: width, lineCap: cap, lineJoin: .round)
         case .dotted: StrokeStyle(lineWidth: width, lineCap: .round, dash: [0, width * 1.8])
+        case .dashed: StrokeStyle(lineWidth: width, lineCap: .butt, dash: [6, 6])
         }
     }
 }

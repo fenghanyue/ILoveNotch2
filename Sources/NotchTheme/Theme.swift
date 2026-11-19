@@ -71,11 +71,13 @@ public struct Theme: Decodable, Identifiable, Sendable {
         public struct Pattern: Decodable, Sendable {
             public let kind: Kind
             public let color: ThemeColor
-            /// Points between dots.
+            /// Points between dots or lines.
             public let spacing: Double
 
             public enum Kind: String, Decodable, Sendable {
                 case dots
+                /// Hairlines both ways, like graph paper.
+                case grid
             }
         }
     }
@@ -228,6 +230,8 @@ public struct Theme: Decodable, Identifiable, Sendable {
             case solid
             /// Round dots along the line.
             case dotted
+            /// Square-ended dashes as long as the gaps between them.
+            case dashed
         }
 
         public enum Head: String, Decodable, Sendable {
