@@ -202,7 +202,11 @@ struct NotchView: View {
             let framed = open && !glass && frame != nil
             outline.fill(framed ? frame ?? .black : open && !glass ? theme.surface.color.color : .black)
                 .opacity(glass ? 0.01 : 1)
-            if framed { sheet.transition(.opacity) }
+            if framed {
+                sheet.transition(.opacity)
+            } else if open, !glass, let pattern = theme.surface.pattern {
+                outline.fill(ImagePaint(image: Image(nsImage: Self.tile(pattern)))).transition(.opacity)
+            }
             if glass, metrics.notch != nil {
                 Self.shape(for: .compact, on: metrics).fill(.black)
                     .frame(width: metrics.compactSize.width, height: metrics.compactSize.height)
