@@ -76,17 +76,22 @@ struct FeatureSnapshotTests {
             .environment(\.theme, theme)
     }
 
-    /// A light theme's ink on its sheet: the player and the timer, in Paper.
-    @Test func theTabsReadInALightTheme() throws {
-        let paper = Themes.theme("paper")
+    /// The player in every bundled theme (`<id>-media`), where a theme's type, seek line, and
+    /// waveform show most.
+    @Test(arguments: Themes.all.map(\.id))
+    func everyThemeDrawsThePlayer(id: String) throws {
         let media = MediaFeature(bundle: Bundle(for: SnapshotMarker.self))
         media.receive(
             NowPlaying(
                 title: "Midnight City", artist: "M83", album: "Hurry Up, We're Dreaming", isPlaying: true,
                 duration: 243, elapsed: 61, timestamp: Date(), artwork: Self.sampleArtwork(),
                 appBundleID: "com.apple.Music", shuffle: true, repeatMode: .all))
-        try render(media.view, name: "paper-media", theme: paper)
-        try render(TimerFeature().view, name: "paper-timer", theme: paper)
+        try render(media.view, name: "\(id)-media", theme: Themes.theme(id))
+    }
+
+    /// A light theme's ink on its sheet, in Paper's timer.
+    @Test func theTimerReadsInALightTheme() throws {
+        try render(TimerFeature().view, name: "paper-timer", theme: Themes.theme("paper"))
     }
 
     @Test func timerPresetsAndARunningCountdown() throws {
