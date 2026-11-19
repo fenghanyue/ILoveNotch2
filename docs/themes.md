@@ -37,6 +37,7 @@ Required unless marked optional.
 | `surface.band` | optional: a band of this color across the top, behind the camera and the header, with the sheet below it |
 | `surface.border` | optional: `{"color", "width"}`, a frame around the sheet, drawn inside the notch's edge |
 | `surface.pattern` | optional: `{"kind", "color", "spacing"}`, a texture over the sheet: `dots`, or `grid` (graph paper) |
+| `surface.glow` | optional: `{"colors", "strength", "radius"}`, light in those colors fading in from the edge, and a rim of them on it. `strength` (0...1) is where the Glow slider in Settings starts. It stays inside the notch, so it never catches a click, doesn't move, and Reduce Transparency keeps only the rim. |
 | `closed.ink` | optional: text and icons on black (the closed notch, the header on a band). Needed by a light theme, whose ink is dark. |
 | `accentChoices` | optional: accents to pick from in Settings; `colors.accent` is the default |
 | `tabs` | optional: `icons` (the default) or `text`, the tabs' names while they all fit the header |
@@ -55,8 +56,9 @@ Required unless marked optional.
 | `mascot` | optional: a little character at the head of the tab row, by the name of one the app draws (`Theme.mascots`: `heart-eyes`); an unknown one draws nothing |
 | `skins` | optional: `musicPlayer`, `tabRow`, `closedNotch`, each the name of a skin the app ships (`SkinSlot.shipped`). A missing or unknown one draws the default view. |
 
-Colors are `#RRGGBB` or `#RRGGBBAA`. `artwork` is the now-playing artwork's color, or ink without
-artwork.
+Colors are `#RRGGBB` or `#RRGGBBAA`. A fill is `artwork` (the now-playing artwork's color, or ink
+without artwork), `accent`, `ink`, or `gradient` (the glow's colors along the seek wave and across
+the waveform, and the accent where one color is needed).
 
 ## Icon sets
 

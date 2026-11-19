@@ -328,6 +328,9 @@ license they share:
   google/fonts `ofl/spacegrotesk` (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86):
   `SpaceGrotesk[wght].ttf`. Copyright 2020 The Space Grotesk Project Authors
   (https://github.com/floriankarsten/space-grotesk).
+- **Geist**, https://github.com/vercel/geist-font, Version 1.800, from google/fonts `ofl/geist`
+  (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86): `Geist[wght].ttf`. Copyright 2024 The Geist
+  Project Authors (https://github.com/vercel/geist-font.git).
 - **Nunito**, https://github.com/googlefonts/nunito, Version 3.602, from google/fonts `ofl/nunito`
   (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86): `Nunito[wght].ttf`. Copyright 2014 The Nunito
   Project Authors (https://github.com/googlefonts/nunito).

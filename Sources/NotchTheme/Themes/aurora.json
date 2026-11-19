@@ -1,0 +1,59 @@
+{
+  "schema": 1,
+  "id": "aurora",
+  "name": "Aurora",
+  "order": 70,
+  "appearance": "dark",
+  "surface": {
+    "kind": "solid",
+    "color": "#000000",
+    "glow": {
+      "colors": ["#FF5FA2", "#8B5CF6", "#22D3EE", "#F59E0B"],
+      "strength": 0.8,
+      "radius": 36
+    }
+  },
+  "colors": {
+    "ink": "#FFFFFF",
+    "secondary": "#FFFFFFB3",
+    "tertiary": "#FFFFFF73",
+    "fill": "#FFFFFF1A",
+    "accent": "#FF5FA2",
+    "onAccent": "#000000",
+    "highlight": "#8B5CF6"
+  },
+  "fonts": {
+    "display": {
+      "family": "Geist",
+      "weight": "semibold"
+    },
+    "body": {
+      "family": "Geist"
+    },
+    "mono": {
+      "family": "Geist"
+    }
+  },
+  "icons": {
+    "set": "sf-symbols",
+    "rendering": "hierarchical"
+  },
+  "radii": {
+    "notchTop": 16,
+    "notchBottom": 30
+  },
+  "seekBar": {
+    "line": 3.5,
+    "cap": "round",
+    "rest": "solid",
+    "head": "bar",
+    "fill": "gradient",
+    "headFill": "ink"
+  },
+  "waveform": {
+    "bar": 3,
+    "gap": 2,
+    "shape": "round",
+    "fill": "gradient"
+  }
+}
