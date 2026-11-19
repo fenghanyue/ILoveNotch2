@@ -2,6 +2,7 @@
 import Charts
 import NotchCore
 import NotchFeatures
+import NotchTheme
 import SwiftUI
 
 /// The Usage tab: a small dashboard card per provider that's on, with a tray of every other provider
@@ -142,18 +143,18 @@ private struct UsageHeader: View {
         HStack(spacing: 8) {
             if !today.isEmpty {
                 HStack(spacing: 4) {
-                    Text("Today").foregroundStyle(.white.opacity(0.5))
+                    Text("Today").foregroundStyle(.themeInk.opacity(0.5))
                     Text(MetricFormatter.number(today.reduce(0, +), kind: .dollars, style: .row))
                         .fontWeight(.semibold)
                         .contentTransition(.numericText())
                 }
-                .font(.system(size: 11))
+                .themeFont(.body, size: 11)
             }
             Spacer(minLength: 0)
             if let latest = snapshots.map(\.refreshedAt).max() {
                 Text(Self.updated(latest, now: now))
-                    .font(.system(size: 10))
-                    .foregroundStyle(.white.opacity(0.45))
+                    .themeFont(.body, size: 10)
+                    .foregroundStyle(.themeInk.opacity(0.45))
             }
             RefreshButton(spinning: !usage.refreshing.isEmpty) { Task { await usage.refreshAll(force: true) } }
         }
@@ -178,6 +179,8 @@ private struct ProviderTile: View {
     /// The card's size in the grid.
     let size: CGSize
     let now: Date
+
+    @Environment(\.theme) private var theme
 
     var body: some View {
         let style = ProviderStyle.of(provider.id)
@@ -207,10 +210,10 @@ private struct ProviderTile: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(
                     LinearGradient(
-                        colors: [style.start.opacity(0.16), .white.opacity(0.04)], startPoint: .topLeading,
+                        colors: [style.start.opacity(0.16), theme.color(.ink).opacity(0.04)], startPoint: .topLeading,
                         endPoint: .bottomTrailing))
         }
-        .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(.white.opacity(0.08)) }
+        .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(.themeInk.opacity(0.08)) }
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityHint("Shows every limit")
@@ -255,7 +258,7 @@ private struct ProviderTile: View {
         HStack(spacing: 6) {
             ProviderLogo(providerID: provider.id, name: provider.name, size: 13)
                 .foregroundStyle(style.end)
-            let name = Text(provider.name).font(.system(size: 12, weight: .semibold)).lineLimit(1)
+            let name = Text(provider.name).themeFont(.body, size: 12, weight: .semibold).lineLimit(1)
             if let plan = snapshot?.plan, !plan.isEmpty {
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 6) {
@@ -269,7 +272,7 @@ private struct ProviderTile: View {
             }
             Spacer(minLength: 0)
             if let value {
-                Text(value).font(.system(size: 12, weight: .bold, design: .rounded)).monospacedDigit()
+                Text(value).themeFont(.display, size: 12, weight: .bold, design: .rounded).monospacedDigit()
             }
             status
         }
@@ -280,8 +283,8 @@ private struct ProviderTile: View {
             ProgressView().controlSize(.mini)
         } else if error != nil {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 10))
-                .foregroundStyle(Color(hex: 0xF59E_0B))
+                .themeFont(.body, size: 10)
+                .foregroundStyle(Color(hex: 0xF59E_0B))  // warning amber in every theme
                 .help(error ?? "")
         }
     }
@@ -310,19 +313,19 @@ private struct ProviderTile: View {
             Spacer(minLength: 0)
             PaceBadge(meter: headline, now: now, showsWords: paceWords)
         }
-        .font(.system(size: 10))
-        .foregroundStyle(.white.opacity(0.55))
+        .themeFont(.body, size: 10)
+        .foregroundStyle(.themeInk.opacity(0.55))
         .lineLimit(1)
     }
 
     private func miniMeter(_ meter: Meter, style: ProviderStyle) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                Text(meter.label).foregroundStyle(.white.opacity(0.6))
+                Text(meter.label).foregroundStyle(.themeInk.opacity(0.6))
                 Spacer(minLength: 4)
                 Text(meter.headline).monospacedDigit()
             }
-            .font(.system(size: 10, weight: .medium))
+            .themeFont(.body, size: 10, weight: .medium)
             .lineLimit(1)
             MeterBar(meter: meter, style: style, height: 4)
         }
@@ -332,12 +335,12 @@ private struct ProviderTile: View {
     @ViewBuilder private func placeholder(style: ProviderStyle) -> some View {
         if let spend = snapshot?.dollars(for: "Today") ?? snapshot?.dollars(for: "Last 30 Days") {
             Text(MetricFormatter.number(spend, kind: .dollars, style: .row))
-                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .themeFont(.display, size: 20, weight: .bold, design: .rounded)
                 .foregroundStyle(style.end)
         } else {
             Text(error ?? (refreshing || snapshot == nil ? "Checking…" : "No limits to show"))
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.55))
+                .themeFont(.body, size: 11)
+                .foregroundStyle(.themeInk.opacity(0.55))
                 .lineLimit(2)
         }
     }
@@ -358,7 +361,7 @@ struct ProviderDetail: View {
             HStack(spacing: 7) {
                 Button(action: back) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 11, weight: .semibold))
+                        .themeFont(.body, size: 11, weight: .semibold)
                         .frame(width: 20, height: 20)
                         .contentShape(Rectangle())
                 }
@@ -366,18 +369,18 @@ struct ProviderDetail: View {
                 .help("All providers")
                 .accessibilityLabel("Back")
                 ProviderLogo(providerID: provider.id, name: provider.name, size: 15).foregroundStyle(style.end)
-                Text(provider.name).font(.system(size: 13, weight: .semibold))
+                Text(provider.name).themeFont(.body, size: 13, weight: .semibold)
                 if let plan = snapshot?.plan, !plan.isEmpty { PlanPill(plan: plan, style: style) }
                 Spacer(minLength: 0)
                 if let dashboard = provider.dashboard {
                     Link(destination: dashboard) {
                         HStack(spacing: 2) {
                             Text("Dashboard")
-                            Image(systemName: "arrow.up.right").font(.system(size: 7, weight: .bold))
+                            Image(systemName: "arrow.up.right").themeFont(.body, size: 7, weight: .bold)
                         }
                     }
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.6))
+                    .themeFont(.body, size: 10, weight: .medium)
+                    .foregroundStyle(.themeInk.opacity(0.6))
                     .help("Open \(provider.name)'s usage page")
                 }
                 RefreshButton(spinning: usage.refreshing.contains(provider.id)) {
@@ -402,44 +405,44 @@ struct ProviderDetail: View {
 
     private func banner(_ message: String) -> some View {
         Label(message, systemImage: "exclamationmark.triangle.fill")
-            .font(.system(size: 10))
-            .foregroundStyle(Color(hex: 0xFDE6_8A))
+            .themeFont(.body, size: 10)
+            .foregroundStyle(Color(hex: 0xFDE6_8A))  // warning amber in every theme
             .lineLimit(2)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(hex: 0xF59E_0B).opacity(0.14), in: RoundedRectangle(cornerRadius: 8))
+            .background(Color(hex: 0xF59E_0B).opacity(0.14), in: RoundedRectangle(cornerRadius: 8))  // and its tint
     }
 
     /// Badges and notes the provider adds, like an organization's status or a sign-in hint.
     @ViewBuilder private func notes(_ snapshot: ProviderSnapshot) -> some View {
         if let warning = snapshot.warning {
-            Text(warning).font(.system(size: 10)).foregroundStyle(Color(hex: 0xFDE6_8A))
+            Text(warning).themeFont(.body, size: 10).foregroundStyle(Color(hex: 0xFDE6_8A))  // warning amber
         }
         ForEach(Array(snapshot.lines.enumerated()), id: \.offset) { _, line in
             switch line {
             case .badge(let label, let text, _, _) where !line.isError:
                 HStack {
-                    Text(label).foregroundStyle(.white.opacity(0.55))
+                    Text(label).foregroundStyle(.themeInk.opacity(0.55))
                     Spacer()
                     Text(text).fontWeight(.medium)
                 }
-                .font(.system(size: 11))
+                .themeFont(.body, size: 11)
             case .text(let label, let value, _, _):
                 HStack {
-                    Text(label).foregroundStyle(.white.opacity(0.55))
+                    Text(label).foregroundStyle(.themeInk.opacity(0.55))
                     Spacer()
                     Text(value)
                 }
-                .font(.system(size: 11))
+                .themeFont(.body, size: 11)
             case .values(let label, let values, _, _, _, _) where !SpendRow.periods.contains(label):
                 HStack {
-                    Text(label).foregroundStyle(.white.opacity(0.55))
+                    Text(label).foregroundStyle(.themeInk.opacity(0.55))
                     Spacer()
                     Text(values.map { MetricFormatter.string(for: $0, style: .row) }.joined(separator: " · "))
                         .monospacedDigit()
                 }
-                .font(.system(size: 11))
+                .themeFont(.body, size: 11)
             default:
                 EmptyView()
             }
@@ -456,10 +459,10 @@ private struct MeterRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(meter.label).font(.system(size: 11, weight: .medium))
+                Text(meter.label).themeFont(.body, size: 11, weight: .medium)
                 Spacer()
                 Text(meter.detail)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                    .themeFont(.display, size: 11, weight: .semibold, design: .rounded)
                     .monospacedDigit()
                     .contentTransition(.numericText())
             }
@@ -469,8 +472,8 @@ private struct MeterRow: View {
                 Spacer()
                 PaceBadge(meter: meter, now: now)
             }
-            .font(.system(size: 10))
-            .foregroundStyle(.white.opacity(0.5))
+            .themeFont(.body, size: 10)
+            .foregroundStyle(.themeInk.opacity(0.5))
         }
         .accessibilityElement(children: .combine)
     }
@@ -489,14 +492,14 @@ private struct SpendRow: View {
             HStack(spacing: 6) {
                 ForEach(chips, id: \.0) { period, values in
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(period).font(.system(size: 9, weight: .medium)).foregroundStyle(.white.opacity(0.5))
+                        Text(period).themeFont(.body, size: 9, weight: .medium).foregroundStyle(.themeInk.opacity(0.5))
                         Text(values.first.map { MetricFormatter.string(for: $0, style: .row) } ?? "–")
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .themeFont(.display, size: 12, weight: .semibold, design: .rounded)
                             .monospacedDigit()
                         if values.count > 1 {
                             Text(MetricFormatter.string(for: values[1], style: .row))
-                                .font(.system(size: 9))
-                                .foregroundStyle(.white.opacity(0.45))
+                                .themeFont(.body, size: 9)
+                                .foregroundStyle(.themeInk.opacity(0.45))
                         }
                     }
                     .padding(.horizontal, 8)
@@ -518,10 +521,10 @@ private struct TrendChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text("Daily usage").font(.system(size: 10, weight: .medium)).foregroundStyle(.white.opacity(0.55))
+                Text("Daily usage").themeFont(.body, size: 10, weight: .medium).foregroundStyle(.themeInk.opacity(0.55))
                 Spacer()
                 if let peak = points.max(by: { $0.value < $1.value }) {
-                    Text("Peak \(peak.readout)").font(.system(size: 10)).foregroundStyle(.white.opacity(0.45))
+                    Text("Peak \(peak.readout)").themeFont(.body, size: 10).foregroundStyle(.themeInk.opacity(0.45))
                 }
             }
             let bars = LinearGradient(colors: [style.end, style.start], startPoint: .top, endPoint: .bottom)
@@ -539,8 +542,8 @@ private struct TrendChart: View {
                 Spacer()
                 Text(points.last?.label ?? "")
             }
-            .font(.system(size: 9))
-            .foregroundStyle(.white.opacity(0.4))
+            .themeFont(.body, size: 9)
+            .foregroundStyle(.themeInk.opacity(0.4))
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Daily usage chart")
@@ -567,18 +570,18 @@ private struct UsageOnboarding: View {
         return VStack(spacing: 8) {
             if !compact {
                 Image(systemName: "gauge.with.dots.needle.67percent")
-                    .font(.system(size: 24, weight: .semibold))
+                    .themeFont(.body, size: 24, weight: .semibold)
                     .foregroundStyle(LinearGradient(colors: accents, startPoint: .leading, endPoint: .trailing))
                     .accessibilityHidden(true)
             }
             VStack(spacing: 3) {
-                Text("Your AI plans at a glance").font(.headline)
+                Text("Your AI plans at a glance").themeFont(.body, .headline)
                 Text(
                     "Add the tools you use; the ones in color are signed in on this Mac. Each reads only its own "
                         + "sign-in and sends it only to its own service."
                 )
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.6))
+                .themeFont(.body, .caption)
+                .foregroundStyle(.themeInk.opacity(0.6))
                 .multilineTextAlignment(.center)
             }
             ProviderTray(usage: usage, labeled: !compact)
@@ -602,7 +605,7 @@ private struct ProviderTray: View {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 56), spacing: 4)], spacing: 8) { items(ordered) }
                     .frame(maxWidth: .infinity)
             } else {
-                Text("Add").font(.system(size: 10, weight: .semibold)).foregroundStyle(.white.opacity(0.45))
+                Text("Add").themeFont(.body, size: 10, weight: .semibold).foregroundStyle(.themeInk.opacity(0.45))
                 ScrollView(.horizontal) {
                     HStack(spacing: 6) { items(ordered) }
                         .padding(.horizontal, 4)
@@ -614,12 +617,12 @@ private struct ProviderTray: View {
                 usage.openSettings?()
             } label: {
                 Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 11, weight: .medium))
+                    .themeFont(.body, size: 11, weight: .medium)
                     .frame(width: 22, height: 22)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.white.opacity(0.6))
+            .foregroundStyle(.themeInk.opacity(0.6))
             .help("AI Usage settings: providers, API keys, and background refresh")
             .accessibilityLabel("AI Usage settings")
         }
@@ -642,31 +645,34 @@ private struct TrayItem: View {
     let labeled: Bool
 
     @State private var hovering = false
+    @Environment(\.theme) private var theme
 
     var body: some View {
         let style = ProviderStyle.of(provider.id)
         let needsKey = usage.takesAPIKey(provider.id) && !signedIn
         let side: CGFloat = labeled ? 30 : 22
+        let ink = theme.color(.ink)
         Button {
             if needsKey { usage.openSettings?() } else { usage.setEnabled(provider.id, true) }
         } label: {
             VStack(spacing: 4) {
                 ProviderLogo(providerID: provider.id, name: provider.name, size: side * 0.52)
-                    .foregroundStyle(signedIn ? style.end : .white.opacity(0.85))
+                    .foregroundStyle(signedIn ? style.end : ink.opacity(0.85))
                     .frame(width: side, height: side)
                     .background(
-                        (signedIn ? style.start.opacity(0.28) : .white.opacity(0.08)),
+                        (signedIn ? style.start.opacity(0.28) : ink.opacity(0.08)),
                         in: RoundedRectangle(cornerRadius: side * 0.3, style: .continuous)
                     )
                     .overlay(alignment: .bottomTrailing) {
                         Image(systemName: needsKey ? "key.fill" : "plus.circle.fill")
-                            .font(.system(size: labeled ? 10 : 8, weight: .bold))
-                            .foregroundStyle(signedIn ? style.end : .white.opacity(0.7))
-                            .background(Circle().fill(.black).padding(-1))
+                            .themeFont(.body, size: labeled ? 10 : 8, weight: .bold)
+                            .foregroundStyle(signedIn ? style.end : ink.opacity(0.7))
+                            // Cut out of the plate in the notch's own color.
+                            .background(Circle().fill(theme.surface.color.color).padding(-1))
                             .offset(x: 2, y: 2)
                     }
                 if labeled {
-                    Text(provider.name).font(.system(size: 9, weight: .medium)).lineLimit(1).fixedSize()
+                    Text(provider.name).themeFont(.body, size: 9, weight: .medium).lineLimit(1).fixedSize()
                 }
             }
             .opacity(signedIn || hovering ? 1 : 0.55)

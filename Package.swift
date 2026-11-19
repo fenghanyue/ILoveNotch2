@@ -34,7 +34,7 @@ let package = Package(
         // The GitHub build's developer tabs: AI Usage, OpenUsage's providers (MIT, in OpenUsage/) with
         // OpenNotch's tab, and Agents, Claude Code and Codex hooks (in Agents/).
         .target(
-            name: "NotchUsage", dependencies: ["NotchCore", "NotchFeatures"],
+            name: "NotchUsage", dependencies: ["NotchCore", "NotchTheme", "NotchFeatures"],
             resources: [
                 .copy("Resources/pricing_litellm_snapshot.json"),
                 .copy("Resources/pricing_models_dev_snapshot.json"),
