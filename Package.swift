@@ -30,7 +30,7 @@ let package = Package(
         // Panel, SwiftUI surface, and notch geometry.
         .target(name: "NotchSurface", dependencies: ["NotchCore", "NotchTheme"], swiftSettings: strict),
         // Feature modules: each one a NotchFeature plus its views.
-        .target(name: "NotchFeatures", dependencies: ["NotchCore"], swiftSettings: strict),
+        .target(name: "NotchFeatures", dependencies: ["NotchCore", "NotchTheme"], swiftSettings: strict),
         // The GitHub build's developer tabs: AI Usage, OpenUsage's providers (MIT, in OpenUsage/) with
         // OpenNotch's tab, and Agents, Claude Code and Codex hooks (in Agents/).
         .target(

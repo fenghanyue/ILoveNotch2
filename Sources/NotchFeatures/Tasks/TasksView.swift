@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+import NotchTheme
 import SwiftUI
 
 /// The tasks tab: open reminders under date or list headings, a collapsible section of recently
@@ -14,6 +15,7 @@ struct TasksView: View {
     @State private var dragging: TaskItem?
     @State private var dropTarget: TaskItem.ID?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.theme) private var theme
 
     var body: some View {
         if tasks.access != .granted {
@@ -29,8 +31,8 @@ struct TasksView: View {
                     LazyVStack(alignment: .leading, spacing: 1) {
                         if tasks.tasks.isEmpty {
                             Label("All done", systemImage: "checkmark.circle")
-                                .font(.callout)
-                                .foregroundStyle(.white.opacity(0.6))
+                                .themeFont(.body, .callout)
+                                .foregroundStyle(.themeInk.opacity(0.6))
                                 .padding(.vertical, 6)
                         }
                         ForEach(tasks.sections()) { section in
@@ -43,7 +45,7 @@ struct TasksView: View {
                                 )
                                 .overlay(alignment: draggedFromAbove(task, in: section) ? .bottom : .top) {
                                     if dropTarget == task.id {
-                                        Capsule().fill(Color.accentColor).frame(height: 2).padding(.horizontal, 4)
+                                        Capsule().fill(.themeAccent).frame(height: 2).padding(.horizontal, 4)
                                     }
                                 }
                                 .onDrag {
@@ -80,10 +82,10 @@ struct TasksView: View {
         HStack(spacing: 8) {
             if let notice = tasks.notice {
                 Label(notice, systemImage: "checkmark.circle")
-                    .foregroundStyle(.white.opacity(0.8))
+                    .foregroundStyle(.themeInk.opacity(0.8))
                     .transition(.opacity)
             } else {
-                Text(summary).foregroundStyle(.white.opacity(0.55))
+                Text(summary).foregroundStyle(.themeInk.opacity(0.55))
             }
             Spacer(minLength: 0)
             Button {
@@ -96,10 +98,10 @@ struct TasksView: View {
                     systemImage: tasks.groupsByList ? "list.bullet" : "calendar")
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.white.opacity(0.7))
+            .foregroundStyle(.themeInk.opacity(0.7))
             .help(tasks.groupsByList ? "Group by due date" : "Group by list")
         }
-        .font(.caption.weight(.medium))
+        .themeFont(.body, .caption, weight: .medium)
         .lineLimit(1)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: tasks.notice)
     }
@@ -122,10 +124,10 @@ struct TasksView: View {
                 Circle().fill(color.color).frame(width: 6, height: 6)
             }
             Text(section.title)
-            Text("\(section.tasks.count)").foregroundStyle(.white.opacity(0.4))
+            Text("\(section.tasks.count)").foregroundStyle(.themeInk.opacity(0.4))
         }
-        .font(.caption2.weight(.bold))
-        .foregroundStyle(section.isOverdue ? Color.red : .white.opacity(0.6))
+        .themeFont(.body, .caption2, weight: .bold)
+        .foregroundStyle(section.isOverdue ? Color.red : theme.color(.ink).opacity(0.6))  // overdue: red in every theme
         .padding(.top, 6)
         .padding(.bottom, 1)
         .padding(.horizontal, 4)
@@ -140,27 +142,27 @@ struct TasksView: View {
                 .foregroundStyle(.yellow)
                 .symbolEffect(.bounce, value: task.id)
             VStack(alignment: .leading, spacing: 0) {
-                Text("Due now").font(.caption2).foregroundStyle(.white.opacity(0.6))
-                Text(task.title).font(.callout.weight(.semibold)).lineLimit(1)
+                Text("Due now").themeFont(.body, .caption2).foregroundStyle(.themeInk.opacity(0.6))
+                Text(task.title).themeFont(.body, .callout, weight: .semibold).lineLimit(1)
             }
             Spacer(minLength: 0)
             Button("Done") { tick(task) }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(.white.opacity(0.18), in: Capsule())
+                .background(.themeInk.opacity(0.18), in: Capsule())
             Button("Snooze \(TasksFeature.snoozeMinutes) min") { tasks.snooze(task) }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(.white.opacity(0.1), in: Capsule())
+                .background(.themeInk.opacity(0.1), in: Capsule())
             Button {
                 tasks.dismissAlert()
             } label: {
-                Image(systemName: "xmark").font(.system(size: 9, weight: .bold))
+                Image(systemName: "xmark").themeFont(.body, size: 9, weight: .bold)
             }
             .accessibilityLabel("Dismiss")
         }
         .buttonStyle(.plain)
-        .font(.caption.weight(.semibold))
+        .themeFont(.body, .caption, weight: .semibold)
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .background(Color.yellow.opacity(0.14), in: RoundedRectangle(cornerRadius: 9))
@@ -180,7 +182,7 @@ struct TasksView: View {
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
-                .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
+                .background(.themeInk.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
                 .onSubmit {
                     withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) {
                         _ = tasks.add(draft)
@@ -202,14 +204,14 @@ struct TasksView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .bold))
+                        .themeFont(.body, size: 10, weight: .bold)
                         .rotationEffect(.degrees(tasks.showsCompleted ? 90 : 0))
                     Text("Completed")
-                    Text("\(tasks.completed.count)").foregroundStyle(.white.opacity(0.45))
+                    Text("\(tasks.completed.count)").foregroundStyle(.themeInk.opacity(0.45))
                     Spacer(minLength: 0)
                 }
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.75))
+                .themeFont(.body, .caption, weight: .semibold)
+                .foregroundStyle(.themeInk.opacity(0.75))
                 .padding(.top, 10)
                 .padding(.bottom, 4)
                 .padding(.horizontal, 4)
@@ -230,19 +232,19 @@ struct TasksView: View {
                 withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.8)) { tasks.reopen(task) }
             } label: {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 15))
-                    .foregroundStyle((task.color?.color ?? .white).opacity(0.6))
+                    .themeFont(.body, size: 15)
+                    .foregroundStyle((task.color?.color ?? theme.color(.ink)).opacity(0.6))
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Reopen \(task.title)")
             VStack(alignment: .leading, spacing: 1) {
-                Text(task.title).font(.callout).strikethrough().lineLimit(1)
+                Text(task.title).themeFont(.body, .callout).strikethrough().lineLimit(1)
                 if let done = task.completed, done != .distantPast {
-                    Text(done, format: .relative(presentation: .named)).font(.caption)
+                    Text(done, format: .relative(presentation: .named)).themeFont(.body, .caption)
                 }
             }
-            .foregroundStyle(.white.opacity(0.45))
+            .foregroundStyle(.themeInk.opacity(0.45))
             Spacer(minLength: 0)
         }
         .padding(.vertical, 3)
@@ -316,13 +318,14 @@ private struct TaskRow: View {
     @State private var title = ""
     @FocusState private var focused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.theme) private var theme
 
     var body: some View {
         HStack(spacing: 8) {
             Button(action: tick) {
                 Image(systemName: ticked ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 15))
-                    .foregroundStyle(task.color?.color ?? .white)
+                    .themeFont(.body, size: 15)
+                    .foregroundStyle(task.color?.color ?? theme.color(.ink))
                     .symbolEffect(.bounce, value: ticked)
                     .contentShape(Circle())
             }
@@ -332,7 +335,7 @@ private struct TaskRow: View {
                 if editing {
                     TextField("Task", text: $title)
                         .textFieldStyle(.plain)
-                        .font(.callout)
+                        .themeFont(.body, .callout)
                         .focused($focused)
                         .takesKeyboard(editing)
                         .onSubmit(commitRename)
@@ -346,7 +349,7 @@ private struct TaskRow: View {
                         }
                         Text(task.title).lineLimit(1)
                     }
-                    .font(.callout)
+                    .themeFont(.body, .callout)
                     .opacity(ticked ? 0.5 : 1)
                     .onTapGesture(count: 2, perform: beginRename)
                 }
@@ -359,7 +362,7 @@ private struct TaskRow: View {
         }
         .padding(.vertical, 3)
         .padding(.horizontal, 4)
-        .background(hovering ? Color.white.opacity(0.07) : Color.clear, in: RoundedRectangle(cornerRadius: 7))
+        .background(hovering ? theme.color(.ink).opacity(0.07) : Color.clear, in: RoundedRectangle(cornerRadius: 7))
         .contentShape(Rectangle())
         .onHover { inside in
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { hovering = inside }
@@ -377,14 +380,14 @@ private struct TaskRow: View {
             HStack(spacing: 5) {
                 if let due = task.due {
                     Text(DueLabel.text(for: due, hasTime: task.hasTime))
-                        .foregroundStyle(task.isOverdue() ? Color.red : .white.opacity(0.55))
+                        .foregroundStyle(task.isOverdue() ? Color.red : theme.color(.ink).opacity(0.55))
                 }
                 if task.repeats { Image(systemName: "repeat") }
                 if task.hasAlert, task.hasTime { Image(systemName: "bell") }
-                if let list { Text(list).foregroundStyle((task.color?.color ?? .white).opacity(0.8)) }
+                if let list { Text(list).foregroundStyle((task.color?.color ?? theme.color(.ink)).opacity(0.8)) }
             }
-            .font(.caption)
-            .foregroundStyle(.white.opacity(0.55))
+            .themeFont(.body, .caption)
+            .foregroundStyle(.themeInk.opacity(0.55))
             .lineLimit(1)
         }
     }
@@ -409,8 +412,8 @@ private struct TaskRow: View {
             .help("More")
         }
         .buttonStyle(.plain)
-        .font(.system(size: 12))
-        .foregroundStyle(.white.opacity(0.75))
+        .themeFont(.body, size: 12)
+        .foregroundStyle(.themeInk.opacity(0.75))
     }
 
     @ViewBuilder private var menuItems: some View {
@@ -472,7 +475,7 @@ private struct DraftChips: View {
             if let list = draft.list { chip(list, symbol: "list.bullet") }
             Spacer(minLength: 0)
         }
-        .font(.caption2.weight(.medium))
+        .themeFont(.body, .caption2, weight: .medium)
         .accessibilityElement(children: .combine)
     }
 
@@ -481,6 +484,6 @@ private struct DraftChips: View {
             .lineLimit(1)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(.white.opacity(0.12), in: Capsule())
+            .background(.themeInk.opacity(0.12), in: Capsule())
     }
 }
