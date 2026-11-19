@@ -25,6 +25,7 @@ public struct Theme: Decodable, Identifiable, Sendable {
     public let accentChoices: [ThemeColor]?
     public let fonts: Fonts
     public let icons: Icons
+    private let tabs: TabLabels?
     public let radii: Radii
     public let seekBar: SeekBar
     public let waveform: Waveform
@@ -32,6 +33,13 @@ public struct Theme: Decodable, Identifiable, Sendable {
 
     /// Where the picker puts it: by `order`, then by name.
     public var sortKey: (Int, String) { (order ?? 1000, name) }
+
+    /// How the tab row names its tabs: icons, or their names when they all fit.
+    public var tabLabels: TabLabels { tabs ?? .icons }
+
+    public enum TabLabels: String, Decodable, Sendable {
+        case icons, text
+    }
 
     public enum Appearance: String, Decodable, Sendable {
         case dark, light

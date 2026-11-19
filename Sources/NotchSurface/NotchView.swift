@@ -413,6 +413,22 @@ struct NotchView: View {
             - Self.appsGap - 3 * Self.headerButtonWidth - 3 * Self.tabSpacing
     }
 
+    private static let tabTextSize: CGFloat = 12
+    private static let tabTextPadding: CGFloat = 8
+
+    /// Whether every tab's name fits the header at the notch's width, for a theme that names its
+    /// tabs; otherwise they show their icons.
+    private func namesFit(_ tabs: [FeatureID]) -> Bool {
+        let font = theme.nsFont(.body, size: Self.tabTextSize, weight: .medium)
+        let names = tabs.reduce(0) { width, tab in
+            width + (tab.title as NSString).size(withAttributes: [.font: font]).width + 2 * Self.tabTextPadding
+        }
+        let room =
+            preferences.expandedSize.width - contentPadding.leading - contentPadding.trailing - Self.appsGap
+            - 3 * Self.headerButtonWidth - CGFloat(tabs.count + 2) * Self.tabSpacing
+        return names.rounded(.up) <= room
+    }
+
     /// The widest tab that still fits `count` tabs into `room`, up to 32 pt. Tabs keep that width at
     /// every size, and each tab added makes them a little narrower instead of crowding the row.
     static func tabWidth(count: Int, room: CGFloat) -> CGFloat {
@@ -472,6 +488,7 @@ struct NotchView: View {
         let row = preferences.rowTabs
         let tabs = row.contains(selected) ? row : row + [selected]
         let tabWidth = Self.tabWidth(count: tabs.count, room: tabRoom)
+        let named = theme.tabLabels == .text && namesFit(tabs)
         return HStack(spacing: Self.tabSpacing) {
             ForEach(tabs, id: \.self) { tab in
                 let lit = tab == selected && !drawer
@@ -484,10 +501,17 @@ struct NotchView: View {
                 } label: {
                     // One size and one outline for every tab, as Apple's tab bars keep them: the open
                     // tab stands out by its pill and brightness, never by a bigger or filled glyph.
-                    ThemeIcon(tab)
-                        .foregroundStyle(.themeInk.opacity(lit ? 1 : Self.unlit))
-                        .frame(width: tabWidth, height: 26)
-                        .contentShape(Rectangle())
+                    Group {
+                        if named {
+                            Text(tab.title).themeFont(.body, size: Self.tabTextSize, weight: .medium)
+                                .padding(.horizontal, Self.tabTextPadding)
+                        } else {
+                            ThemeIcon(tab).frame(width: tabWidth)
+                        }
+                    }
+                    .foregroundStyle(.themeInk.opacity(lit ? 1 : Self.unlit))
+                    .frame(height: 26)
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .matchedGeometryEffect(id: tab, in: selection)  // a slot the capsule can move to
