@@ -176,6 +176,17 @@ that delivers it.
 - [x] The theme is picked from small previews of the open notch; Reset to Defaults asks first
 - [x] The menu bar item names the version and has Settings, updates, About, What's New, Sponsor, and Quit, each with a symbol
 
+## Prompter
+
+- [x] Paste, type, or import a script: a text file, Markdown (read as plain text), or a PowerPoint deck's speaker notes
+- [x] Under the camera: the words read dimmed, the next word lit, and the lines to come below
+- [x] Voice follows your speech with on-device recognition and waits while you pause; Scroll moves at 0.5× to 3×; Words moves on while it hears you
+- [x] Start and pause, back to the start, speed, text size, mirror, and time read and left; Control-Option-P from any app while a script is up
+- [x] The closed notch shows a script under way, with its time left; the script pauses when the notch closes
+- [x] The notch stays out of screen sharing while a script is up (Settings › Prompter can turn that off)
+- [x] Microphone and Speech Recognition asked for only when Voice or Words first starts, and the microphone stops on pause
+- [ ] Checked by hand: following a voice, permissions, imports, and which apps leave the notch out ([QA](qa.md#prompter))
+
 ## Later
 
 - [ ] Brightness display (blocked: Apple silicon has no public API to read or set brightness)

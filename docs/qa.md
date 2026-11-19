@@ -80,6 +80,28 @@ still to be set.
   stay in the notch; the closed notch stays black, and so does the housing on a drawn notch; Reduce Transparency
   and Increase Contrast switch it to black while it's open
 
+### Prompter
+
+- [ ] Voice follows a script read aloud with Wi-Fi off (recognition stays on the Mac), waits through a pause, and
+  keeps up when you skip a line or fluff a word; Words moves only while you speak; Scroll keeps its speed
+- [ ] The microphone light goes out on pause, on closing the notch, on Edit, and on switching to Scroll
+- [ ] First start in Voice asks for the microphone, then Speech Recognition; deny each, and the tab says why and opens
+  the right pane; allow again while running
+- [ ] Import a .txt, an .md, and a .pptx with speaker notes, and one without; in the App Store edition too
+- [ ] Control-Option-P pauses from another app, and resumes with the notch open on the script
+- [ ] Mirror reads right in a teleprompter's glass; text size and speed change while reading
+
+While a script is up, the notch's windows set `sharingType = .none`. Whether that leaves the notch out of a capture is
+up to the capturing app, so each needs checking with a script up:
+
+| App | Leaves the notch out? | Checked |
+|-----|-----------------------|---------|
+| Zoom, sharing the screen | to check | |
+| Google Meet in Chrome, presenting the screen | to check | |
+| Loom, recording the screen | to check | |
+| QuickTime Player, New Screen Recording | to check | |
+| Screenshot (⌘⇧3 and ⌘⇧5) | to check | |
+
 ### Android (Quick Share), with a real phone on the same Wi-Fi
 
 Stream `log stream --level debug --predicate 'subsystem == "cafe.opennotch.app" && category == "transfer"'`
