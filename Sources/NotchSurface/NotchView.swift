@@ -581,7 +581,7 @@ struct NotchView: View {
                     .accessibilityHidden(true)
             } else {
                 Image(systemName: activity.symbol)
-                    .font(.system(size: 12, weight: .semibold))
+                    .themeFont(.body, size: 12, weight: .semibold)
             }
             Group {
                 if let countdown = activity.countdown {
@@ -604,7 +604,7 @@ struct NotchView: View {
     private func levelRow(_ activity: Activity, level: Double) -> some View {
         HStack(spacing: 8) {
             Image(systemName: activity.symbol)
-                .font(.system(size: 12, weight: .semibold))
+                .themeFont(.body, size: 12, weight: .semibold)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 20)
             Capsule()
