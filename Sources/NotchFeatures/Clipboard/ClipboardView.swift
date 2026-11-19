@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 import AppKit
+import NotchTheme
 import SwiftUI
 
 /// The clipboard tab: search, then click an item (or press Return for the first match) to put it
@@ -7,6 +8,7 @@ import SwiftUI
 /// and Clear deletes all but favorites.
 struct ClipboardView: View {
     let clipboard: ClipboardFeature
+    @Environment(\.theme) private var theme
     @State private var query = ""
     @FocusState private var searching: Bool
     /// Clicking a row ticks it instead of copying it.
@@ -47,7 +49,7 @@ struct ClipboardView: View {
         let found = clipboard.search(query)
         return VStack(spacing: 6) {
             HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass").font(.caption).opacity(0.6)
+                Image(systemName: "magnifyingglass").themeFont(.body, .caption).opacity(0.6)
                 TextField("Search what you copied", text: $query)
                     .textFieldStyle(.plain)
                     .focused($searching)
@@ -55,7 +57,7 @@ struct ClipboardView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
-            .background(.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+            .background(.themeInk.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
             if found.isEmpty {
                 FeatureUnavailableView(
                     symbol: "doc.on.clipboard", title: clipboard.items.isEmpty ? "Nothing copied yet" : "No matches",
@@ -86,9 +88,9 @@ struct ClipboardView: View {
                     Text("^[\(clipboard.items.count) item](inflect: true)")
                 }
             }
-            .font(.caption2)
+            .themeFont(.body, .caption2)
             .monospacedDigit()
-            .foregroundStyle(.white.opacity(0.5))
+            .foregroundStyle(.themeInk.opacity(0.5))
             Spacer(minLength: 0)
             HStack(spacing: 0) {
                 if selecting {
@@ -115,7 +117,7 @@ struct ClipboardView: View {
                     .help("Select items to delete")
                     footerButton(
                         confirmingClear ? "Clear ^[\(keptByClear) item](inflect: true)?" : "Clear",
-                        tint: confirmingClear ? .red : .white
+                        tint: confirmingClear ? .red : nil
                     ) {
                         if confirmingClear {
                             clipboard.clear()
@@ -136,18 +138,19 @@ struct ClipboardView: View {
         .padding(.trailing, 8)  // clear of the resize grip in the notch's corner
     }
 
-    private func footerButton(_ title: LocalizedStringKey, tint: Color = .white, action: @escaping () -> Void)
+    /// `tint` is the theme's ink unless given, like Clear's red while it asks to confirm.
+    private func footerButton(_ title: LocalizedStringKey, tint: Color? = nil, action: @escaping () -> Void)
         -> some View
     {
         Button(action: action) {
             Text(title)
-                .font(.caption.weight(.semibold))
+                .themeFont(.body, .caption, weight: .semibold)
                 .padding(.horizontal, 10)
                 .frame(height: 22)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(tint)
+        .foregroundStyle(tint ?? theme.color(.ink))
     }
 
     /// The search field takes the keyboard when the tab opened from its shortcut.
@@ -171,14 +174,14 @@ struct ClipboardView: View {
             HStack(spacing: 8) {
                 if selecting {
                     Image(systemName: ticked ? "checkmark.circle.fill" : "circle")
-                        .font(.system(size: 14))
-                        .foregroundStyle(ticked ? Color.accentColor : .white.opacity(0.4))
+                        .themeFont(.body, size: 14)
+                        .foregroundStyle(ticked ? theme.color(.accent) : theme.color(.ink).opacity(0.4))
                 }
                 preview(item)
                     .frame(width: 26, height: 26)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(title(item)).font(.callout).lineLimit(1).truncationMode(.middle)
-                    Text(detail(item)).font(.caption2).foregroundStyle(.white.opacity(0.5)).lineLimit(1)
+                    Text(title(item)).themeFont(.body, .callout).lineLimit(1).truncationMode(.middle)
+                    Text(detail(item)).themeFont(.body, .caption2).foregroundStyle(.themeInk.opacity(0.5)).lineLimit(1)
                 }
                 Spacer(minLength: 0)
                 if !selecting {
@@ -186,8 +189,8 @@ struct ClipboardView: View {
                         clipboard.toggleFavorite(item)
                     } label: {
                         Image(systemName: item.favorite ? "star.fill" : "star")
-                            .font(.caption)
-                            .foregroundStyle(item.favorite ? .yellow : .white.opacity(0.4))
+                            .themeFont(.body, .caption)
+                            .foregroundStyle(item.favorite ? .yellow : theme.color(.ink).opacity(0.4))  // a gold star
                     }
                     .buttonStyle(.plain)
                     .help(item.favorite ? "Remove from favorites" : "Keep as a favorite")
@@ -196,7 +199,7 @@ struct ClipboardView: View {
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
-            .background(.white.opacity(ticked ? 0.08 : 0), in: RoundedRectangle(cornerRadius: 6))
+            .background(.themeInk.opacity(ticked ? 0.08 : 0), in: RoundedRectangle(cornerRadius: 6))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -228,9 +231,9 @@ struct ClipboardView: View {
         case .files:
             Image(nsImage: NSWorkspace.shared.icon(forFile: item.paths.first ?? "/")).resizable()
         case .link:
-            Image(systemName: "link").font(.system(size: 13)).opacity(0.8)
+            Image(systemName: "link").themeFont(.body, size: 13).opacity(0.8)
         case .text:
-            Image(systemName: "text.alignleft").font(.system(size: 13)).opacity(0.8)
+            Image(systemName: "text.alignleft").themeFont(.body, size: 13).opacity(0.8)
         }
     }
 
