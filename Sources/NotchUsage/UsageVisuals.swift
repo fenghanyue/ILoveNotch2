@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
+import NotchTheme
 import SwiftUI
 
-/// A limit's colors: the provider's own until it gets close, then amber at 80% and red at 95%.
+/// A limit's colors: the provider's own until it gets close, then amber at 80% and red at 95%. They
+/// warn, so they're the same in every theme.
 struct Tone {
     let start: Color
     let end: Color
@@ -28,7 +30,7 @@ struct UsageRing: View {
         let tone = Tone.of(meter.fraction, style)
         let width = size * 0.12
         ZStack {
-            Circle().stroke(.white.opacity(0.1), lineWidth: width)
+            Circle().stroke(.themeInk.opacity(0.1), lineWidth: width)
             Circle()
                 .trim(from: 0, to: max(shown, 0.001))
                 .stroke(
@@ -40,7 +42,7 @@ struct UsageRing: View {
                 .rotationEffect(.degrees(-90))
                 .shadow(color: tone.end.opacity(0.5), radius: size * 0.08)
             Text(meter.headline)
-                .font(.system(size: size * 0.25, weight: .bold, design: .rounded))
+                .themeFont(.display, size: size * 0.25, weight: .bold, design: .rounded)
                 .monospacedDigit()
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
@@ -69,7 +71,7 @@ struct MeterBar: View {
         let tone = Tone.of(meter.fraction, style)
         let fill = LinearGradient(colors: [tone.start, tone.end], startPoint: .leading, endPoint: .trailing)
         Capsule()
-            .fill(.white.opacity(0.1))
+            .fill(.themeInk.opacity(0.1))
             .frame(height: height)
             .overlay(alignment: .leading) {
                 GeometryReader { track in
@@ -91,7 +93,7 @@ struct PlanPill: View {
 
     var body: some View {
         Text(plan)
-            .font(.system(size: 9, weight: .bold))
+            .themeFont(.body, size: 9, weight: .bold)
             .textCase(.uppercase)
             .lineLimit(1)
             .padding(.horizontal, 5)
@@ -115,14 +117,15 @@ struct PaceBadge: View {
                 Circle().fill(color).frame(width: 6, height: 6).shadow(color: color, radius: 2)
                 if showsWords { Text(text).lineLimit(1) }
             }
-            .font(.system(size: 10, weight: .medium))
-            .foregroundStyle(.white.opacity(0.7))
+            .themeFont(.body, size: 10, weight: .medium)
+            .foregroundStyle(.themeInk.opacity(0.7))
             .help(text)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(text)
         }
     }
 
+    /// The pace's words and its status color, blue, amber, or red in every theme.
     private static func describe(_ status: Pace.Status, meter: Meter, resetsAt: Date, period: TimeInterval, now: Date)
         -> (Color, String)
     {
@@ -152,14 +155,14 @@ struct RefreshButton: View {
         let spin: Animation = spins ? .linear(duration: 1).repeatForever(autoreverses: false) : .default
         Button(action: action) {
             Image(systemName: "arrow.clockwise")
-                .font(.system(size: 11, weight: .semibold))
+                .themeFont(.body, size: 11, weight: .semibold)
                 .rotationEffect(.degrees(spins ? 360 : 0))
                 .animation(spin, value: spinning)
                 .frame(width: 22, height: 22)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(.white.opacity(0.75))
+        .foregroundStyle(.themeInk.opacity(0.75))
         .help("Refresh now")
         .accessibilityLabel("Refresh")
     }
