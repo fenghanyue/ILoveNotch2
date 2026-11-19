@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
+import NotchTheme
 import SwiftUI
 
 /// The timer tab: countdown presets or a running countdown, a stopwatch with laps, and keep awake.
 struct TimerView: View {
     let timer: TimerFeature
+
+    @Environment(\.theme) private var theme
 
     var body: some View {
         VStack(spacing: 10) {
@@ -27,15 +30,15 @@ struct TimerView: View {
             timer.mode = mode
         } label: {
             HStack(spacing: 4) {
-                if lit { Image(systemName: "cup.and.saucer.fill").font(.system(size: 9)) }
+                if lit { Image(systemName: "cup.and.saucer.fill").themeFont(.body, size: 9) }
                 Text(title)
             }
         }
         .buttonStyle(.plain)
-        .font(.caption.weight(.semibold))
+        .themeFont(.body, .caption, weight: .semibold)
         .padding(.horizontal, 10)
         .padding(.vertical, 3)
-        .background(timer.mode == mode ? .white.opacity(0.16) : .clear, in: Capsule())
+        .background(timer.mode == mode ? theme.color(.ink).opacity(0.16) : .clear, in: Capsule())
         .accessibilityLabel(lit ? "\(title), on" : title)
         .accessibilityAddTraits(timer.mode == mode ? .isSelected : [])
     }
@@ -60,18 +63,18 @@ struct TimerView: View {
         VStack(spacing: 8) {
             if until == .distantFuture {
                 Label("Awake until you turn it off", systemImage: "cup.and.saucer.fill")
-                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .themeFont(.display, size: 17, weight: .semibold, design: .rounded)
                     .padding(.vertical, compact ? 4 : 12)
             } else {
                 // Redraws once a second, and only while it's on screen.
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     RollingTime(until.timeIntervalSince(context.date), countsDown: true)
-                        .font(.system(size: compact ? 30 : 40, weight: .semibold, design: .rounded))
+                        .themeFont(.display, size: compact ? 30 : 40, weight: .semibold, design: .rounded)
                 }
                 if !compact {
                     Text("Your Mac and its display stay awake until then.")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.6))
+                        .themeFont(.body, .caption)
+                        .foregroundStyle(.themeInk.opacity(0.6))
                 }
             }
             HStack(spacing: 18) {
@@ -85,8 +88,8 @@ struct TimerView: View {
         VStack(spacing: 10) {
             if explained {
                 Text("Keep your Mac and its display from sleeping through a download, a build, or a talk.")
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.6))
+                    .themeFont(.body, .caption)
+                    .foregroundStyle(.themeInk.opacity(0.6))
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 320)
             }
@@ -111,9 +114,9 @@ struct TimerView: View {
             Group {
                 if let title { Text(title) } else { Image(systemName: "infinity") }
             }
-            .font(.callout.weight(.medium))
+            .themeFont(.body, .callout, weight: .medium)
             .frame(maxWidth: .infinity, minHeight: 34)
-            .background(.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
+            .background(.themeInk.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
     }
@@ -142,11 +145,11 @@ struct TimerView: View {
     private func running(_ countdown: Countdown, left: TimeInterval, compact: Bool) -> some View {
         VStack(spacing: 8) {
             RollingTime(left, countsDown: true)
-                .font(.system(size: compact ? 30 : 40, weight: .semibold, design: .rounded))
+                .themeFont(.display, size: compact ? 30 : 40, weight: .semibold, design: .rounded)
                 .opacity(countdown.isRunning ? 1 : 0.5)
             if !compact {
                 ProgressView(value: countdown.total - left, total: countdown.total)
-                    .tint(.white)
+                    .tint(theme.color(.ink))
                     .frame(maxWidth: 260)
             }
             HStack(spacing: 18) {
@@ -166,9 +169,9 @@ struct TimerView: View {
                     timer.start(seconds)
                 } label: {
                     Text(seconds < 3600 ? "\(Int(seconds / 60)) min" : "1 hr")
-                        .font(.callout.weight(.medium))
+                        .themeFont(.body, .callout, weight: .medium)
                         .frame(maxWidth: .infinity, minHeight: height)
-                        .background(.white.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
+                        .background(.themeInk.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Start a \(formatTime(seconds)) timer")
@@ -202,7 +205,7 @@ struct TimerView: View {
         TimelineView(.periodic(from: .now, by: watch.isRunning ? 0.1 : 3600)) { context in
             VStack(spacing: 8) {
                 RollingTime(watch.elapsed(at: context.date), tenths: true)
-                    .font(.system(size: compact ? 30 : 40, weight: .semibold, design: .rounded))
+                    .themeFont(.display, size: compact ? 30 : 40, weight: .semibold, design: .rounded)
                 HStack(spacing: 18) {
                     control(watch.isRunning ? "Pause" : "Start") { timer.toggleStopwatch() }
                     if watch.isRunning {
@@ -230,8 +233,8 @@ struct TimerView: View {
                     .accessibilityElement(children: .combine)
                 }
             }
-            .font(.caption)
-            .foregroundStyle(.white.opacity(0.6))
+            .themeFont(.body, .caption)
+            .foregroundStyle(.themeInk.opacity(0.6))
             .padding(.vertical, 6)
         }
         .fadingEdges()
@@ -241,9 +244,9 @@ struct TimerView: View {
     private func control(_ title: String, _ action: @escaping () -> Void) -> some View {
         Button(title, action: action)
             .buttonStyle(.plain)
-            .font(.callout.weight(.semibold))
+            .themeFont(.body, .callout, weight: .semibold)
             .padding(.horizontal, 12)
             .padding(.vertical, 5)
-            .background(.white.opacity(0.14), in: Capsule())
+            .background(.themeInk.opacity(0.14), in: Capsule())
     }
 }
