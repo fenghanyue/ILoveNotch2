@@ -405,12 +405,49 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Pixelarticons (MIT)
+
+https://pixelarticons.com (https://github.com/halfmage/pixelarticons)
+Copyright (c) 2019 Gerrit Halfmann
+
+The icons in `Sources/NotchTheme/Icons/pixelarticons` are Pixelarticons
+2.4.2's SVGs, unchanged but renamed by role; `set.json` maps each role to its
+Pixelarticons name.
+
+```text
+MIT License
+
+Copyright (c) 2019 Gerrit Halfmann
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
 ## Fonts (OFL-1.1)
 
 The themes' fonts sit in `Sources/NotchTheme/Fonts/<Family>`, unchanged from
 upstream, each with its own `OFL.txt`. Each family's copyright notice, then the
 license they share:
 
+- **IBM Plex Mono**, https://github.com/IBM/plex, Version 2.005, from IBM's release
+  `@ibm/plex-mono@2.5.0` (commit 2f9ba1b2), `ibm-plex-mono/fonts/complete/otf/`:
+  `IBMPlexMono-Regular.otf`, `-Medium.otf`, `-SemiBold.otf`, `-Bold.otf`. Copyright © 2017 IBM Corp.
+  with Reserved Font Name "Plex".
 - **Bricolage Grotesque**, https://github.com/ateliertriay/bricolage, Version 1.001, from google/fonts
   `ofl/bricolagegrotesque` (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86):
   `BricolageGrotesque[opsz,wdth,wght].ttf`. Copyright 2022 The Bricolage Grotesque Project Authors

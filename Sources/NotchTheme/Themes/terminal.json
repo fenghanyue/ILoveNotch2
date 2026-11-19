@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "id": "terminal",
+  "name": "Terminal",
+  "order": 100,
+  "appearance": "dark",
+  "surface": {
+    "kind": "solid",
+    "color": "#000000",
+    "glow": {
+      "colors": ["#4AF626"],
+      "strength": 0.35,
+      "radius": 10
+    }
+  },
+  "colors": {
+    "ink": "#4AF626",
+    "secondary": "#1F8A17",
+    "tertiary": "#1F8A17",
+    "fill": "#4AF62626",
+    "accent": "#4AF626",
+    "onAccent": "#000000",
+    "highlight": "#4AF626",
+    "onHighlight": "#000000"
+  },
+  "fonts": {
+    "display": {
+      "family": "IBM Plex Mono",
+      "weight": "bold"
+    },
+    "body": {
+      "family": "IBM Plex Mono"
+    },
+    "mono": {
+      "family": "IBM Plex Mono"
+    }
+  },
+  "icons": {
+    "set": "pixelarticons"
+  },
+  "radii": {
+    "notchTop": 16,
+    "notchBottom": 22
+  },
+  "tabs": "text",
+  "seekBar": {
+    "line": 2.5,
+    "cap": "square",
+    "rest": "dashed",
+    "head": "block",
+    "fill": "accent"
+  },
+  "waveform": {
+    "bar": 4,
+    "gap": 2,
+    "shape": "led",
+    "fill": "accent"
+  },
+  "skins": {
+    "musicPlayer": "terminal",
+    "tabRow": "terminal"
+  }
+}

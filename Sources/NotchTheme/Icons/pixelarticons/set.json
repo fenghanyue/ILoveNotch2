@@ -1,0 +1,31 @@
+{
+  "name": "Pixelarticons",
+  "version": "2.4.2",
+  "license": "MIT",
+  "url": "https://pixelarticons.com",
+  "kind": "fill",
+  "source": {
+    "home": "home",
+    "media": "headphone",
+    "sound": "volume-3",
+    "shelf": "inbox",
+    "clipboard": "clipboard",
+    "calendar": "calendar",
+    "tasks": "checkbox-on",
+    "notes": "notes",
+    "shortcuts": "copy",
+    "timer": "alarm-clock",
+    "network": "wifi",
+    "mirror": "webcam",
+    "prompter": "script",
+    "usage": "chart-bar-big",
+    "agents": "terminal",
+    "apps": "grid-2x2-2",
+    "apps-on": "grid-2x2-2",
+    "pin": "map-pin",
+    "pin-on": "map-pin",
+    "settings": "settings-cog",
+    "edit": "pencil",
+    "done": "check"
+  }
+}
