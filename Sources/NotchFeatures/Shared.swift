@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 import AppKit
 import Foundation
+import NotchTheme
 import SwiftUI
 
 /// Where OpenNotch keeps its local data: ~/Library/Application Support/OpenNotch.
@@ -66,20 +67,20 @@ public struct FeatureUnavailableView: View {
 
     private func content(symbol shown: Bool) -> some View {
         VStack(spacing: 6) {
-            if shown { Image(systemName: symbol).font(.system(size: 22, weight: .semibold)).opacity(0.8) }
-            Text(title).font(.headline)
+            if shown { Image(systemName: symbol).themeFont(.body, size: 22, weight: .semibold).opacity(0.8) }
+            Text(title).themeFont(.body, .headline)
             Text(message)
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.6))
+                .themeFont(.body, .caption)
+                .foregroundStyle(.themeInk.opacity(0.6))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 320)
             if let action {
                 Button(action.label, action: action.perform)
                     .buttonStyle(.plain)
-                    .font(.caption.weight(.semibold))
+                    .themeFont(.body, .caption, weight: .semibold)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(.white.opacity(0.15), in: Capsule())
+                    .background(.themeInk.opacity(0.15), in: Capsule())
             }
         }
     }
@@ -97,7 +98,7 @@ struct GlassPlatter<S: Shape>: View {
         if #available(macOS 26, *), !reduceTransparency, contrast != .increased {
             Color.clear.glassEffect(.regular, in: shape)
         } else {
-            shape.fill(.white.opacity(0.08))
+            shape.fill(.themeInk.opacity(0.08))
         }
     }
 }
@@ -151,12 +152,12 @@ public struct RGB: Hashable, Sendable {
         self.init(red: components[0], green: components[1], blue: components[2])
     }
 
-    public var color: Color { Color(red: red, green: green, blue: blue) }
+    public var color: Color { Color(red: red, green: green, blue: blue) }  // data, the same in every theme
 }
 
 extension View {
     /// Fades scrolling content out at its edges instead of cutting it off, so a long list reads as
-    /// continuing past the fold.
+    /// continuing past the fold. The mask's black is opacity, not a color, so every theme shares it.
     public func fadingEdges(_ axis: Axis = .vertical, length: CGFloat = 12) -> some View {
         mask {
             if axis == .vertical {
