@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+import NotchTheme
 import SwiftUI
 
 /// The calendar tab: today's agenda, with past events dimmed and a Join button on events with a
@@ -11,6 +12,7 @@ struct CalendarView: View {
     /// The event being edited in place.
     @State private var editing: DayEvent.ID?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.theme) private var theme
 
     init(calendar: CalendarFeature, editing: DayEvent.ID? = nil) {
         self.calendar = calendar
@@ -37,8 +39,8 @@ struct CalendarView: View {
                         Text(notice).lineLimit(1).transition(.opacity)
                     }
                 }
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.6))
+                .themeFont(.body, .caption, weight: .semibold)
+                .foregroundStyle(.themeInk.opacity(0.6))
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: calendar.notice)
                 if calendar.events.isEmpty, calendar.dueTasks.isEmpty {
                     FeatureUnavailableView(symbol: "calendar", title: "Nothing today", message: "Enjoy the free time.")
@@ -51,7 +53,7 @@ struct CalendarView: View {
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
-                        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
+                        .background(.themeInk.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
                         .onSubmit {
                             // Text without a time stays in the field so it can be finished.
                             if calendar.addEvent(draft) { draft = "" }
@@ -69,8 +71,8 @@ struct CalendarView: View {
                     ForEach(calendar.events) { event in eventRow(event) }
                     if !calendar.dueTasks.isEmpty {
                         Text("Tasks")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(.white.opacity(0.6))
+                            .themeFont(.body, .caption2, weight: .bold)
+                            .foregroundStyle(.themeInk.opacity(0.6))
                             .padding(.top, calendar.events.isEmpty ? 0 : 6)
                             .padding(.horizontal, 4)  // in line with the events
                             .accessibilityAddTraits(.isHeader)
@@ -114,18 +116,18 @@ struct CalendarView: View {
                 }
             } label: {
                 Image(systemName: "circle")
-                    .font(.system(size: 13))
-                    .foregroundStyle(task.color?.color ?? .white)
+                    .themeFont(.body, size: 13)
+                    .foregroundStyle(task.color?.color ?? theme.color(.ink))
                     .contentShape(Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Complete \(task.title)")
-            Text(task.title).font(.callout).lineLimit(1)
+            Text(task.title).themeFont(.body, .callout).lineLimit(1)
             Spacer(minLength: 0)
             if let due = task.due {
                 Text(DueLabel.text(for: due, hasTime: task.hasTime))
-                    .font(.caption)
-                    .foregroundStyle(task.isOverdue() ? Color.red : .white.opacity(0.55))
+                    .themeFont(.body, .caption)
+                    .foregroundStyle(task.isOverdue() ? Color.red : theme.color(.ink).opacity(0.55))
             }
         }
         .padding(.horizontal, 4)
@@ -145,17 +147,18 @@ private struct EventRow: View {
     /// Delete was clicked once: the next click deletes.
     @State private var confirming = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.theme) private var theme
 
     var body: some View {
         let past = !event.isAllDay && event.end < .now
         let joinable = event.meeting != nil && !past && !event.isDeclined
         HStack(spacing: 8) {
             Capsule()
-                .fill(event.color?.color ?? .white)
+                .fill(event.color?.color ?? theme.color(.ink))
                 .frame(width: 3, height: 26)
                 .opacity(past && !hovering ? 0.45 : 1)
             VStack(alignment: .leading, spacing: 1) {
-                Text(event.title).font(.callout.weight(.medium)).lineLimit(1)
+                Text(event.title).themeFont(.body, .callout, weight: .medium).lineLimit(1)
                 Group {
                     if event.isAllDay {
                         Text("All day")
@@ -164,8 +167,8 @@ private struct EventRow: View {
                             + Text(event.end, format: .dateTime.hour().minute())
                     }
                 }
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.55))
+                .themeFont(.body, .caption)
+                .foregroundStyle(.themeInk.opacity(0.55))
             }
             .opacity(past && !hovering ? 0.45 : 1)
             Spacer(minLength: 0)
@@ -178,7 +181,7 @@ private struct EventRow: View {
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 2)
-        .background(hovering ? Color.white.opacity(0.07) : .clear, in: RoundedRectangle(cornerRadius: 7))
+        .background(hovering ? theme.color(.ink).opacity(0.07) : .clear, in: RoundedRectangle(cornerRadius: 7))
         .contentShape(Rectangle())
         .onHover { inside in
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) {
@@ -226,7 +229,7 @@ private struct EventRow: View {
             } label: {
                 if confirming {
                     Text("Delete")
-                        .font(.caption.weight(.semibold))
+                        .themeFont(.body, .caption, weight: .semibold)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
                         .background(Color.red.opacity(0.85), in: Capsule())
@@ -239,8 +242,8 @@ private struct EventRow: View {
             .accessibilityLabel("Delete")
         }
         .buttonStyle(.plain)
-        .font(.system(size: 12))
-        .foregroundStyle(.white.opacity(0.8))
+        .themeFont(.body, size: 12)
+        .foregroundStyle(.themeInk.opacity(0.8))
     }
 
     /// Stands out while the meeting's countdown is on.
@@ -250,10 +253,11 @@ private struct EventRow: View {
             calendar.join(event)
         } label: {
             Label("Join", systemImage: "video.fill")
-                .font(.caption.weight(.semibold))
+                .themeFont(.body, .caption, weight: .semibold)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 4)
-                .background(soon ? Color.green.opacity(0.85) : .white.opacity(0.14), in: Capsule())
+                // Green while the meeting is about to start, in every theme.
+                .background(soon ? Color.green.opacity(0.85) : theme.color(.ink).opacity(0.14), in: Capsule())
         }
         .buttonStyle(.plain)
         .help("Join on \(meeting.service). Right-click to copy the link.")
@@ -266,6 +270,8 @@ private struct EventEditor: View {
     let event: DayEvent
     let save: (_ title: String, _ start: Date, _ end: Date) -> Void
     let cancel: () -> Void
+
+    @Environment(\.theme) private var theme
 
     @State private var title: String
     @State private var start: Date
@@ -294,11 +300,11 @@ private struct EventEditor: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Capsule()
-                    .fill(event.color?.color ?? .white)
+                    .fill(event.color?.color ?? theme.color(.ink))
                     .frame(width: 3, height: 18)
                 TextField("Title", text: $title)
                     .textFieldStyle(.plain)
-                    .font(.callout.weight(.medium))
+                    .themeFont(.body, .callout, weight: .medium)
                     .focused($focused)
                     .takesKeyboard(true)
                     .onSubmit { if canSave { save(title, start, end) } }
@@ -309,22 +315,22 @@ private struct EventEditor: View {
                 .datePickerStyle(.field)
                 .labelsHidden()
         }
-        .font(.caption.weight(.semibold))
+        .themeFont(.body, .caption, weight: .semibold)
         .buttonStyle(.plain)
         .padding(.leading, 4)  // the color bar stays where the row had it
         .padding(.trailing, 6)
         .padding(.vertical, 6)
-        .background(.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 9))
+        .background(.themeInk.opacity(0.08), in: RoundedRectangle(cornerRadius: 9))
         .onChange(of: start) { old, new in end += new.timeIntervalSince(old) }
         .onAppear { Task { @MainActor in focused = true } }
     }
 
     @ViewBuilder private var when: some View {
         if event.isAllDay {
-            Text("All day").font(.caption).foregroundStyle(.white.opacity(0.55))
+            Text("All day").themeFont(.body, .caption).foregroundStyle(.themeInk.opacity(0.55))
         } else {
             DatePicker("Starts", selection: $start, displayedComponents: [.date, .hourAndMinute])
-            Text("–").foregroundStyle(.white.opacity(0.55))
+            Text("–").foregroundStyle(.themeInk.opacity(0.55))
             DatePicker("Ends", selection: $end, displayedComponents: .hourAndMinute)
         }
     }
@@ -333,11 +339,11 @@ private struct EventEditor: View {
         Button("Cancel", action: cancel)
             .padding(.horizontal, 9)
             .padding(.vertical, 3)
-            .background(.white.opacity(0.1), in: Capsule())
+            .background(.themeInk.opacity(0.1), in: Capsule())
         Button("Save") { save(title, start, end) }
             .padding(.horizontal, 9)
             .padding(.vertical, 3)
-            .background(.white.opacity(canSave ? 0.25 : 0.08), in: Capsule())
+            .background(.themeInk.opacity(canSave ? 0.25 : 0.08), in: Capsule())
             .disabled(!canSave)
     }
 }
