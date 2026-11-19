@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 import AppKit
 import NotchCore
+import NotchTheme
 import SwiftUI
 
 /// What the app plugs into every notch: feature views and actions the surface doesn't know about.
@@ -57,13 +58,17 @@ struct NotchView: View {
     @State private var fromDrawer = false
     @Namespace private var selection
 
+    /// The chosen theme, which everything inside the notch reads from the environment.
+    private var theme: Theme { Themes.theme(preferences.themeID) }
+
     var body: some View {
         let presentation = engine.state.presentation
         let resting = engine.state.restingActivity
         let size = metrics.size(for: engine.state, expanded: preferences.expandedSize)
-        let outline = Self.shape(for: presentation, resting: resting != nil, on: metrics)
+        let open = presentation.openTab != nil
+        let outline = Self.shape(for: presentation, resting: resting != nil, on: metrics, radii: theme.radii)
         ZStack(alignment: .top) {
-            fill(outline, glass: showsGlass(presentation))
+            fill(outline, glass: showsGlass(presentation), open: open)
             if let tab = presentation.openTab {
                 expanded(tab: tab, pinned: presentation.isPinned)
                     .transition(.opacity)
@@ -79,10 +84,10 @@ struct NotchView: View {
         .clipShape(outline)  // content sliding between tabs never shows outside the notch
         .overlay {
             if contrast == .increased {
-                outline.stroke(.white.opacity(0.45), lineWidth: 1)
+                outline.stroke(.themeInk.opacity(0.45), lineWidth: 1)
             }
             if dropTargeted {
-                outline.stroke(Color.accentColor, lineWidth: 2).shadow(color: .accentColor, radius: 6)
+                outline.stroke(.themeAccent, lineWidth: 2).shadow(color: theme.color(.accent), radius: 6)
             }
         }
         .keyframeAnimator(initialValue: Squash(), trigger: presentation.openTab != nil) { notch, squash in
@@ -90,7 +95,9 @@ struct NotchView: View {
         } keyframes: { _ in
             squashKeyframes(opening: presentation.openTab != nil)
         }
-        .environment(\.colorScheme, .dark)  // the notch is always black
+        // Closed, the notch is black in every theme, to hide in the camera housing.
+        .environment(\.colorScheme, open ? theme.appearance.colorScheme : .dark)
+        .environment(\.theme, theme)
         .gradientSymbols()
         .contentShape(outline)
         .onHover { engine.send($0 ? .pointerEntered : .pointerExited) }
@@ -134,16 +141,18 @@ struct NotchView: View {
     }
 
     /// `resting` is a resting notch showing an ongoing activity, which takes a live activity's shape.
-    static func shape(for presentation: NotchPresentationState, resting: Bool = false, on metrics: NotchMetrics)
-        -> NotchShape
-    {
+    /// The open notch's corners come from the theme.
+    static func shape(
+        for presentation: NotchPresentationState, resting: Bool = false, on metrics: NotchMetrics,
+        radii: Theme.Radii = Themes.black.radii
+    ) -> NotchShape {
         let open = presentation.openTab != nil
         guard metrics.notch != nil else {
             return NotchShape(topRadius: 0, bottomRadius: open ? 24 : Self.pillRadius, flushTop: false)
         }
         switch presentation {
         case .expanded, .pinned, .focused:
-            return NotchShape(topRadius: Self.expandedTopRadius, bottomRadius: Self.expandedBottomRadius)
+            return NotchShape(topRadius: radii.notchTop, bottomRadius: radii.notchBottom)
         case .hoverArmed, .transient: return NotchShape(topRadius: NotchMetrics.flare, bottomRadius: 13)
         case .compact where resting: return NotchShape(topRadius: NotchMetrics.flare, bottomRadius: 13)
         // Closed: rounder than the housing's own corners, so the shape stays hidden behind it.
@@ -153,17 +162,18 @@ struct NotchView: View {
 
     private static let pillRadius: CGFloat = 100  // clamped to a capsule
 
-    /// Glass only while open, with the Glass theme, on macOS 26 and later. Closed, the notch stays
-    /// black to hide in the camera housing; Reduce Transparency and Increase Contrast keep it black,
-    /// where text needs a solid backing most.
+    /// Glass only while open, with a glass theme, on macOS 26 and later. Closed, the notch stays
+    /// black to hide in the camera housing; Reduce Transparency and Increase Contrast keep the
+    /// theme's solid color, where text needs a solid backing most.
     private func showsGlass(_ presentation: NotchPresentationState) -> Bool {
         guard #available(macOS 26, *) else { return false }
-        return presentation.openTab != nil && preferences.theme == .glass && !reduceTransparency
+        return presentation.openTab != nil && theme.surface.kind == .glass && !reduceTransparency
             && contrast != .increased
     }
 
-    /// Black, or glass that materializes as the black fades out. The camera housing stays black over
-    /// the glass, as the notch it opened from, which also draws it on a display without one.
+    /// The theme's color while open and black while closed, or glass that materializes as the black
+    /// fades out. The camera housing stays black over the glass, as the notch it opened from, which
+    /// also draws it on a display without one.
     ///
     /// Liquid Glass shows what's behind its window only while the window is key, which the notch
     /// almost never is (it leaves the keyboard with your app); otherwise it draws a flat, opaque gray.
@@ -171,9 +181,9 @@ struct NotchView: View {
     /// and the Liquid Glass on top samples that blur, adding its lensing at the edges, with a faint
     /// rim where Apple's catches the light.
     @ViewBuilder
-    private func fill(_ outline: NotchShape, glass: Bool) -> some View {
+    private func fill(_ outline: NotchShape, glass: Bool, open: Bool) -> some View {
         ZStack(alignment: .top) {
-            if #available(macOS 26, *), preferences.theme == .glass {
+            if #available(macOS 26, *), theme.surface.kind == .glass {
                 if glass { BehindWindowBlur().transition(.opacity) }
                 GlassEffectContainer {
                     if glass {
@@ -182,11 +192,11 @@ struct NotchView: View {
                             .glassEffectTransition(.materialize)
                     }
                 }
-                if glass { outline.stroke(Self.rim, lineWidth: 1.5).transition(.opacity) }
+                if glass { outline.stroke(Self.rim(theme.color(.ink)), lineWidth: 1.5).transition(.opacity) }
             }
             // A trace of black stays under the glass: the window server sends a click to the window
             // below wherever this one draws nothing, which closed the notch mid-click.
-            outline.fill(.black).opacity(glass ? 0.01 : 1)
+            outline.fill(open && !glass ? theme.surface.color.color : .black).opacity(glass ? 0.01 : 1)
             if glass, metrics.notch != nil {
                 Self.shape(for: .compact, on: metrics).fill(.black)
                     .frame(width: metrics.compactSize.width, height: metrics.compactSize.height)
@@ -195,11 +205,13 @@ struct NotchView: View {
     }
 
     /// Fades out toward the top edge, which sits against the top of the screen.
-    private static let rim = LinearGradient(
-        stops: [
-            .init(color: .clear, location: 0), .init(color: .white.opacity(0.22), location: 0.35),
-            .init(color: .white.opacity(0.08), location: 1),
-        ], startPoint: .top, endPoint: .bottom)
+    private static func rim(_ ink: Color) -> LinearGradient {
+        LinearGradient(
+            stops: [
+                .init(color: .clear, location: 0), .init(color: ink.opacity(0.22), location: 0.35),
+                .init(color: ink.opacity(0.08), location: 1),
+            ], startPoint: .top, endPoint: .bottom)
+    }
 
     /// Live activities, one-shot or ongoing, come and go on their own spring.
     private var activityMotion: Animation? {
@@ -275,8 +287,7 @@ struct NotchView: View {
                     tabBar(selected: tab)
                 }
                 headerButton(
-                    drawer ? "layout-grid-filled" : "layout-grid",
-                    label: drawer ? "Back to \(tab.title)" : "All Apps", lit: drawer
+                    drawer ? .appsOn : .apps, label: drawer ? "Back to \(tab.title)" : "All Apps", lit: drawer
                 ) {
                     let show = !drawer
                     if editor != nil { finishEditing() }
@@ -289,10 +300,10 @@ struct NotchView: View {
                     DoneButton(action: finishEditing)
                 } else {
                     HStack(spacing: 0) {
-                        headerButton(pinned ? "pin-filled" : "pin", label: pinned ? "Unpin" : "Pin", lit: pinned) {
+                        headerButton(pinned ? .pinOn : .pin, label: pinned ? "Unpin" : "Pin", lit: pinned) {
                             engine.send(.togglePin)
                         }
-                        headerButton("settings", label: "Settings") { content.openSettings() }
+                        headerButton(.settings, label: "Settings") { content.openSettings() }
                     }
                     .background(GlassPlatter(shape: Capsule()))
                 }
@@ -328,16 +339,14 @@ struct NotchView: View {
                 .padding(.trailing, contentPadding.trailing - 22 + 10)
                 .padding(.bottom, 10)
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(.themeInk)
     }
 
-    private static let expandedTopRadius: CGFloat = 10
-    private static let expandedBottomRadius: CGFloat = 26
-
-    /// Expanded content keeps 22 pt of black around it, measured from the visible edge: the sides of
-    /// the notch outline sit inside its frame by the top radius, and the bottom corners are rounded.
+    /// Expanded content keeps 22 pt of the surface around it, measured from the visible edge: the
+    /// sides of the notch outline sit inside its frame by the top radius, and the bottom corners are
+    /// rounded.
     private var contentPadding: EdgeInsets {
-        let side = (metrics.notch == nil ? 0 : Self.expandedTopRadius) + 22
+        let side = (metrics.notch == nil ? 0 : theme.radii.notchTop) + 22
         return EdgeInsets(top: (metrics.notch?.height ?? 0) + 10, leading: side, bottom: 22, trailing: side)
     }
 
@@ -347,9 +356,6 @@ struct NotchView: View {
     private static let appsGap: CGFloat = 4
     /// Symbols that aren't the open tab or a lit button.
     private static let unlit = 0.7
-    /// Every icon in the header, tabs and buttons alike, one size as in a macOS 26 toolbar: Tabler's
-    /// 24-unit grid at 16 pt draws its 2-unit stroke about as heavy as SF Symbols' medium weight.
-    static let iconSize: CGFloat = 16
 
     /// What the tabs share of the header at the smallest open size: all but the margins and the
     /// controls beside them (All Apps after its gap, then the pin and Settings side by side).
@@ -429,8 +435,8 @@ struct NotchView: View {
                 } label: {
                     // One size and one outline for every tab, as Apple's tab bars keep them: the open
                     // tab stands out by its pill and brightness, never by a bigger or filled glyph.
-                    TablerIcon(name: tab.icon)
-                        .foregroundStyle(.white.opacity(lit ? 1 : Self.unlit))
+                    ThemeIcon(tab)
+                        .foregroundStyle(.themeInk.opacity(lit ? 1 : Self.unlit))
                         .frame(width: tabWidth, height: 26)
                         .contentShape(Rectangle())
                 }
@@ -445,7 +451,7 @@ struct NotchView: View {
             // One capsule travels between tabs, inside the row's glass: a bouncy spring carries it,
             // and a quick stretch-and-settle makes the move read as jelly instead of a jump.
             Capsule()
-                .fill(.white.opacity(drawer ? 0 : 0.16))
+                .fill(.themeInk.opacity(drawer ? 0 : 0.16))
                 .padding(2)
                 .matchedGeometryEffect(id: selected, in: selection, isSource: false)
                 .keyframeAnimator(initialValue: CGSize(width: 1, height: 1), trigger: selected) { capsule, scale in
@@ -491,17 +497,17 @@ struct NotchView: View {
         CGSize(width: (start.width + 2 * drag.width).rounded(), height: (start.height + drag.height).rounded())
     }
 
-    /// `icon` is a Tabler icon's name; a button that's on (`lit`) shows its filled one.
+    /// A button that's on (`lit`) shows its filled icon (`.pinOn`, `.appsOn`).
     private func headerButton(
-        _ icon: String, label: String, lit: Bool = false, action: @escaping () -> Void
+        _ icon: IconRole, label: String, lit: Bool = false, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            TablerIcon(name: icon)
+            ThemeIcon(icon)
                 .frame(width: Self.headerButtonWidth, height: 26)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(.white.opacity(lit ? 1 : Self.unlit))
+        .foregroundStyle(.themeInk.opacity(lit ? 1 : Self.unlit))
         .help(label)
         .accessibilityLabel(label)
     }
@@ -560,7 +566,7 @@ struct NotchView: View {
                     .padding(.top, metrics.notch == nil ? 0 : metrics.housing.height)
             }
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(.themeInk)
         .accessibilityElement(children: .combine)
     }
 
@@ -588,7 +594,7 @@ struct NotchView: View {
                     Text(activity.title)
                 }
             }
-            .font(.system(size: 12, weight: .medium))
+            .themeFont(.body, size: 12, weight: .medium)
             .monospacedDigit()  // numbers that change in place keep their width
             .lineLimit(1)
         }
@@ -602,17 +608,17 @@ struct NotchView: View {
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 20)
             Capsule()
-                .fill(.white.opacity(0.25))
+                .fill(.themeInk.opacity(0.25))
                 .frame(height: 5)
                 .overlay(alignment: .leading) {
                     GeometryReader { track in
-                        Capsule().fill(.white).frame(width: track.size.width * min(max(level, 0), 1))
+                        Capsule().fill(.themeInk).frame(width: track.size.width * min(max(level, 0), 1))
                     }
                 }
                 .accessibilityHidden(true)
             // The value gets its room before the meter, which takes what's left: "Claude 85%", not "Claude 8…".
             Text(activity.title)
-                .font(.system(size: 11, weight: .semibold))
+                .themeFont(.body, size: 11, weight: .semibold)
                 .monospacedDigit()
                 .lineLimit(1)
                 .frame(minWidth: 30, alignment: .trailing)
@@ -654,7 +660,7 @@ private struct GlassPlatter<S: Shape>: View {
         if #available(macOS 26, *), !reduceTransparency, contrast != .increased {
             Color.clear.glassEffect(.regular, in: shape)
         } else {
-            shape.fill(.white.opacity(0.08))
+            shape.fill(.themeInk.opacity(0.08))
         }
     }
 }
@@ -672,7 +678,7 @@ private struct ResizeGrip: View {
                 strokes.move(to: CGPoint(x: size.width, y: size.height - inset))
                 strokes.addLine(to: CGPoint(x: size.width - inset, y: size.height))
             }
-            context.stroke(strokes, with: .color(.white), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+            context.stroke(strokes, with: .style(.themeInk), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
         }
         .opacity(active ? 0.95 : hovering ? 0.75 : 0.5)
         .onHover { hovering = $0 }

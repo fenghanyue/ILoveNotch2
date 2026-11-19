@@ -77,7 +77,7 @@ struct NotchSnapshotTests {
     @Test(arguments: [("glass-expanded", notched), ("glass-pill", notchless), ("glass-standin", standIn)])
     func theGlassThemeRenders(name: String, metrics: NotchMetrics) throws {
         let preferences = Self.preferences()
-        preferences.theme = .glass
+        preferences.themeID = "glass"
         try draw(name, metrics: metrics, events: [.show, .selectTab(.shelf)], preferences: preferences)
         try draw(name + "-closed", metrics: metrics, events: [.show], preferences: preferences)
         try draw(name + "-activity", metrics: metrics, events: [.show, .activity(song)], preferences: preferences)

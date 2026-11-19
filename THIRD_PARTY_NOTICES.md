@@ -227,9 +227,10 @@ SOFTWARE.
 https://tabler.io/icons (https://github.com/tabler/tabler-icons)
 Copyright (c) 2020-2026 Paweł Kuna
 
-The icons in `Sources/NotchSurface/Resources/Icons` are Tabler Icons 3.48.0's
-outline and filled SVGs, unchanged, under their own names (a filled one ends in
-`-filled`).
+The icons in `Sources/NotchTheme/Icons/tabler` are Tabler Icons 3.48.0's
+outline and filled SVGs, unchanged but renamed by role (`media.svg`,
+`apps-on.svg`, ...); its `set.json` maps each role to its Tabler name (a filled
+one ends in `-filled`).
 
 ```text
 MIT License

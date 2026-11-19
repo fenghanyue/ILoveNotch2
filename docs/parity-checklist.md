@@ -106,6 +106,7 @@ that delivers it.
 - [x] ⌃⌥V opens the Clipboard tab from any app with the search field ready
 - [x] Skips what the copying app marks secret or temporary and copies from password managers; guides the user to "Paste from Other Apps" when macOS would ask each time
 - [x] Notch on every display: a display without a notch gets one drawn inside its menu bar, as tall as the bar and as wide as the Mac's own notch (or a MacBook's); Settings › Displays picks Notch or Pill per display
+- [x] Themes are JSON files (docs/themes.md): a file added to NotchTheme's Themes/ shows up in Settings › Appearance › Theme, and an unknown stored theme draws as Black
 - [x] Glass look: Settings › Appearance › Theme opens the notch in glass on macOS 26, a live blur of what's behind it with Liquid Glass edges, the same on every tab whether or not the notch has the keyboard, and clickable everywhere; closed it stays black in the camera housing, and Reduce Transparency, Increase Contrast, and macOS 14 and 15 keep it black
 
 ## Tabs in your order
@@ -173,7 +174,7 @@ that delivers it.
 
 - [x] A sidebar of pages, each marked by a white symbol on a colored tile: the app at the top (opening About), General, Appearance, Displays, and Live Activities, then a page per tab in the notch's order, with "Off" beside the tabs that are off
 - [x] Each page opens with its icon, its name, and a line on what it's for; a tab's page has the tab's switch there, then its settings while it's on
-- [x] The theme is picked from small previews of the open notch; Reset to Defaults asks first
+- [x] The theme is picked from small previews of the open notch, one for every bundled theme; Reset to Defaults asks first
 - [x] The menu bar item names the version and has Settings, updates, About, What's New, Sponsor, and Quit, each with a symbol
 
 ## Prompter

@@ -66,6 +66,8 @@ targets:
       - package: OpenNotchKit
         product: NotchCore
       - package: OpenNotchKit
+        product: NotchTheme
+      - package: OpenNotchKit
         product: NotchSurface
       - package: OpenNotchKit
         product: NotchFeatures
@@ -102,6 +104,8 @@ targets:
     dependencies:
       - package: OpenNotchKit
         product: NotchCore
+      - package: OpenNotchKit
+        product: NotchTheme
       - package: OpenNotchKit
         product: NotchSurface
       - package: OpenNotchKit
@@ -153,6 +157,7 @@ schemes:
       config: Debug
       targets:
         - package: OpenNotchKit/NotchCoreTests
+        - package: OpenNotchKit/NotchThemeTests
         - package: OpenNotchKit/NotchSurfaceTests
         - package: OpenNotchKit/NotchFeaturesTests
         - package: OpenNotchKit/PerformanceTests

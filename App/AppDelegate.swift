@@ -3,6 +3,7 @@ import AppKit
 import NotchCore
 import NotchFeatures
 import NotchSurface
+import NotchTheme
 import SwiftUI
 
 #if !APP_STORE
@@ -170,6 +171,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func section(_ rows: some View) -> AnyView { AnyView(Section { rows }) }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Themes.registerFonts()  // before the notch first draws in a theme's font
         let content = NotchContent(
             tab: { [unowned self] in self.tabView(for: $0) },
             dropFiles: { [preferences, shelf] urls in preferences.isEnabled(.shelf) && shelf.add(urls) },

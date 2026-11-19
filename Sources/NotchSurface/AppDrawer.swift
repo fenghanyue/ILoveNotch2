@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 import NotchCore
+import NotchTheme
 import SwiftUI
 
 /// Every app in the notch as a grid, like Launchpad: the ones in the tab row, the ones kept in the
@@ -81,7 +82,7 @@ struct AppDrawer: View {
         let editing = editor != nil
         return DrawerTile(title: editing ? "Done" : "Edit", compact: compact, dimmed: false) { hovering in
             let shape = RoundedRectangle(cornerRadius: compact ? 9 : 11, style: .continuous)
-            TablerIcon(name: editing ? "check" : "pencil", size: compact ? 17 : 19)
+            ThemeIcon(editing ? .done : .edit, size: compact ? 17 : 19)
                 .frame(width: compact ? 38 : 46, height: compact ? 30 : 38)
                 .background(.white.opacity(editing ? 0.24 : hovering ? 0.1 : 0), in: shape)
                 .overlay(
@@ -106,7 +107,7 @@ struct AppIcon: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: compact ? 9 : 11, style: .continuous)
-        TablerIcon(name: feature.icon, size: compact ? 17 : 19)
+        ThemeIcon(feature, size: compact ? 17 : 19)
             .frame(width: compact ? 38 : 46, height: compact ? 30 : 38)
             .background(.white.opacity(lit ? 0.24 : hovering ? 0.16 : 0.1), in: shape)
             .overlay(shape.strokeBorder(.white.opacity(lit ? 0.55 : 0.12), lineWidth: lit ? 1 : 0.5))

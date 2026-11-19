@@ -12,6 +12,7 @@ let package = Package(
     platforms: [.macOS("14.6")],
     products: [
         .library(name: "NotchCore", targets: ["NotchCore"]),
+        .library(name: "NotchTheme", targets: ["NotchTheme"]),
         .library(name: "NotchSurface", targets: ["NotchSurface"]),
         .library(name: "NotchFeatures", targets: ["NotchFeatures"]),
         .library(name: "NotchUsage", targets: ["NotchUsage"]),
@@ -21,11 +22,13 @@ let package = Package(
     targets: [
         // State machine, feature lifecycle, diagnostics. No AppKit, so it tests anywhere.
         .target(name: "NotchCore", swiftSettings: strict),
-        // Panel, SwiftUI surface, and notch geometry.
+        // The looks: themes as JSON files, with the fonts and icon sets they draw with (docs/themes.md).
+        // No feature code. Icons from Tabler Icons (tabler.io; MIT, see THIRD_PARTY_NOTICES.md).
         .target(
-            name: "NotchSurface", dependencies: ["NotchCore"],
-            // The notch's own icons from Tabler Icons (tabler.io; MIT, see THIRD_PARTY_NOTICES.md).
-            resources: [.copy("Resources/Icons")], swiftSettings: strict),
+            name: "NotchTheme", dependencies: ["NotchCore"], resources: [.copy("Themes"), .copy("Icons")],
+            swiftSettings: strict),
+        // Panel, SwiftUI surface, and notch geometry.
+        .target(name: "NotchSurface", dependencies: ["NotchCore", "NotchTheme"], swiftSettings: strict),
         // Feature modules: each one a NotchFeature plus its views.
         .target(name: "NotchFeatures", dependencies: ["NotchCore"], swiftSettings: strict),
         // The GitHub build's developer tabs: AI Usage, OpenUsage's providers (MIT, in OpenUsage/) with
@@ -46,6 +49,7 @@ let package = Package(
         // call that tells which app a helper process (Safari's WebKit, say) plays for.
         .target(name: "NotchMixer", dependencies: ["NotchCore", "NotchFeatures"], swiftSettings: strict),
         .testTarget(name: "NotchCoreTests", dependencies: ["NotchCore"], swiftSettings: strict),
+        .testTarget(name: "NotchThemeTests", dependencies: ["NotchTheme"], swiftSettings: strict),
         .testTarget(name: "NotchSurfaceTests", dependencies: ["NotchSurface"], swiftSettings: strict),
         .testTarget(name: "NotchFeaturesTests", dependencies: ["NotchFeatures"], swiftSettings: strict),
         .testTarget(name: "NotchUsageTests", dependencies: ["NotchUsage"], swiftSettings: strict),

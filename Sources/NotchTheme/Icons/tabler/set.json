@@ -1,0 +1,30 @@
+{
+  "name": "Tabler Icons",
+  "version": "3.48.0",
+  "license": "MIT",
+  "url": "https://tabler.io/icons",
+  "kind": "line",
+  "source": {
+    "media": "music",
+    "sound": "volume",
+    "shelf": "inbox",
+    "clipboard": "clipboard-list",
+    "calendar": "calendar",
+    "tasks": "list-check",
+    "notes": "notes",
+    "shortcuts": "stack-2",
+    "timer": "alarm",
+    "network": "ufo",
+    "mirror": "device-computer-camera",
+    "prompter": "script",
+    "usage": "gauge",
+    "agents": "terminal-2",
+    "apps": "layout-grid",
+    "apps-on": "layout-grid-filled",
+    "pin": "pin",
+    "pin-on": "pin-filled",
+    "settings": "settings",
+    "edit": "pencil",
+    "done": "check"
+  }
+}

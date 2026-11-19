@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "id": "black",
+  "name": "Black",
+  "order": 0,
+  "appearance": "dark",
+  "surface": {
+    "kind": "solid",
+    "color": "#000000"
+  },
+  "colors": {
+    "ink": "#FFFFFF",
+    "secondary": "#FFFFFFB3",
+    "tertiary": "#FFFFFF73",
+    "fill": "#FFFFFF14",
+    "accent": "system",
+    "onAccent": "#000000"
+  },
+  "fonts": {
+    "display": {
+      "family": "system"
+    },
+    "body": {
+      "family": "system"
+    },
+    "mono": {
+      "family": "system",
+      "design": "monospaced"
+    }
+  },
+  "icons": {
+    "set": "tabler"
+  },
+  "radii": {
+    "notchTop": 10,
+    "notchBottom": 26
+  },
+  "seekBar": {
+    "line": 3.5,
+    "cap": "round",
+    "rest": "solid",
+    "head": "bar",
+    "fill": "artwork"
+  },
+  "waveform": {
+    "bar": 3,
+    "gap": 2,
+    "shape": "round",
+    "fill": "artwork"
+  }
+}

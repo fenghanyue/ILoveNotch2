@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 import AppKit
 import NotchCore
+import NotchTheme
 import SwiftUI
 
 /// A tab on the move in edit mode.
@@ -149,7 +150,7 @@ struct EditingRow: View {
 
     private func tab(_ feature: FeatureID, width: CGFloat, removable: Bool) -> some View {
         let lifted = editor.drag?.feature == feature
-        return TablerIcon(name: feature.icon)
+        return ThemeIcon(feature)
             .frame(width: width, height: 26)
             .background(.white.opacity(0.12), in: Capsule().inset(by: 2))
             .overlay(alignment: .topLeading) {
@@ -215,7 +216,7 @@ struct LiftedTab: View {
 
     var body: some View {
         if let drag = editor.drag {
-            TablerIcon(name: drag.feature.icon, size: 18)
+            ThemeIcon(drag.feature, size: 18)
                 .frame(width: 42, height: 34)
                 .background(.white.opacity(0.24), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .overlay(

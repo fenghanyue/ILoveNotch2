@@ -92,22 +92,24 @@ struct NotchPreferencesTests {
         preferences.resizeExpanded(to: CGSize(width: 600, height: 400))
         preferences.setEnabled(.mirror, true)
         preferences.replacesVolumeDisplay = true
-        preferences.theme = .glass
+        preferences.themeID = "glass"
         preferences.reset()
         #expect(preferences.tabs == defaultTabs)
         #expect(preferences.tabOrder == FeatureID.allCases)
         #expect(preferences.expandedSize == NotchPreferences.defaultExpandedSize)
         #expect(!preferences.replacesVolumeDisplay)
-        #expect(preferences.theme == .black)
+        #expect(preferences.themeID == "black")
         #expect(!NotchPreferences(defaults: defaults).showOnAllDisplays)
     }
 
+    /// Stored under the key the black/glass choice used, so that choice carries over. An id this
+    /// version doesn't know stays stored for the version that does; NotchTheme draws it as Black.
     @Test func theThemeIsBlackUntilChosenAndKept() {
-        #expect(NotchPreferences(defaults: defaults).theme == .black)
-        NotchPreferences(defaults: defaults).theme = .glass
-        #expect(NotchPreferences(defaults: defaults).theme == .glass)
-        defaults.set("chrome-from-the-future", forKey: "theme")
-        #expect(NotchPreferences(defaults: defaults).theme == .black)
+        #expect(NotchPreferences(defaults: defaults).themeID == "black")
+        defaults.set("glass", forKey: "theme")
+        #expect(NotchPreferences(defaults: defaults).themeID == "glass", "a choice from before themes were files")
+        NotchPreferences(defaults: defaults).themeID = "chrome-from-the-future"
+        #expect(NotchPreferences(defaults: defaults).themeID == "chrome-from-the-future")
     }
 
     @Test func theNotchSizePersistsWithinItsLimits() {

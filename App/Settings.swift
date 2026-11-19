@@ -3,6 +3,7 @@ import AppKit
 import Carbon.HIToolbox
 import NotchCore
 import NotchFeatures
+import NotchTheme
 import ServiceManagement
 import SwiftUI
 
@@ -369,12 +370,12 @@ private struct AppearancePage: View {
         SettingsPage(page: .appearance) {
             Section {
                 LabeledContent("Theme") {
-                    ThemePicker(theme: $preferences.theme, glassAvailable: Self.glassAvailable)
+                    ThemePicker(themeID: $preferences.themeID, glassAvailable: Self.glassAvailable)
                 }
                 // Shows the new look right away, the way Preview shows an animation.
-                .onChange(of: preferences.theme) { previewAnimation() }
+                .onChange(of: preferences.themeID) { previewAnimation() }
             } footer: {
-                Text(themeNote).foregroundStyle(.secondary)
+                if let themeNote { Text(themeNote).foregroundStyle(.secondary) }
             }
             Section {
                 LabeledContent {
@@ -411,8 +412,11 @@ private struct AppearancePage: View {
         if #available(macOS 26, *) { true } else { false }
     }
 
-    private var themeNote: String {
-        guard Self.glassAvailable else { return "Glass needs macOS 26 or later." }
+    /// About glass, while a glass theme is chosen or can't be.
+    private var themeNote: String? {
+        let hasGlass = Themes.all.contains { $0.surface.kind == .glass }
+        guard Self.glassAvailable else { return hasGlass ? "Glass needs macOS 26 or later." : nil }
+        guard Themes.theme(preferences.themeID).surface.kind == .glass else { return nil }
         let note =
             "Glass shows your desktop through the open notch, the way macOS draws Control Center. Closed, the notch "
             + "stays black to hide in the camera housing."
@@ -424,18 +428,19 @@ private struct AppearancePage: View {
     }
 }
 
-/// Each theme as a small open notch over a wallpaper, picked the way System Settings picks Light or
-/// Dark.
+/// Every bundled theme as a small open notch over a wallpaper, picked the way System Settings picks
+/// Light or Dark. A new file in NotchTheme's Themes/ shows up here.
 private struct ThemePicker: View {
-    @Binding var theme: NotchTheme
+    @Binding var themeID: String
     let glassAvailable: Bool
 
     var body: some View {
-        HStack(spacing: 14) {
-            ForEach(NotchTheme.allCases) { option in
-                let selected = option == theme
+        let chosen = Themes.theme(themeID).id
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 14)], spacing: 10) {
+            ForEach(Themes.all) { option in
+                let selected = option.id == chosen
                 Button {
-                    theme = option
+                    themeID = option.id
                 } label: {
                     VStack(spacing: 5) {
                         preview(option)
@@ -444,28 +449,28 @@ private struct ThemePicker: View {
                                 RoundedRectangle(cornerRadius: 9, style: .continuous)
                                     .strokeBorder(selected ? Color.accentColor : .clear, lineWidth: 2.5)
                             }
-                        Text(option.title).font(.caption).foregroundStyle(selected ? .primary : .secondary)
+                        Text(option.name).font(.caption).foregroundStyle(selected ? .primary : .secondary)
                     }
                 }
                 .buttonStyle(.plain)
-                .disabled(option == .glass && !glassAvailable)
-                .accessibilityLabel(option.title)
+                .disabled(option.surface.kind == .glass && !glassAvailable)
+                .accessibilityLabel(option.name)
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
     }
 
-    private func preview(_ option: NotchTheme) -> some View {
+    private func preview(_ option: Theme) -> some View {
         let notch = UnevenRoundedRectangle(bottomLeadingRadius: 9, bottomTrailingRadius: 9, style: .continuous)
         return ZStack(alignment: .top) {
             LinearGradient(
                 colors: [AboutSettings.peach, AboutSettings.coral, .indigo], startPoint: .topLeading,
                 endPoint: .bottomTrailing)
-            if option == .glass {
+            if option.surface.kind == .glass {
                 notch.fill(.white.opacity(0.28)).overlay(notch.stroke(.white.opacity(0.7), lineWidth: 0.75))
                     .frame(width: 58, height: 26)
             } else {
-                notch.fill(.black).frame(width: 58, height: 26)
+                notch.fill(option.surface.color.color).frame(width: 58, height: 26)
             }
         }
         .frame(width: 84, height: 52)

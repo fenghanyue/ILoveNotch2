@@ -7,7 +7,7 @@ public enum FeatureID: String, CaseIterable, Hashable, Sendable {
         agents
 
     /// SF Symbol for the tab's page in Settings, beside System Settings' own symbols. The notch draws
-    /// Tabler icons instead (NotchSurface's `FeatureID.icon`). Every name here exists on macOS 14.6,
+    /// its theme's icon set instead (NotchTheme's `ThemeIcon`). Every name here exists on macOS 14.6,
     /// the oldest supported.
     public var symbol: String {
         switch self {
