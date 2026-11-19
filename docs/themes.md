@@ -47,6 +47,7 @@ Required unless marked optional.
 | `colors.accent` | lit controls and selection; `"system"` is macOS's accent color |
 | `colors.onAccent` | text and icons on an accent fill |
 | `colors.highlight` | optional: the prompter's current word, search matches; the accent without one |
+| `colors.onHighlight` | optional: the prompter's current word on the highlight; the ink without one |
 | `fonts.display`, `.body`, `.mono` | `{"family": "system"}` or a family in Fonts/; optional `design` (system only: `default`, `rounded`, `serif`, `monospaced`), `weight` (overrides the view's: `ultralight` … `black`), `scale` (size multiplier) |
 | `icons.set` | a folder in Icons/ |
 | `icons.rendering` | optional, symbol sets only: `monochrome` (the default) or `hierarchical` |

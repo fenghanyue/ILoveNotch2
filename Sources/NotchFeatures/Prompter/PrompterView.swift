@@ -89,7 +89,8 @@ struct PrompterView: View {
         let ink = NSColor(theme.color(.ink))
         return ScriptStyle(
             font: theme.nsFont(.body, size: prompter.textSize, weight: .semibold), ink: ink,
-            highlight: theme.colors.highlight.map { NSColor($0.color) } ?? ink.withAlphaComponent(0.2))
+            highlight: theme.colors.highlight.map { NSColor($0.color) } ?? ink.withAlphaComponent(0.2),
+            current: theme.colors.onHighlight.map { NSColor($0.color) } ?? ink)
     }
 
     private var controls: some View {
@@ -215,12 +216,13 @@ struct PrompterView: View {
     }
 }
 
-/// How the script is drawn: its face, its ink (read words dimmed, the next one full), and what
-/// marks the next word.
+/// How the script is drawn: its face, its ink (read words dimmed), and what marks the next word,
+/// in `current`.
 private struct ScriptStyle: Equatable {
     var font: NSFont
     var ink: NSColor
     var highlight: NSColor
+    var current: NSColor
 }
 
 /// The script as it's read: the words read so far dimmed, the next one lit, and the lines to come
@@ -295,7 +297,7 @@ private final class ScriptScrollView: NSScrollView {
         layout.addTemporaryAttribute(
             .foregroundColor, value: style.ink.withAlphaComponent(0.35), forCharacterRange: read)
         if let next {
-            layout.addTemporaryAttribute(.foregroundColor, value: style.ink, forCharacterRange: next)
+            layout.addTemporaryAttribute(.foregroundColor, value: style.current, forCharacterRange: next)
             layout.addTemporaryAttribute(.backgroundColor, value: style.highlight, forCharacterRange: next)
         }
         scrollToCurrent(animated: true)

@@ -123,6 +123,8 @@ public struct Theme: Decodable, Identifiable, Sendable {
         public let onAccent: ThemeColor
         /// The prompter's current word and search matches; the accent when a theme has none.
         public let highlight: ThemeColor?
+        /// The prompter's current word on the highlight; the ink without one.
+        public let onHighlight: ThemeColor?
     }
 
     public struct Closed: Decodable, Sendable {
