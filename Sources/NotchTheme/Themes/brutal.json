@@ -1,0 +1,70 @@
+{
+  "schema": 1,
+  "id": "brutal",
+  "name": "Brutal",
+  "order": 80,
+  "appearance": "light",
+  "surface": {
+    "kind": "solid",
+    "color": "#FFFFFF",
+    "band": "#000000",
+    "border": {
+      "color": "#000000",
+      "width": 10
+    },
+    "pattern": {
+      "kind": "grid",
+      "color": "#0000000F",
+      "spacing": 12
+    }
+  },
+  "colors": {
+    "ink": "#000000",
+    "secondary": "#000000",
+    "tertiary": "#9A9A9A",
+    "fill": "#FF8FC7",
+    "accent": "#FFD60A",
+    "onAccent": "#000000",
+    "highlight": "#FFD60A"
+  },
+  "closed": {
+    "ink": "#FFFFFF"
+  },
+  "fonts": {
+    "display": {
+      "family": "Archivo Black"
+    },
+    "body": {
+      "family": "Space Grotesk",
+      "weight": "semibold"
+    },
+    "mono": {
+      "family": "Space Grotesk",
+      "weight": "bold"
+    }
+  },
+  "icons": {
+    "set": "tabler",
+    "stroke": 2.5,
+    "cap": "square"
+  },
+  "radii": {
+    "notchTop": 16,
+    "notchBottom": 28
+  },
+  "tabs": "text",
+  "seekBar": {
+    "line": 4,
+    "cap": "square",
+    "rest": "dashed",
+    "head": "block",
+    "fill": "ink",
+    "headFill": "accent"
+  },
+  "waveform": {
+    "bar": 3,
+    "gap": 3,
+    "shape": "square",
+    "fill": "ink"
+  }
+}

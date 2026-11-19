@@ -296,6 +296,13 @@ The themes' fonts sit in `Sources/NotchTheme/Fonts/<Family>`, unchanged from
 upstream, each with its own `OFL.txt`. Each family's copyright notice, then the
 license they share:
 
+- **Archivo Black**, https://github.com/Omnibus-Type/ArchivoBlack, Version 1.006, from google/fonts
+  `ofl/archivoblack` (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86): `ArchivoBlack-Regular.ttf`.
+  Copyright 2017 The Archivo Black Project Authors (https://github.com/Omnibus-Type/ArchivoBlack).
+- **Space Grotesk**, https://github.com/floriankarsten/space-grotesk, Version 2.000, from
+  google/fonts `ofl/spacegrotesk` (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86):
+  `SpaceGrotesk[wght].ttf`. Copyright 2020 The Space Grotesk Project Authors
+  (https://github.com/floriankarsten/space-grotesk).
 - **Doto**, https://github.com/oliverlalan/Doto, Version 1.000, from google/fonts `ofl/doto`
   (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86): `Doto[ROND,wght].ttf`. Copyright 2024 The
   Doto Project Authors (https://github.com/oliverlalan/Doto).

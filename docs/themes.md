@@ -36,7 +36,7 @@ Required unless marked optional.
 | `surface.color` | the open notch's fill, and glass's fallback (before macOS 26, Reduce Transparency, Increase Contrast). Closed, the notch is black in every theme, to hide in the camera housing. |
 | `surface.band` | optional: a band of this color across the top, behind the camera and the header, with the sheet below it |
 | `surface.border` | optional: `{"color", "width"}`, a frame around the sheet, drawn inside the notch's edge |
-| `surface.pattern` | optional: `{"kind": "dots", "color", "spacing"}`, a texture over the sheet |
+| `surface.pattern` | optional: `{"kind", "color", "spacing"}`, a texture over the sheet: `dots`, or `grid` (graph paper) |
 | `closed.ink` | optional: text and icons on black (the closed notch, the header on a band). Needed by a light theme, whose ink is dark. |
 | `accentChoices` | optional: accents to pick from in Settings; `colors.accent` is the default |
 | `tabs` | optional: `icons` (the default) or `text`, the tabs' names while they all fit the header |
@@ -50,7 +50,7 @@ Required unless marked optional.
 | `icons.rendering` | optional, symbol sets only: `monochrome` (the default) or `hierarchical` |
 | `icons.stroke`, `icons.cap` | optional, line sets only: replace every stroke-width in the set's SVGs, and `square` gives square ends and mitered joins |
 | `radii.notchTop`, `.notchBottom` | the open notch's corners |
-| `seekBar` | `line` (width), `cap` (`round`, `square`), `rest` (`solid`, `dotted`), `head` (`bar`, `dot`, `block`), `fill` (`artwork`, `accent`, `ink`); optional `played` (`solid`, `dotted`) and `headFill` |
+| `seekBar` | `line` (width), `cap` (`round`, `square`), `rest` (`solid`, `dotted`, `dashed`), `head` (`bar`, `dot`, `block`), `fill` (`artwork`, `accent`, `ink`); optional `played` (`solid`, `dotted`, `dashed`) and `headFill` |
 | `waveform` | `bar` (width), `gap`, `shape` (`round`, `square`, `led`), `fill` (`artwork`, `accent`, `ink`); optional `peak`, a column's color at its loudest |
 | `skins` | optional: `musicPlayer`, `tabRow`, `closedNotch`, each the name of a skin the app ships (`SkinSlot.shipped`). A missing or unknown one draws the default view. |
 
