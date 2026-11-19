@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 import AppKit
+import NotchTheme
 import SwiftUI
 
 /// The notes tab: a searchable list of notes beside an editor. Hovering a note lights it up and shows
@@ -17,6 +18,7 @@ struct NotesView: View {
     @State private var searchHovering = false
     @State private var showsPalette = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.theme) private var theme
 
     var body: some View {
         if notes.notes.isEmpty {
@@ -62,7 +64,7 @@ struct NotesView: View {
                             select: { withAnimation(spring) { notes.selection = note.id } })
                     }
                     if notes.visibleNotes.isEmpty {
-                        Text("No matches").font(.caption).foregroundStyle(.white.opacity(0.5)).padding(6)
+                        Text("No matches").themeFont(.body, .caption).foregroundStyle(.themeInk.opacity(0.5)).padding(6)
                     }
                 }
                 .padding(.vertical, 6)
@@ -81,11 +83,11 @@ struct NotesView: View {
                     searchGlass
                     TextField("Search", text: $notes.search)
                         .textFieldStyle(.plain)
-                        .font(.caption)
+                        .themeFont(.body, .caption)
                         .focused($searchFocused)
                         .takesKeyboard(searching)
                     Button(action: closeSearch) {
-                        Image(systemName: "xmark.circle.fill").font(.system(size: 10)).opacity(0.5)
+                        Image(systemName: "xmark.circle.fill").themeFont(.body, size: 10).opacity(0.5)
                     }
                     .buttonStyle(.plain)
                     .help("Close search")
@@ -144,14 +146,14 @@ struct NotesView: View {
     /// The icon and the field's backdrop are shared, so the icon's circle stretches into the field.
     private var searchGlass: some View {
         Image(systemName: "magnifyingglass")
-            .font(.system(size: HeaderIcon.symbolSize, weight: .semibold))
-            .foregroundStyle(.white.opacity(0.8))
+            .themeFont(.body, size: HeaderIcon.symbolSize, weight: .semibold)
+            .foregroundStyle(.themeInk.opacity(0.8))
             .matchedGeometryEffect(id: "glass", in: searchSpace)
     }
 
     private var searchField: some View {
         Capsule()
-            .fill(.white.opacity(searchHovering && !searching ? 0.18 : 0.1))
+            .fill(.themeInk.opacity(searchHovering && !searching ? 0.18 : 0.1))
             .matchedGeometryEffect(id: "field", in: searchSpace)
     }
 
@@ -176,7 +178,7 @@ struct NotesView: View {
             VStack(alignment: .leading, spacing: 4) {
                 toolbar(note)
                 TextEditor(text: Binding(get: { note.text }, set: { notes.update(note.id, text: $0) }))
-                    .font(.callout)
+                    .themeFont(.body, .callout)
                     .scrollContentBackground(.hidden)
                     .focused($editorFocused)
                     .accessibilityLabel("Note text")
@@ -190,7 +192,7 @@ struct NotesView: View {
     }
 
     private func tint(_ color: NoteColor?) -> Color {
-        guard let color else { return .white.opacity(0.06) }
+        guard let color else { return theme.color(.ink).opacity(0.06) }
         return color.swatch.opacity(0.18)
     }
 
@@ -200,9 +202,9 @@ struct NotesView: View {
                 showsPalette.toggle()
             } label: {
                 Circle()
-                    .fill(note.color?.swatch ?? .white.opacity(0.35))
+                    .fill(note.color?.swatch ?? theme.color(.ink).opacity(0.35))
                     .frame(width: ColorPalette.dot, height: ColorPalette.dot)
-                    .overlay(Circle().strokeBorder(.white.opacity(showsPalette ? 0.9 : 0.5), lineWidth: 1))
+                    .overlay(Circle().strokeBorder(.themeInk.opacity(showsPalette ? 0.9 : 0.5), lineWidth: 1))
                     .scaleEffect(showsPalette && !reduceMotion ? 1.2 : 1)
                     .animation(spring, value: showsPalette)
                     .contentShape(Circle().inset(by: -4))
@@ -244,8 +246,8 @@ struct NotesView: View {
         }
         .onChange(of: notes.selection) { _, _ in showsPalette = false }
         .buttonStyle(.plain)
-        .font(.system(size: 11, weight: .medium))
-        .foregroundStyle(.white.opacity(0.75))
+        .themeFont(.body, size: 11, weight: .medium)
+        .foregroundStyle(.themeInk.opacity(0.75))
         .frame(height: HeaderIcon.side)  // in line with the list's header
     }
 
@@ -254,19 +256,20 @@ struct NotesView: View {
             Text(note.wordCount == 1 ? "1 word" : "\(note.wordCount) words")
             Spacer(minLength: 0)
             if let notice = notes.notice {
-                Text(notice).foregroundStyle(.white.opacity(0.85)).transition(.opacity)
+                Text(notice).foregroundStyle(.themeInk.opacity(0.85)).transition(.opacity)
             } else {
                 Text("Edited \(note.modified, format: .relative(presentation: .named))")
             }
         }
-        .font(.caption2)
-        .foregroundStyle(.white.opacity(0.45))
+        .themeFont(.body, .caption2)
+        .foregroundStyle(.themeInk.opacity(0.45))
         .lineLimit(1)
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: notes.notice)
     }
 }
 
 extension NoteColor {
+    /// The note's own color, the same in every theme.
     var swatch: Color {
         switch self {
         case .red: .red
@@ -299,7 +302,7 @@ private struct NoteRow: View {
                 Circle().fill(color.swatch).frame(width: 6, height: 6)
             }
             Text(note.title)
-                .font(.caption)
+                .themeFont(.body, .caption)
                 .lineLimit(1)
             Spacer(minLength: 0)
             if hovering {
@@ -318,11 +321,11 @@ private struct NoteRow: View {
                     .accessibilityLabel("Move to Trash")
                 }
                 .buttonStyle(.plain)
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.7))
+                .themeFont(.body, size: 9, weight: .semibold)
+                .foregroundStyle(.themeInk.opacity(0.7))
                 .transition(.opacity.combined(with: .move(edge: .trailing)))
             } else if note.isPinned {
-                Image(systemName: "pin.fill").font(.system(size: 8)).foregroundStyle(.white.opacity(0.5))
+                Image(systemName: "pin.fill").themeFont(.body, size: 8).foregroundStyle(.themeInk.opacity(0.5))
             }
         }
         .padding(.horizontal, 6)
@@ -330,10 +333,10 @@ private struct NoteRow: View {
         .background {
             if isSelected {
                 RoundedRectangle(cornerRadius: 6)
-                    .fill(.white.opacity(0.14))
+                    .fill(.themeInk.opacity(0.14))
                     .matchedGeometryEffect(id: "selection", in: selectionSpace)
             } else if hovering {
-                RoundedRectangle(cornerRadius: 6).fill(.white.opacity(0.07))
+                RoundedRectangle(cornerRadius: 6).fill(.themeInk.opacity(0.07))
             }
         }
         .scaleEffect(hovering && !isSelected && !reduceMotion ? 1.02 : 1, anchor: .leading)
@@ -384,10 +387,10 @@ private struct HeaderIcon: View {
 
     var body: some View {
         Image(systemName: symbol)
-            .font(.system(size: Self.symbolSize, weight: .semibold))
-            .foregroundStyle(.white.opacity(hovering ? 1 : 0.8))
+            .themeFont(.body, size: Self.symbolSize, weight: .semibold)
+            .foregroundStyle(.themeInk.opacity(hovering ? 1 : 0.8))
             .frame(width: Self.side, height: Self.side)
-            .background(.white.opacity(hovering ? 0.18 : 0.1), in: Circle())
+            .background(.themeInk.opacity(hovering ? 0.18 : 0.1), in: Circle())
             .contentShape(Circle())
             .onHover { hovering = $0 }
             .animation(.easeOut(duration: 0.15), value: hovering)
@@ -467,10 +470,10 @@ private struct ColorPalette: View {
                 Circle()
                     .fill(color?.swatch ?? .clear)
                     .overlay(
-                        Circle().strokeBorder(.white.opacity(isSelected ? 0.9 : 0.3), lineWidth: isSelected ? 2 : 1)
+                        Circle().strokeBorder(.themeInk.opacity(isSelected ? 0.9 : 0.3), lineWidth: isSelected ? 2 : 1)
                     )
                     .overlay {
-                        if color == nil { Image(systemName: "slash.circle").font(.system(size: 8)).opacity(0.6) }
+                        if color == nil { Image(systemName: "slash.circle").themeFont(.body, size: 8).opacity(0.6) }
                     }
                     .frame(width: 11, height: 11)
                     .scaleEffect(hovering ? 1.3 : 1)
