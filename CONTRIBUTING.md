@@ -17,8 +17,8 @@ rules matter more than usual.
   closed-source apps, and never paste code from GPL-licensed projects.
 - Never commit third-party app bundles, extracted binaries, or disassembly.
   `.gitignore` blocks the common cases; don't work around it.
-- Dependencies must be permissively licensed (MIT, BSD, Apache-2.0, ISC, zlib)
-  and listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- Dependencies must be permissively licensed (MIT, BSD, Apache-2.0, ISC, zlib;
+  OFL-1.1 for fonts) and listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 - Describe features by behavior (see [docs/parity-checklist.md](docs/parity-checklist.md)),
   never by how another app implements them.
 

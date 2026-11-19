@@ -23,10 +23,11 @@ let package = Package(
         // State machine, feature lifecycle, diagnostics. No AppKit, so it tests anywhere.
         .target(name: "NotchCore", swiftSettings: strict),
         // The looks: themes as JSON files, with the fonts and icon sets they draw with (docs/themes.md).
-        // No feature code. Icons from Tabler Icons (tabler.io; MIT, see THIRD_PARTY_NOTICES.md).
+        // No feature code. Fonts under the OFL, icon sets under MIT, ISC, or Apache-2.0
+        // (THIRD_PARTY_NOTICES.md).
         .target(
-            name: "NotchTheme", dependencies: ["NotchCore"], resources: [.copy("Themes"), .copy("Icons")],
-            swiftSettings: strict),
+            name: "NotchTheme", dependencies: ["NotchCore"],
+            resources: [.copy("Themes"), .copy("Fonts"), .copy("Icons")], swiftSettings: strict),
         // Panel, SwiftUI surface, and notch geometry.
         .target(name: "NotchSurface", dependencies: ["NotchCore", "NotchTheme"], swiftSettings: strict),
         // Feature modules: each one a NotchFeature plus its views.
@@ -52,8 +53,8 @@ let package = Package(
             name: "NotchMixer", dependencies: ["NotchCore", "NotchTheme", "NotchFeatures"], swiftSettings: strict),
         .testTarget(name: "NotchCoreTests", dependencies: ["NotchCore"], swiftSettings: strict),
         .testTarget(name: "NotchThemeTests", dependencies: ["NotchTheme"], swiftSettings: strict),
-        .testTarget(name: "NotchSurfaceTests", dependencies: ["NotchSurface"], swiftSettings: strict),
-        .testTarget(name: "NotchFeaturesTests", dependencies: ["NotchFeatures"], swiftSettings: strict),
+        .testTarget(name: "NotchSurfaceTests", dependencies: ["NotchSurface", "NotchTheme"], swiftSettings: strict),
+        .testTarget(name: "NotchFeaturesTests", dependencies: ["NotchFeatures", "NotchTheme"], swiftSettings: strict),
         .testTarget(name: "NotchUsageTests", dependencies: ["NotchUsage"], swiftSettings: strict),
         .testTarget(name: "NotchTransferTests", dependencies: ["NotchTransfer"], swiftSettings: strict),
         .testTarget(name: "NotchMixerTests", dependencies: ["NotchMixer"], swiftSettings: strict),

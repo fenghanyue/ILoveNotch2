@@ -34,6 +34,12 @@ Required unless marked optional.
 | `appearance` | `dark` or `light`: the open notch's color scheme, for system controls and `.primary`/`.secondary`. Closed, the notch is always dark. |
 | `surface.kind` | `solid`, or `glass` (Liquid Glass on macOS 26 and later, with a live blur under it) |
 | `surface.color` | the open notch's fill, and glass's fallback (before macOS 26, Reduce Transparency, Increase Contrast). Closed, the notch is black in every theme, to hide in the camera housing. |
+| `surface.band` | optional: a band of this color across the top, behind the camera and the header, with the sheet below it |
+| `surface.border` | optional: `{"color", "width"}`, a frame around the sheet, drawn inside the notch's edge |
+| `surface.pattern` | optional: `{"kind": "dots", "color", "spacing"}`, a texture over the sheet |
+| `closed.ink` | optional: text and icons on black (the closed notch, the header on a band). Needed by a light theme, whose ink is dark. |
+| `accentChoices` | optional: accents to pick from in Settings; `colors.accent` is the default |
+| `tabs` | optional: `icons` (the default) or `text`, the tabs' names while they all fit the header |
 | `colors.ink`, `.secondary`, `.tertiary` | text and icons |
 | `colors.fill` | platters, tracks, and chips |
 | `colors.accent` | lit controls and selection; `"system"` is macOS's accent color |
@@ -42,8 +48,8 @@ Required unless marked optional.
 | `fonts.display`, `.body`, `.mono` | `{"family": "system"}` or a family in Fonts/; optional `design` (system only: `default`, `rounded`, `serif`, `monospaced`), `weight` (overrides the view's: `ultralight` … `black`), `scale` (size multiplier) |
 | `icons.set` | a folder in Icons/ |
 | `radii.notchTop`, `.notchBottom` | the open notch's corners |
-| `seekBar` | `line` (width), `cap` (`round`), `rest` (`solid`), `head` (`bar`), `fill` (`artwork`, `accent`, `ink`) |
-| `waveform` | `bar` (width), `gap`, `shape` (`round`), `fill` (`artwork`, `accent`, `ink`) |
+| `seekBar` | `line` (width), `cap` (`round`), `rest` (`solid`), `head` (`bar`, `dot`), `fill` (`artwork`, `accent`, `ink`) |
+| `waveform` | `bar` (width), `gap`, `shape` (`round`, `square`), `fill` (`artwork`, `accent`, `ink`) |
 | `skins` | optional: `musicPlayer`, `tabRow`, `closedNotch`, each the name of a skin the app ships (`SkinSlot.shipped`). A missing or unknown one draws the default view. |
 
 Colors are `#RRGGBB` or `#RRGGBBAA`. `artwork` is the now-playing artwork's color, or ink without
@@ -59,6 +65,7 @@ names any set missing one, and checks that a set's tab icons look one size in th
 
 ## Fonts
 
-`Fonts/<Family>/` holds the font files, unchanged from upstream, and their license. Every file
-there is registered for the app at launch (`Themes.registerFonts()`). A theme's `family` must be a
-registered family name; `ThemeTests` checks it.
+`Fonts/<Family>/` holds the font files, unchanged from upstream, and their license (OFL-1.1, listed
+in THIRD_PARTY_NOTICES.md). Every file there is registered once, when the themes load. A theme's
+`family` must be a registered family name; `ThemeTests` checks it. Bundle only the weights a theme
+uses, or a variable font when it's smaller.

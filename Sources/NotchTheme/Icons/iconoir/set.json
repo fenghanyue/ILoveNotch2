@@ -1,0 +1,30 @@
+{
+  "name": "Iconoir",
+  "version": "7.12.2",
+  "license": "MIT",
+  "url": "https://iconoir.com",
+  "kind": "line",
+  "source": {
+    "media": "regular/music-double-note",
+    "sound": "regular/sound-high",
+    "shelf": "regular/box",
+    "clipboard": "regular/paste-clipboard",
+    "calendar": "regular/calendar",
+    "tasks": "regular/check-square",
+    "notes": "regular/notes",
+    "shortcuts": "regular/multiple-pages-empty",
+    "timer": "regular/alarm",
+    "network": "regular/data-transfer-both",
+    "mirror": "regular/mirror",
+    "prompter": "regular/page-flip",
+    "usage": "regular/meter-arrow-down-right",
+    "agents": "regular/terminal-tag",
+    "apps": "regular/view-grid",
+    "apps-on": "regular/view-grid",
+    "pin": "regular/pin",
+    "pin-on": "solid/pin",
+    "settings": "regular/settings",
+    "edit": "regular/edit-pencil",
+    "done": "regular/check"
+  }
+}

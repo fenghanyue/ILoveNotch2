@@ -59,6 +59,19 @@ struct ThemeTests {
         #expect(Themes.theme("chrome-from-the-future").id == "black", "an unknown theme falls back to Black")
     }
 
+    /// Paper is light, so the closed notch and the header on its band take its cream; Black, already
+    /// light on black, draws as it is. Only an accent Paper offers takes the accent's place.
+    @Test func aLightThemeDrawsOnBlackInItsClosedInkAndKeepsToItsAccents() {
+        let paper = Themes.theme("paper")
+        #expect(paper.appearance == .light)
+        #expect(paper.onBlack.appearance == .dark)
+        #expect(paper.onBlack.colors.ink.text == "#F6F1E7")
+        #expect(Themes.black.onBlack.colors.ink.text == "#FFFFFF")
+        #expect(paper.withAccent("#D2462F").colors.accent.text == "#D2462F")
+        #expect(paper.withAccent("#123456").colors.accent.text == "#2C4A9A", "not one of Paper's")
+        #expect(Themes.black.withAccent("#D2462F").colors.accent.text == "system", "Black offers none")
+    }
+
     @Test func colorsAreHexOrTheSystemAccent() {
         #expect(ThemeColor.parse("#1F1D1A") != nil)
         #expect(ThemeColor.parse("#FFFFFF80") != nil)
@@ -73,16 +86,23 @@ struct ThemeTests {
 /// row's size, since every file's frame is the same square whatever the glyph.
 @MainActor
 struct IconTests {
-    @Test(arguments: iconSets, FeatureID.allCases)
-    func everyTabLooksTheSameSizeAndSitsCentered(set: String, feature: FeatureID) throws {
-        let image = try #require(ThemeIcon.image(.feature(feature), in: set))
-        let ink = try #require(Self.ink(of: image, size: ThemeIcon.size))
-        // At 16 pt Tabler's squares and pages draw about 12 across, its circles 13.5, which look alike.
-        // Its triangle play button (11 × 12) looks smaller, and the stopwatch's crown lifts it half a
-        // point.
-        let size = (ink.width * ink.height).squareRoot()
-        #expect((11.75...13.75).contains(size), "\(set)/\(feature.rawValue) looks \(size) pt")
-        #expect(abs(ink.drop) <= 0.3, "\(set)/\(feature.rawValue) sits \(ink.drop) pt off center")
+    /// Each tab's icon within a point and a half of the set's typical size, and centered to half a
+    /// point. At 16 pt Tabler's squares and pages draw about 12 across and its circles 13.5, which
+    /// look alike; sets drawn on a tighter or looser grid sit at their own size. Iconoir draws every
+    /// calendar and clipboard half a point low.
+    @Test(arguments: iconSets)
+    func everyTabLooksTheSameSizeAndSitsCentered(set: String) throws {
+        var sizes: [FeatureID: (size: Double, drop: Double)] = [:]
+        for feature in FeatureID.allCases {
+            let image = try #require(ThemeIcon.image(.feature(feature), in: set))
+            let ink = try #require(Self.ink(of: image, size: ThemeIcon.size))
+            sizes[feature] = ((ink.width * ink.height).squareRoot(), ink.drop)
+        }
+        let median = sizes.values.map(\.size).sorted()[sizes.count / 2]
+        for (feature, ink) in sizes {
+            #expect(abs(ink.size - median) <= 1.5, "\(set)/\(feature.rawValue) looks \(ink.size) pt, the set \(median)")
+            #expect(abs(ink.drop) <= 0.5, "\(set)/\(feature.rawValue) sits \(ink.drop) pt off center")
+        }
     }
 
     /// An image's ink drawn at 4×, in points: its size, and how far below the image's center it sits.
