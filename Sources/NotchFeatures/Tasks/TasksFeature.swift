@@ -20,10 +20,14 @@ public struct TaskItem: Identifiable, Hashable, Sendable {
     public var repeats = false
     /// Whether Reminders will notify at a set time.
     public var hasAlert = false
+    /// What's written under the title in Reminders, when anything is.
+    public var notes: String?
 
     init(_ reminder: EKReminder) {
         id = reminder.calendarItemIdentifier
         title = reminder.title ?? "Untitled"
+        notes = reminder.notes?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if notes?.isEmpty == true { notes = nil }
         let components = reminder.dueDateComponents
         due = components.flatMap { Calendar.current.date(from: $0) }
         hasTime = components?.hour != nil
@@ -38,7 +42,7 @@ public struct TaskItem: Identifiable, Hashable, Sendable {
 
     init(
         id: String, title: String, due: Date? = nil, hasTime: Bool = false, completed: Date? = nil,
-        priority: TaskPriority = .none, listTitle: String? = nil
+        priority: TaskPriority = .none, listTitle: String? = nil, notes: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -47,6 +51,7 @@ public struct TaskItem: Identifiable, Hashable, Sendable {
         self.completed = completed
         self.priority = priority
         self.listTitle = listTitle
+        self.notes = notes
     }
 
     public func group(now: Date = .now) -> TaskGroup { TaskGroup(due: due, hasTime: hasTime, now: now) }
@@ -201,6 +206,9 @@ public final class TasksFeature: NotchFeature {
     public private(set) var alerting: TaskItem?
     /// A short confirmation or problem, such as "Blocked 30 min at 3:00 PM". Clears itself.
     public private(set) var notice: String?
+    /// A task another tab asked to show (`reveal`). The board takes it once it's on screen, choosing
+    /// and opening that card, and this goes back to nil.
+    public private(set) var revealing: TaskItem.ID?
     /// Per-feature setting: the list to show and add to. Nil shows every list and adds to the default.
     public var listID: String? {
         didSet {
@@ -568,6 +576,16 @@ public final class TasksFeature: NotchFeature {
     }
 
     public func dismissAlert() { alerting = nil }
+
+    /// Shows the task on the board the next time it's on screen: chosen, opened in full, and
+    /// scrolled into view.
+    public func reveal(_ id: TaskItem.ID) { revealing = id }
+
+    /// The task to reveal, taken once: the request clears.
+    func takeRevealing() -> TaskItem.ID? {
+        defer { revealing = nil }
+        return revealing
+    }
 
     /// Sets aside time for a task in Calendar: at its due time if that's ahead, or the next quarter
     /// hour. Asks for calendar access the first time.

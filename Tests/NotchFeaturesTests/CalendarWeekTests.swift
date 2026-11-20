@@ -37,7 +37,21 @@ struct CalendarWeekTests {
         let today = days[2]
         let due = CalendarFeature.tasks(tasks, on: today, today: today, calendar: calendar)
         #expect(due.map(\.id) == ["overdue", "wednesday"])
-        #expect(CalendarFeature.tasks(tasks, on: days[3], today: today, calendar: calendar).isEmpty)
+        // Any other day, after today or before it, shows what's overdue beside its own.
+        let thursday = tasks + [TaskItem(id: "thursday", title: "Thursday", due: at(3, 10), hasTime: true)]
+        let onThursday = CalendarFeature.tasks(thursday, on: days[3], today: today, calendar: calendar)
+        #expect(onThursday.map(\.id) == ["overdue", "thursday"])
+        #expect(CalendarFeature.tasks(tasks, on: days[1], today: today, calendar: calendar).map(\.id) == ["overdue"])
+
+        // Next week's read keeps every task due in it and the latest overdue ones, at most
+        // `dueTaskLimit`; what's due between today and that week, or never, shows on none of its days.
+        let nextWeek = try #require(calendar.date(byAdding: .day, value: 7, to: days[0]))
+        let pile = (1...25).map { TaskItem(id: "late \($0)", title: "Late", due: days[0] - Double($0) * 86_400) }
+        let read = tasks + pile + [TaskItem(id: "next", title: "Next week", due: nextWeek + 3600, hasTime: true)]
+        let kept = CalendarFeature.weekTasks(read, from: nextWeek, today: today, calendar: calendar)
+        #expect(kept.count == CalendarFeature.dueTaskLimit + 1)
+        #expect(kept.suffix(2).map(\.id) == ["overdue", "next"], "the latest overdue, then the week's")
+        #expect(!kept.contains { ["wednesday", "someday", "late 25"].contains($0.id) })
     }
 
     @Test func aTimeWithoutADayLandsOnTheChosenDay() throws {

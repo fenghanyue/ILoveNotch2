@@ -216,6 +216,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         shelf.onActivity = { [weak coordinator] in coordinator?.broadcast(.activity($0)) }
         calendar.onActivity = { [weak coordinator] in coordinator?.broadcast(.activity($0)) }
         calendar.onOngoing = { [weak coordinator] in coordinator?.setOngoing($0, for: .calendar) }
+        // A task clicked in Calendar opens on the Tasks board, or in Reminders while that tab is off.
+        calendar.onOpenTask = { [weak self] id in
+            guard let self else { return }
+            guard preferences.isEnabled(.tasks), let coordinator = self.coordinator else {
+                return calendar.openRemindersApp()
+            }
+            tasks.reveal(id)
+            coordinator.open(.tasks)
+        }
         timer.onActivity = { [weak coordinator] in coordinator?.broadcast(.activity($0)) }
         timer.onOngoing = { [weak coordinator] in coordinator?.setOngoing($0, for: .timer) }
         network.onActivity = { [weak coordinator] in coordinator?.broadcast(.activity($0)) }

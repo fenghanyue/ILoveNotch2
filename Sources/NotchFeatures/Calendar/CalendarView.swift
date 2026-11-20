@@ -5,15 +5,18 @@ import SwiftUI
 /// The calendar tab: the week across the top, a dot in its calendar's color for each of a day's
 /// first four events, and the chosen day's events below as one-line rows. On today the finished
 /// ones fold into "N earlier" and the next one is lit, with its countdown and Join. The day's tasks
-/// sit beside them, and a field at the bottom adds an event from a line like "Lunch with Sam
-/// tomorrow 1pm" (a time alone lands on the chosen day). Your own events can be edited in place or
-/// deleted from the notch. The selection slides between days, the day cross-fades, and another
-/// week pushes in from its side; with Reduce Motion each swaps at once.
+/// and every overdue one sit beside them, on whichever day, and a click on one opens it in Tasks.
+/// A field at the bottom adds an event from a line like "Lunch with Sam tomorrow 1pm" (a time alone
+/// lands on the chosen day). Your own events can be edited in place or deleted from the notch. The
+/// selection slides between days, the day cross-fades, and another week pushes in from its side;
+/// with Reduce Motion each swaps at once.
 struct CalendarView: View {
     let calendar: CalendarFeature
     @State private var draft = ""
     /// The event being edited in place.
     @State private var editing: DayEvent.ID?
+    /// The task row under the pointer, lit to show a click opens it.
+    @State private var hoveredTask: TaskItem.ID?
     /// Today's finished events, unfolded.
     @State private var showsEarlier = false
     /// Whether the week last moved ahead, so the next one pushes in from that side.
@@ -46,13 +49,14 @@ struct CalendarView: View {
         }
     }
 
-    /// The strip, the chosen day, and the field. A short notch packs the strip into one line a day
-    /// and lists the tasks under the events; they step aside while an event is edited, and so does
-    /// the field, which gives the editor room in the smallest notch.
+    /// The strip, the chosen day, and the field. Where there's room the tasks card stays beside the
+    /// day, whichever day, empty or not; a short notch packs the strip into one line a day and lists
+    /// the tasks under the events. They step aside while an event is edited, and so does the field,
+    /// which gives the editor room in the smallest notch.
     private func tab(now: Date, size: CGSize) -> some View {
         let compact = size.height < 150
         let tasks = calendar.dueTasks
-        let beside = !compact && size.width >= 400 && !tasks.isEmpty && editing == nil
+        let beside = !compact && size.width >= 400 && calendar.readsTasks && editing == nil
         return VStack(alignment: .leading, spacing: compact ? 4 : 8) {
             strip(now: now, compact: compact)
             ZStack(alignment: .topLeading) {
@@ -333,34 +337,43 @@ struct CalendarView: View {
 
     // MARK: Tasks
 
-    /// The day's tasks beside its events, on a card of their own.
+    /// The day's tasks and the overdue ones beside its events, on a card of their own that stays on
+    /// every day, saying so when there are none.
     private func tasksPane(_ tasks: [TaskItem], now: Date) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             tasksTitle(tasks.count)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(tasks) { task in taskRow(task, now: now) }
+            if tasks.isEmpty {
+                Text("Nothing due")
+                    .themeFont(.body, size: 11)
+                    .foregroundStyle(.themeTertiary)
+                    .frame(height: 20)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(tasks) { task in taskRow(task, now: now) }
+                    }
+                    .padding(.bottom, 4)
                 }
-                .padding(.bottom, 4)
+                .fadingEdges(length: 4)
             }
-            .fadingEdges(length: 4)
         }
         .padding(.horizontal, 10)
         .padding(.top, 4)
-        .frame(maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .themePlatter(0.06, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func tasksTitle(_ count: Int) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text("Tasks").themeFont(.display, size: 13, weight: .semibold)
-            Text("\(count) left").themeFont(.body, size: 11).foregroundStyle(.themeSecondary)
+            if count > 0 { Text("\(count) left").themeFont(.body, size: 11).foregroundStyle(.themeSecondary) }
         }
         .frame(height: 22)
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isHeader)
     }
 
+    /// A task: its box completes it, and the rest of the row opens it, in Tasks or else Reminders.
     private func taskRow(_ task: TaskItem, now: Date) -> some View {
         HStack(spacing: 7) {
             Button {
@@ -372,23 +385,48 @@ struct CalendarView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Complete \(task.title)")
-            Text(task.title).themeFont(.body, size: 12).lineLimit(1)
-            Spacer(minLength: 0)
-            if let due = dueText(task, now: now) {
-                Text(due)
-                    .themeFont(.body, size: 10.5)
-                    .monospacedDigit()
-                    .foregroundStyle(task.isOverdue(now: now) ? Color.red : theme.color(.secondary))
+            Button {
+                calendar.open(task)
+            } label: {
+                HStack(spacing: 7) {
+                    Text(task.title).themeFont(.body, size: 12).lineLimit(1)
+                    Spacer(minLength: 0)
+                    if let due = dueText(task, now: now) {
+                        Text(due)
+                            .themeFont(.body, size: 10.5)
+                            .monospacedDigit()
+                            .foregroundStyle(task.isOverdue(now: now) ? Color.red : theme.color(.secondary))
+                            .layoutPriority(1)  // when outranks the title, which truncates first
+                    }
+                }
+                .frame(maxHeight: .infinity)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Open this task")
+            .accessibilityLabel("Open \(task.title)")
+        }
+        .padding(.horizontal, 4)
+        .frame(height: 22)
+        .background {
+            Color.clear.themePlatter(
+                hoveredTask == task.id ? 0.07 : 0, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        }
+        .padding(.horizontal, -4)  // the light reaches past the row; the row lines up with the title
+        .onHover { inside in
+            if inside {
+                hoveredTask = task.id
+            } else if hoveredTask == task.id {
+                hoveredTask = nil
             }
         }
-        .frame(height: 22)
         .transition(.opacity)
     }
 
-    /// A task's time on its day; for one overdue from an earlier day, that day.
+    /// A task's time on its day; for one due on another day (an overdue one), that day.
     private func dueText(_ task: TaskItem, now: Date) -> String? {
         guard let due = task.due else { return nil }
-        if Calendar.current.startOfDay(for: due) < calendar.day {
+        if Calendar.current.startOfDay(for: due) != calendar.day {
             return DueLabel.text(for: due, hasTime: false, now: now)
         }
         return task.hasTime ? clock(due) : nil

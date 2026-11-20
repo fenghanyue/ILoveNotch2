@@ -57,4 +57,15 @@ struct TasksColumnsTests {
         tasks.move(columns[0].tasks[1], to: .today, before: columns[0].tasks[0], now: now)
         #expect(tasks.columns(now: now)[0].tasks.map(\.id) == ["rent", "late"], "your own order wins")
     }
+
+    /// Calendar asks the board to show a task; the board takes the request once, as it comes on
+    /// screen, and opens that card.
+    @Test func aRevealedTaskIsTakenOnce() {
+        let tasks = TasksFeature(eventStore: EventStore(), defaults: UserDefaults(suiteName: "TC-\(UUID())")!)
+        #expect(tasks.takeRevealing() == nil)
+        tasks.reveal("rent")
+        #expect(tasks.revealing == "rent")
+        #expect(tasks.takeRevealing() == "rent")
+        #expect(tasks.revealing == nil && tasks.takeRevealing() == nil, "taken once")
+    }
 }

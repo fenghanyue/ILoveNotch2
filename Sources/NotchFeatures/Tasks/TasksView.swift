@@ -8,13 +8,19 @@ import SwiftUI
 /// title, due time, and list; the one due now grows in place with Done and Snooze. Drag a card to
 /// another column or day (Upcoming keeps its time, Today moves it to today, Done finishes it, and out
 /// of Done it opens again), or within its run to set your own order. A click on the box finishes a
-/// task, a double-click renames it, and + adds to that column in plain words, where a typed date
-/// wins. Keys: the arrows choose a card, ⌘← and ⌘→ move it a column, Space ticks it, Return renames
-/// it, and ⌘L shows your lists as the columns. Due times change once a minute at most.
+/// task, a click on the card opens it in place to show all of it (another click, or another card,
+/// folds it), a double-click renames it, and + adds to that column in plain words, where a typed
+/// date wins. Keys: the arrows choose a card and open it, ⌘← and ⌘→ move it a column, Space ticks
+/// it, Return renames it, and ⌘L shows your lists as the columns. Due times change once a minute
+/// at most.
 struct TasksView: View {
     let tasks: TasksFeature
     /// The card the keys act on.
     @State private var chosen: TaskItem.ID?
+    /// The one card open in full, which its column scrolls to.
+    @State private var expanded: TaskItem.ID?
+    /// The last click on a card, so a second one on it soon after renames it.
+    @State private var lastClick: (id: TaskItem.ID, at: Date)?
     @State private var renaming: TaskItem.ID?
     /// The column whose + field is open.
     @State private var adding: TaskColumn.Kind?
@@ -65,7 +71,7 @@ struct TasksView: View {
             }
             .onKeyPress(.escape) {
                 guard chosen != nil, renaming == nil, adding == nil else { return .ignored }
-                chosen = nil
+                choose(nil)
                 return .handled
             }
             .onKeyPress(keys: ["l"]) { press in
@@ -82,7 +88,18 @@ struct TasksView: View {
             }
             .overlay(alignment: .bottom) { noticeView }
             .animation(.easeInOut(duration: 0.2), value: tasks.notice)
+            // A task another tab asked to show, as the board comes on screen or while it's there.
+            .onAppear(perform: takeReveal)
+            .onChange(of: tasks.revealing) { takeReveal() }
         }
+    }
+
+    /// Chooses and opens the task another tab asked to show; its column scrolls to it once it has
+    /// it, which may be after the board has loaded.
+    private func takeReveal() {
+        guard let id = tasks.takeRevealing() else { return }
+        chosen = id
+        expanded = id
     }
 
     // MARK: Board
@@ -93,6 +110,7 @@ struct TasksView: View {
         let open = columns.filter { $0.kind != .done }
         let done = columns.first { $0.kind == .done } ?? TaskColumn(kind: .done, title: "Done", runs: [])
         let due = tasks.dueNow(now: now)
+        let openedColumn = open.first { $0.tasks.contains { $0.id == expanded } }?.kind
         return GeometryReader { proxy in
             let gap: CGFloat = 8
             let doneWidth = ((proxy.size.width - gap * 2) * 0.27).rounded()
@@ -105,13 +123,21 @@ struct TasksView: View {
                     ForEach(Array(open.enumerated()), id: \.element.id) { index, column in
                         columnView(column, first: index == 0, width: width, now: now, due: due)
                             .frame(width: width)
+                            .id(column.kind)
                     }
                 }
                 if width > fitted {
-                    ScrollView(.horizontal) { row }
-                        .scrollIndicators(.never)
-                        .fadingEdges(.horizontal, length: 8)
-                        .frame(width: lane)
+                    ScrollViewReader { reader in
+                        ScrollView(.horizontal) { row }
+                            .scrollIndicators(.never)
+                            .fadingEdges(.horizontal, length: 8)
+                            .frame(width: lane)
+                            // The open card's column comes into view, as its column scrolls to it.
+                            .onChange(of: openedColumn) { _, kind in
+                                guard let kind else { return }
+                                withAnimation(moving) { reader.scrollTo(kind) }
+                            }
+                    }
                 } else {
                     row
                 }
@@ -127,28 +153,36 @@ struct TasksView: View {
     {
         let lit = over == .column(column.kind)
         let inset = look.columnInset
+        let opened = column.tasks.contains { $0.id == expanded } ? expanded : nil
         return VStack(alignment: .leading, spacing: 6) {
             columnHead(column)
-            ScrollView(.vertical) {
-                VStack(alignment: .leading, spacing: 6) {
-                    if adding == column.kind { addField(column, now: now) }
-                    ForEach(shownRuns(column, now: now)) { run in
-                        if column.kind == .upcoming { runHead(run, now: now) }
-                        ForEach(run.tasks) { task in
-                            card(task, in: run, width: width - inset.leading - inset.trailing, now: now, due: due)
+            ScrollViewReader { reader in
+                ScrollView(.vertical) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if adding == column.kind { addField(column, now: now) }
+                        ForEach(shownRuns(column, now: now)) { run in
+                            if column.kind == .upcoming { runHead(run, now: now) }
+                            ForEach(run.tasks) { task in
+                                card(task, in: run, width: width - inset.leading - inset.trailing, now: now, due: due)
+                            }
+                            if over == .run(run.spot), !reduceMotion {
+                                slot(lit: true).frame(height: 30).transition(.opacity)
+                            }
                         }
-                        if over == .run(run.spot), !reduceMotion {
-                            slot(lit: true).frame(height: 30).transition(.opacity)
-                        }
+                        if column.tasks.isEmpty, adding != column.kind, dragging == nil { emptyNote(column) }
+                        if lit, !reduceMotion { slot(lit: true).frame(height: 30).transition(.opacity) }
                     }
-                    if column.tasks.isEmpty, adding != column.kind, dragging == nil { emptyNote(column) }
-                    if lit, !reduceMotion { slot(lit: true).frame(height: 30).transition(.opacity) }
+                    .padding(.vertical, 4)  // clear of the fade at rest
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.vertical, 4)  // clear of the fade at rest
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .scrollIndicators(.never)
+                .fadingEdges(length: 4)
+                // The card that opens scrolls in whole, the least way; a revealed one, once it loads.
+                .onChange(of: opened) { _, id in
+                    guard let id else { return }
+                    withAnimation(moving) { reader.scrollTo(id) }
+                }
             }
-            .scrollIndicators(.never)
-            .fadingEdges(length: 4)
         }
         .padding(inset)
         .frame(maxHeight: .infinity, alignment: .top)
@@ -264,7 +298,8 @@ struct TasksView: View {
     }
 
     /// A card in its run, a slot opening above it (below, dragged down its own run) while a card is
-    /// over it. It drags, takes drops, and is chosen by a click and renamed by a double-click.
+    /// over it. It drags, takes drops, and is chosen and opened by a click and renamed by a
+    /// double-click.
     private func card(_ task: TaskItem, in run: TaskRun, width: CGFloat, now: Date, due: TaskItem.ID?) -> some View {
         let landing = over == .card(task.id) && dragging != nil && dragging?.id != task.id
         let below = landing && fromAbove(task, in: run)
@@ -273,7 +308,8 @@ struct TasksView: View {
             if landing, !below, !reduceMotion { slot(lit: true).frame(height: 30).transition(.opacity) }
             TaskCard(
                 tasks: tasks, task: task, now: now, spot: run.spot, chosen: chosen == task.id, dueNow: due == task.id,
-                ticked: ticking.contains(task.id), showsList: showsList, renaming: $renaming, tick: { tick(task) }
+                expanded: expanded == task.id, ticked: ticking.contains(task.id), showsList: showsList,
+                renaming: $renaming, tick: { tick(task) }
             )
             .overlay(alignment: below ? .bottom : .top) {
                 // Reduce Motion: nothing slides; a line fades in where the card would land.
@@ -285,8 +321,9 @@ struct TasksView: View {
         }
         .opacity(dragging?.id == task.id ? 0.35 : 1)
         .contentShape(Rectangle())
-        .gesture(TapGesture(count: 2).onEnded { renaming = task.id }, including: editing ? .subviews : .all)
-        .simultaneousGesture(TapGesture().onEnded { chosen = task.id }, including: editing ? .subviews : .all)
+        // One tap, telling a double-click by its timing: it gives way to the box and buttons inside,
+        // which a tap alongside them would fire with, and a double-tap beside it would hold it back.
+        .gesture(TapGesture().onEnded { click(task) }, including: editing ? .subviews : .all)
         .onDrag {
             dragging = task
             return NSItemProvider(object: task.title as NSString)
@@ -298,7 +335,9 @@ struct TasksView: View {
         } isTargeted: {
             mark(.card(task.id), $0)
         }
+        .id(task.id)  // what its column scrolls to
         .transition(.opacity)
+        .accessibilityAction(named: expanded == task.id ? "Hide Details" : "Show Details") { toggle(task.id) }
         .accessibilityAction(named: "Move Up") { step(task, by: -1, in: run) }
         .accessibilityAction(named: "Move Down") { step(task, by: 1, in: run) }
         .accessibilityAction(named: "Move to Today") { land(task, in: .today) }
@@ -407,7 +446,8 @@ struct TasksView: View {
         ForEach(done) { task in doneRow(task) }
     }
 
-    /// A finished task, struck through, with when it was done. Its box, Space, or a drag out opens it.
+    /// A finished task, struck through, with when it was done; chosen, its whole title. Its box,
+    /// Space, or a drag out opens it again.
     private func doneRow(_ task: TaskItem) -> some View {
         let lit = chosen == task.id
         let inverted = lit && theme.selectsOnAccent
@@ -427,7 +467,8 @@ struct TasksView: View {
             .padding(.top, 1)
             .accessibilityLabel("Reopen \(task.title)")
             VStack(alignment: .leading, spacing: 1) {
-                Text(task.title).strikethrough().themeFont(look.titleRole, size: 12).lineLimit(1)
+                Text(task.title).strikethrough().themeFont(look.titleRole, size: 12)
+                    .lineLimit(expanded == task.id ? nil : 1)
                 if let at = task.completed, at != .distantPast {
                     Text(taskClock(at, twentyFour: look == .console)).themeFont(look.detailRole, size: 10.5)
                 }
@@ -443,7 +484,7 @@ struct TasksView: View {
         .padding(.horizontal, -4)  // the mark reaches past the row; the row lines up with the cards
         .opacity(dragging?.id == task.id ? 0.35 : 1)
         .contentShape(Rectangle())
-        .simultaneousGesture(TapGesture().onEnded { chosen = task.id })
+        .gesture(TapGesture().onEnded { toggle(task.id) })
         .onDrag {
             dragging = task
             return NSItemProvider(object: task.title as NSString)
@@ -618,7 +659,8 @@ struct TasksView: View {
         land(task, in: run.spot, before: run.tasks[index + offset])
     }
 
-    /// The arrows choose a card along its column and across to the next; with ⌘, ← and → move it.
+    /// The arrows choose a card along its column and across to the next, and open it; with ⌘, ← and
+    /// → move it.
     private func step(_ key: KeyEquivalent, command: Bool) -> KeyPress.Result {
         guard renaming == nil, adding == nil else { return .ignored }
         let columns = tasks.columns()
@@ -626,13 +668,13 @@ struct TasksView: View {
         guard let id = chosen, let x = lanes.firstIndex(where: { $0.contains { $0.id == id } }),
             let y = lanes[x].firstIndex(where: { $0.id == id })
         else {
-            chosen = lanes.first { !$0.isEmpty }?.first?.id
+            choose(lanes.first { !$0.isEmpty }?.first?.id)
             return chosen == nil ? .ignored : .handled
         }
         let across = key == .leftArrow ? -1 : key == .rightArrow ? 1 : 0
         if across == 0 {
             let lane = lanes[x]
-            chosen = lane[min(max(y + (key == .upArrow ? -1 : 1), 0), lane.count - 1)].id
+            choose(lane[min(max(y + (key == .upArrow ? -1 : 1), 0), lane.count - 1)].id)
         } else if command {
             guard columns.indices.contains(x + across) else { return .handled }
             land(lanes[x][y], in: spot(for: columns[x + across].kind, lanes[x][y]))
@@ -640,9 +682,34 @@ struct TasksView: View {
             var to = x + across
             while lanes.indices.contains(to), lanes[to].isEmpty { to += across }
             guard lanes.indices.contains(to) else { return .handled }
-            chosen = lanes[to][min(y, lanes[to].count - 1)].id
+            choose(lanes[to][min(y, lanes[to].count - 1)].id)
         }
         return .handled
+    }
+
+    /// Chooses a card and opens it, folding the one open before; nil chooses none.
+    private func choose(_ id: TaskItem.ID?) {
+        chosen = id
+        withAnimation(moving) { expanded = id }
+    }
+
+    /// Chooses a card and opens it, or folds it when it's the open one.
+    private func toggle(_ id: TaskItem.ID) {
+        chosen = id
+        withAnimation(moving) { expanded = expanded == id ? nil : id }
+    }
+
+    /// A click on a card opens or folds it; a second one on it within the double-click time renames
+    /// it, leaving it as the first click did.
+    private func click(_ task: TaskItem) {
+        let now = Date.now
+        if let last = lastClick, last.id == task.id, now.timeIntervalSince(last.at) < NSEvent.doubleClickInterval {
+            lastClick = nil
+            renaming = task.id
+        } else {
+            lastClick = (task.id, now)
+            toggle(task.id)
+        }
     }
 
     /// Space: ticks the chosen card, or opens a done one again.
@@ -783,7 +850,8 @@ extension Theme {
 }
 
 /// One open task: its box, its title with any priority, and its due time and list. The task due now
-/// grows Done and Snooze. Hovering shows its menu; renaming swaps the title for a field.
+/// grows Done and Snooze. Opened, it shows all of it: the whole title, its notes, when it's due in
+/// full, its list, and its actions. Hovering shows its menu; renaming swaps the title for a field.
 private struct TaskCard: View {
     let tasks: TasksFeature
     let task: TaskItem
@@ -792,6 +860,7 @@ private struct TaskCard: View {
     let spot: TaskSpot
     var chosen = false
     var dueNow = false
+    var expanded = false
     var ticked = false
     var showsList = false
     @Binding var renaming: TaskItem.ID?
@@ -833,12 +902,13 @@ private struct TaskCard: View {
                 .accessibilityLabel("Complete \(task.title)")
                 VStack(alignment: .leading, spacing: 3) {
                     if editing { field } else { titleLine }
-                    details
+                    if expanded { fullDetails } else { details }
                 }
                 Spacer(minLength: 0)
             }
             // The card's full width, so they fit the narrowest column.
             if dueNow, !editing { nowButtons }
+            if expanded, !editing { actions }
         }
         .padding(.leading, 8)
         .padding(.trailing, 9)
@@ -850,7 +920,8 @@ private struct TaskCard: View {
             }
         }
         .overlay(alignment: .topTrailing) {
-            if hovering, !editing { more }
+            // Opened, the menu is in its actions, clear of the title's lines.
+            if hovering, !editing, !expanded { more }
         }
         .contentShape(shape)
         .onHover { hovering = $0 }
@@ -859,21 +930,20 @@ private struct TaskCard: View {
         .accessibilityAction(named: "Block Time in Calendar") { tasks.blockTime(for: task) }
     }
 
+    /// The title on one line; opened, on as many as it takes. Any priority marks lead its first
+    /// line, so the others run the card's width.
     private var titleLine: some View {
-        HStack(spacing: 4) {
-            if task.priority != .none {
-                Text(task.priority.marks).fontWeight(.heavy).foregroundStyle(priorityInk)
+        let marks = Text(task.priority.marks).fontWeight(.heavy).foregroundStyle(priorityInk)
+        return (task.priority == .none ? Text(task.title) : Text("\(marks) \(task.title)"))
+            .lineLimit(expanded ? nil : 1)
+            .fixedSize(horizontal: false, vertical: expanded)
+            .background {
+                // An underline or dot selection marks the title, as on a printed page.
+                if lit, !filled, !dueNow { SelectionMark().padding(.horizontal, -4).offset(y: 2) }
             }
-            Text(task.title)
-                .lineLimit(1)
-                .background {
-                    // An underline or dot selection marks the title, as on a printed page.
-                    if lit, !filled, !dueNow { SelectionMark().padding(.horizontal, -4).offset(y: 2) }
-                }
-        }
-        .themeFont(look.titleRole, size: look.titleSize)
-        .themeSelectionInk(inverted, unlit: 1)
-        .opacity(ticked ? 0.5 : 1)
+            .themeFont(look.titleRole, size: look.titleSize)
+            .themeSelectionInk(inverted, unlit: 1)
+            .opacity(ticked ? 0.5 : 1)
     }
 
     /// The due time (or day), whether it repeats, and the list, when there are any.
@@ -927,6 +997,72 @@ private struct TaskCard: View {
         if ownDay, !task.hasTime { return nil }
         let text = ownDay ? time : taskDayName(due, now: now) + (task.hasTime ? " \(time)" : "")
         return console ? text.lowercased() : text
+    }
+
+    /// The open card's details, wrapped rather than cut: its notes, when it's due in full and
+    /// whether it repeats, and its list.
+    private var fullDetails: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            if let notes = task.notes { Text(notes) }
+            if let due = task.due {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(fullDue(due)).fontWeight(dueNow ? .bold : nil).foregroundStyle(dueInk)
+                    if task.repeats { ThemeSymbol("repeat") }
+                }
+            }
+            if let list = task.listTitle { listTag(list) }
+        }
+        .themeFont(look.detailRole, size: 11)
+        .foregroundStyle(inverted ? ThemeStyle.themeOnAccent : .themeSecondary)
+        .fixedSize(horizontal: false, vertical: true)
+        .transition(.opacity)
+    }
+
+    /// "Wed, Nov 18, 3:30 PM", with the year when it isn't this one's; a console's is 24-hour and
+    /// lowercase.
+    private func fullDue(_ due: Date) -> String {
+        var format = Date.FormatStyle.dateTime.weekday(.abbreviated).month(.abbreviated).day()
+        if !Calendar.current.isDate(due, equalTo: now, toGranularity: .year) { format = format.year() }
+        guard look == .console else { return due.formatted(task.hasTime ? format.hour().minute() : format) }
+        return (due.formatted(format) + (task.hasTime ? " \(taskClock(due, twentyFour: true))" : "")).lowercased()
+    }
+
+    /// The open card's actions, under its title: rename, block time in Calendar, and the rest of its
+    /// menu.
+    private var actions: some View {
+        HStack(spacing: 10) {
+            Button {
+                renaming = task.id
+            } label: {
+                ThemeSymbol("pencil").frame(width: 18, height: 18)
+            }
+            .help("Rename")
+            .accessibilityLabel("Rename")
+            Button {
+                tasks.blockTime(for: task)
+            } label: {
+                ThemeSymbol("calendar.badge.plus").frame(width: 18, height: 18)
+            }
+            .help("Block \(tasks.blockMinutes) min in Calendar")
+            .accessibilityLabel("Block \(tasks.blockMinutes) minutes in Calendar")
+            Menu {
+                menuItems
+            } label: {
+                ThemeSymbol("ellipsis.circle").frame(width: 18, height: 18)
+            }
+            // A button menu draws its label as the buttons beside it do, in the theme's icon and ink,
+            // where a borderless one hands it to AppKit at the icon's own size.
+            .menuStyle(.button)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("More")
+            .accessibilityLabel("More")
+        }
+        .buttonStyle(PressableButtonStyle())
+        .themeFont(.body, size: 12)
+        .foregroundStyle(inverted ? ThemeStyle.themeOnAccent : .themeSecondary)
+        .padding(.leading, 18)  // under the title, past the box
+        .transition(.opacity)
     }
 
     private var dueInk: Color {

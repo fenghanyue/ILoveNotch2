@@ -69,11 +69,11 @@ public struct DayEvent: Identifiable, Hashable, Sendable {
 
 /// The week of the chosen day from the user's calendars, with that day's events and its tasks, and
 /// a field to add an event. It asks for access only when the user taps the button, and reads the
-/// week (one bounded week-long query, plus one for due reminders when Reminders access is already
-/// allowed) only while the tab is on screen, again when another week is chosen, refreshing on
-/// EventKit's change notification rather than polling. With access, it also counts down to the next
-/// meeting with a video link while the tab is off screen: one bounded query for it and one
-/// deadline, looked at again when the calendars change.
+/// week (one bounded week-long query, plus one for the reminders due by its end when Reminders
+/// access is already allowed) only while the tab is on screen, again when another week is chosen,
+/// refreshing on EventKit's change notification rather than polling. With access, it also counts
+/// down to the next meeting with a video link while the tab is off screen: one bounded query for it
+/// and one deadline, looked at again when the calendars change.
 @MainActor
 @Observable
 public final class CalendarFeature: NotchFeature {
@@ -90,14 +90,17 @@ public final class CalendarFeature: NotchFeature {
     public private(set) var day = Calendar.current.startOfDay(for: .now)
     /// The chosen week's events by day, while the tab is on screen.
     private var weekEvents: [Date: [DayEvent]] = [:]
-    /// Open reminders due by the end of the chosen week (overdue ones too, in this week), when
+    /// Open reminders due in the chosen week, and the overdue ones whichever week it is, when
     /// Reminders access is allowed.
     private var weekTasks: [TaskItem] = []
+    /// Whether the week's tasks are read: the setting is on and Reminders access was given. The
+    /// tasks card shows whenever they are, empty or not.
+    public private(set) var readsTasks = false
     /// The seven days of the chosen week, from the calendar's first weekday.
     public var weekDays: [Date] { Self.week(of: day) }
     /// The chosen day's events, all-day ones first.
     public var events: [DayEvent] { events(on: day) }
-    /// The chosen day's tasks: due that day, and on today the overdue ones too.
+    /// The chosen day's tasks: due that day, and every overdue one, whichever day it is.
     public var dueTasks: [TaskItem] {
         Self.tasks(weekTasks, on: day, today: Calendar.current.startOfDay(for: .now))
     }
@@ -128,6 +131,9 @@ public final class CalendarFeature: NotchFeature {
     @ObservationIgnored public var onActivity: ((Activity) -> Void)?
     /// The countdown to the next meeting, or nil when there's none to show.
     @ObservationIgnored public var onOngoing: ((Activity?) -> Void)?
+    /// Shows a task clicked beside the day's events where it lives, by its ID. Without it, a click
+    /// opens Reminders.
+    @ObservationIgnored public var onOpenTask: ((TaskItem.ID) -> Void)?
 
     // ponytail: overdue reminders can pile up, so the agenda shows a bounded number.
     nonisolated static let dueTaskLimit = 20
@@ -277,12 +283,19 @@ public final class CalendarFeature: NotchFeature {
         }
     }
 
+    /// Shows a task where it lives: on the Tasks tab, or in Reminders.
+    public func open(_ task: TaskItem) {
+        guard let onOpenTask else { return openRemindersApp() }
+        onOpenTask(task.id)
+    }
+
     /// Shows the given events and tasks in the chosen week as if access were granted. For tests and
     /// snapshots only.
     func show(events: [DayEvent], dueTasks: [TaskItem] = []) {
         access = .granted
         weekEvents = Self.group(events, into: weekDays)
         weekTasks = dueTasks
+        readsTasks = showsTasks
     }
 
     private func show(notice text: String) {
@@ -294,9 +307,14 @@ public final class CalendarFeature: NotchFeature {
         }
     }
 
-    public func openCalendarApp() {
+    public func openCalendarApp() { Self.openApp("com.apple.iCal") }
+
+    /// Opens Reminders. It can't be opened at one reminder: there's no public way to link to one.
+    public func openRemindersApp() { Self.openApp("com.apple.reminders") }
+
+    private static func openApp(_ bundleID: String) {
         let workspace = NSWorkspace.shared
-        guard let app = workspace.urlForApplication(withBundleIdentifier: "com.apple.iCal") else { return }
+        guard let app = workspace.urlForApplication(withBundleIdentifier: bundleID) else { return }
         workspace.openApplication(at: app, configuration: NSWorkspace.OpenConfiguration())
     }
 
@@ -355,20 +373,21 @@ public final class CalendarFeature: NotchFeature {
         let events = store.events(matching: predicate).map(DayEvent.init).filter { showsAllDay || !$0.isAllDay }
         weekEvents = Self.group(events, into: days)
         // Tasks come along only when Reminders access was already given in the Tasks tab.
-        guard showsTasks, EventAccess(.reminder) == .granted else {
+        readsTasks = showsTasks && EventAccess(.reminder) == .granted
+        guard readsTasks else {
             weekTasks = []
             return
         }
-        // Overdue reminders only matter in the week they show in: today's.
-        let from = days.contains(calendar.startOfDay(for: .now)) ? nil : start
-        let due = store.predicateForIncompleteReminders(withDueDateStarting: from, ending: end, calendars: nil)
+        // Every day of every week shows the overdue ones, so one query reads all that's due by the
+        // week's end, overdue or not, and keeps what the week shows.
+        let today = calendar.startOfDay(for: .now)
+        let due = store.predicateForIncompleteReminders(withDueDateStarting: nil, ending: end, calendars: nil)
         // @Sendable: EventKit calls back on its own queue (see TasksFeature.reload).
         store.fetchReminders(matching: due) { @Sendable [weak self] reminders in
-            let items = (reminders ?? []).map(TaskItem.init).sorted(by: TaskItem.order)
-            let bounded = Array(items.prefix(Self.dueTaskLimit))
+            let items = Self.weekTasks((reminders ?? []).map(TaskItem.init), from: start, today: today)
             Task { @MainActor in
                 guard let self, self.phase == .foreground, self.weekDays.first == start else { return }
-                self.weekTasks = bounded
+                self.weekTasks = items
             }
         }
     }
@@ -394,12 +413,24 @@ public final class CalendarFeature: NotchFeature {
         return grouped
     }
 
-    /// The tasks due on `day`, and on `today` the overdue ones too.
+    /// The tasks due on `day`, and the overdue ones (due before `today`) whichever day it is.
     static func tasks(_ tasks: [TaskItem], on day: Date, today: Date, calendar: Calendar = .current) -> [TaskItem] {
         tasks.filter { task in
             guard let due = task.due.map(calendar.startOfDay) else { return false }
-            return due == day || day == today && due < today
+            return due == day || due < today
         }
+    }
+
+    /// What the week from `start` keeps of the open tasks due by its end, soonest due first: every
+    /// one due in it, and the overdue ones (due before `today`) from before it, the latest
+    /// `dueTaskLimit` of those. What's due between today and the week shows on none of its days.
+    nonisolated static func weekTasks(
+        _ tasks: [TaskItem], from start: Date, today: Date, calendar: Calendar = .current
+    ) -> [TaskItem] {
+        let dated = tasks.filter { $0.due != nil }.sorted(by: TaskItem.order)
+        let day = { (task: TaskItem) in calendar.startOfDay(for: task.due ?? start) }
+        let overdue = dated.filter { day($0) < start && day($0) < today }
+        return Array(overdue.suffix(dueTaskLimit)) + dated.filter { day($0) >= start }
     }
 
     /// A time of day or a length in an event's text ("1pm", "at 9:30", "noon", "for 1h"): what's left
