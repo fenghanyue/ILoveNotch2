@@ -29,7 +29,12 @@
       "family": "system"
     }
   },
+  "controls": {
+    "style": "fill",
+    "selection": "accent"
+  },
   "icons": {
+    "everywhere": true,
     "set": "sf-symbols",
     "rendering": "monochrome"
   },
