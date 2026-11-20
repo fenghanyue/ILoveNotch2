@@ -46,6 +46,9 @@ public struct SoundDevice: Identifiable, Hashable, Sendable {
     public let name: String
     /// Its kind as an SF Symbol: AirPods, headphones, a display, speakers, a microphone.
     public let symbol: String
+    /// How it connects, under its name: "Built-in", "Bluetooth", "AirPlay"; nil when Core Audio
+    /// doesn't say.
+    public var connection: String?
 }
 
 /// The Mac's output or input device, for its fader.
@@ -547,12 +550,14 @@ public final class Mixer {
                 device.read(kAudioDevicePropertyIsHidden, default: UInt32(0)) == 0
             else { continue }
             let name = device.readString(kAudioObjectPropertyName) ?? uid
+            let transport = device.read(kAudioDevicePropertyTransportType, default: UInt32(0))
+            let connection = Self.connection(transport: transport)
             for direction in [SoundDirection.output, .input]
             where device.read(kAudioDevicePropertyDeviceCanBeDefaultDevice, scope: direction.scope, default: UInt32(0))
                 != 0
             {
                 let symbol = Self.symbol(of: device, named: name, direction) ?? direction.fallbackSymbol
-                let entry = SoundDevice(id: device, name: name, symbol: symbol)
+                let entry = SoundDevice(id: device, name: name, symbol: symbol, connection: connection)
                 if direction == .output { outputs.append(entry) } else { inputs.append(entry) }
             }
         }
@@ -614,6 +619,25 @@ public final class Mixer {
         case kAudioDeviceTransportTypeHDMI, kAudioDeviceTransportTypeDisplayPort: return "tv"
         case kAudioDeviceTransportTypeBuiltIn where dataSource == 0x6864_706E: return "headphones"  // 'hdpn'
         default: return nil
+        }
+    }
+
+    /// How a device connects, in a word, from its transport. AirPods' battery isn't here: macOS
+    /// doesn't publish it through a public API.
+    nonisolated static func connection(transport: UInt32) -> String? {
+        switch transport {
+        case kAudioDeviceTransportTypeBuiltIn: "Built-in"
+        case kAudioDeviceTransportTypeBluetooth, kAudioDeviceTransportTypeBluetoothLE: "Bluetooth"
+        case kAudioDeviceTransportTypeAirPlay: "AirPlay"
+        case kAudioDeviceTransportTypeUSB: "USB"
+        case kAudioDeviceTransportTypeHDMI: "HDMI"
+        case kAudioDeviceTransportTypeDisplayPort: "DisplayPort"
+        case kAudioDeviceTransportTypeThunderbolt: "Thunderbolt"
+        case kAudioDeviceTransportTypeContinuityCaptureWired, kAudioDeviceTransportTypeContinuityCaptureWireless:
+            "Continuity"
+        case kAudioDeviceTransportTypeVirtual: "Virtual"
+        case kAudioDeviceTransportTypeAggregate, kAudioDeviceTransportTypeAutoAggregate: "Aggregate"
+        default: nil
         }
     }
 
