@@ -61,7 +61,19 @@ struct FeatureSnapshotTests {
             pasteboard.setString(text, forType: .string)
             clipboard.check()
         }
+        // A wide image, to fit to a card's width, and a color, to show as its swatch.
+        let picture = NSImage(size: NSSize(width: 480, height: 270), flipped: false) { rect in
+            NSGradient(colors: [.systemIndigo, .systemOrange])?.draw(in: rect, angle: 30)
+            return true
+        }
+        pasteboard.clearContents()
+        pasteboard.writeObjects([picture])
+        clipboard.check()
+        pasteboard.clearContents()
+        pasteboard.setString("#FF8A4C", forType: .string)
+        clipboard.check()
         clipboard.toggleFavorite(try #require(clipboard.items.last))
+        clipboard.setColor(ClipColor.sand.rawValue, for: try #require(clipboard.items.last))
         try render(clipboard.view, name: "clipboard")
     }
 

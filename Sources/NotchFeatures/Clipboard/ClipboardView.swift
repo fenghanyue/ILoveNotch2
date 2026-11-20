@@ -3,9 +3,10 @@ import AppKit
 import NotchTheme
 import SwiftUI
 
-/// The clipboard tab: search, then click an item (or press Return for the first match) to put it
-/// back on the clipboard. Favorites come first and stay. Select mode ticks items to delete together,
-/// and Clear deletes all but favorites.
+/// The clipboard tab: search, then click a card (or press Return for the first match) to put it
+/// back on the clipboard. What you copied runs across the tab as cards of one size, each filled by
+/// what it holds and colored if you gave it a color. Favorites come first and stay. Select mode ticks
+/// cards to delete together, and Clear deletes all but favorites.
 struct ClipboardView: View {
     let clipboard: ClipboardFeature
     @Environment(\.theme) private var theme
@@ -66,13 +67,15 @@ struct ClipboardView: View {
                     symbol: "doc.on.clipboard", title: clipboard.items.isEmpty ? "Nothing copied yet" : "No matches",
                     message: clipboard.items.isEmpty ? "Copy something and it shows up here." : "Try other words.")
             } else {
-                ScrollView {
-                    LazyVStack(spacing: 2) {
-                        ForEach(found) { row($0) }
+                ScrollView(.horizontal) {
+                    LazyHStack(spacing: 10) {
+                        ForEach(found) { card($0) }
                     }
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 2)
+                    .padding(.horizontal, 2)
                 }
-                .fadingEdges()
+                .scrollIndicators(.never)
+                .fadingEdges(.horizontal, length: 12)
             }
             if !clipboard.items.isEmpty { footer(found) }
         }
@@ -163,8 +166,16 @@ struct ClipboardView: View {
         searching = true
     }
 
-    private func row(_ item: ClipItem) -> some View {
+    static let cardWidth: CGFloat = 150
+
+    /// One thing copied as a card: its kind and favorite star at the top, then what it holds filling
+    /// the card (an image at the card's width with the text that fits under it, text wrapping to the
+    /// card's foot), and where it came from. Cards are all one size; a color given to a card fills it.
+    private func card(_ item: ClipItem) -> some View {
         let ticked = selected.contains(item.id)
+        let shape = RoundedRectangle(
+            cornerRadius: theme.controls?.radius.map { CGFloat($0) } ?? 12, style: .continuous)
+        let tint = item.color.flatMap(ClipColor.init(rawValue:))?.color(dark: theme.appearance == .dark)
         return Button {
             if !selecting {
                 clipboard.pick(item)
@@ -174,47 +185,78 @@ struct ClipboardView: View {
                 selected.insert(item.id)
             }
         } label: {
-            HStack(spacing: 8) {
-                if selecting {
-                    ThemeSymbol(ticked ? "checkmark.circle.fill" : "circle")
-                        .themeFont(.body, size: 14)
-                        .foregroundStyle(ticked ? theme.color(.accent) : theme.color(.ink).opacity(0.4))
-                }
-                preview(item)
-                    .frame(width: 26, height: 26)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(title(item)).themeFont(.body, .callout).lineLimit(1).truncationMode(.middle)
-                    Text(detail(item)).themeFont(.body, .caption2).foregroundStyle(.themeInk.opacity(0.5)).lineLimit(1)
-                }
-                Spacer(minLength: 0)
-                if !selecting {
-                    Button {
-                        clipboard.toggleFavorite(item)
-                    } label: {
-                        ThemeSymbol(item.favorite ? "star.fill" : "star")
-                            .themeFont(.body, .caption)
-                            .foregroundStyle(item.favorite ? .yellow : theme.color(.ink).opacity(0.4))  // a gold star
-                    }
-                    .buttonStyle(.plain)
-                    .help(item.favorite ? "Remove from favorites" : "Keep as a favorite")
-                    .accessibilityLabel(item.favorite ? "Favorite" : "Not a favorite")
-                }
+            VStack(alignment: .leading, spacing: 6) {
+                cardHeader(item, ticked: ticked)
+                content(item)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .clipped()
+                Text(detail(item))
+                    .themeFont(.body, .caption2)
+                    .foregroundStyle(.themeInk.opacity(0.55))
+                    .lineLimit(1)
             }
-            .padding(.horizontal, 6)
-            .padding(.vertical, 4)
-            .themePlatter(ticked ? 0.08 : 0, in: RoundedRectangle(cornerRadius: 6))
-            .contentShape(Rectangle())
+            .padding(9)
+            .frame(width: Self.cardWidth)
+            .frame(maxHeight: .infinity)
+            .background {
+                if let tint { shape.fill(tint) }
+            }
+            .themePlatter(tint == nil ? (ticked ? 0.16 : 0.08) : 0, in: shape)
+            .overlay {
+                if ticked { shape.strokeBorder(theme.color(.accent), lineWidth: 2) }
+            }
+            .contentShape(shape)
         }
         .buttonStyle(.plain)
         .help(selecting ? (ticked ? "Deselect" : "Select") : "Copy again")
         .contextMenu {
             Button("Copy") { clipboard.pick(item) }
             Button(item.favorite ? "Remove from Favorites" : "Add to Favorites") { clipboard.toggleFavorite(item) }
+            Picker(
+                "Color",
+                selection: Binding(get: { item.color }, set: { clipboard.setColor($0, for: item) })
+            ) {
+                Text("Default").tag(Int?.none)
+                ForEach(ClipColor.allCases, id: \.self) { color in
+                    Label {
+                        Text(color.name)
+                    } icon: {
+                        Image(nsImage: color.swatch(dark: theme.appearance == .dark))
+                    }
+                    .tag(Int?.some(color.rawValue))
+                }
+            }
             Divider()
             Button("Delete") { delete(item) }
         }
+        .accessibilityElement(children: .combine)
         .accessibilityAddTraits(ticked ? .isSelected : [])
         .accessibilityAction(named: "Delete") { delete(item) }
+    }
+
+    /// The card's kind and age, and its star, or while selecting, its tick.
+    private func cardHeader(_ item: ClipItem, ticked: Bool) -> some View {
+        HStack(spacing: 5) {
+            ThemeSymbol(symbol(item)).themeFont(.body, size: 11).opacity(0.7)
+            Text(kind(item)).themeFont(.body, size: 11, weight: .semibold)
+            Spacer(minLength: 0)
+            if selecting {
+                ThemeSymbol(ticked ? "checkmark.circle.fill" : "circle")
+                    .themeFont(.body, size: 13)
+                    .foregroundStyle(ticked ? theme.color(.accent) : theme.color(.ink).opacity(0.4))
+            } else {
+                Button {
+                    clipboard.toggleFavorite(item)
+                } label: {
+                    ThemeSymbol(item.favorite ? "star.fill" : "star")
+                        .themeFont(.body, .caption)
+                        .foregroundStyle(item.favorite ? .yellow : theme.color(.ink).opacity(0.4))  // a gold star
+                }
+                .buttonStyle(.plain)
+                .help(item.favorite ? "Remove from favorites" : "Keep as a favorite")
+                .accessibilityLabel(item.favorite ? "Favorite" : "Not a favorite")
+            }
+        }
     }
 
     private func delete(_ item: ClipItem) {
@@ -222,31 +264,72 @@ struct ClipboardView: View {
         selected.remove(item.id)
     }
 
-    @ViewBuilder private func preview(_ item: ClipItem) -> some View {
+    /// What a card holds, filling it: an image at the card's width, its whole height if it's tall; a
+    /// color's swatch; a link's site over its address; files' icon and names; text wrapping down.
+    @ViewBuilder private func content(_ item: ClipItem) -> some View {
         switch item.kind {
         case .image:
-            if let image = clipboard.thumbnail(for: item) {
-                Image(nsImage: image).resizable().aspectRatio(contentMode: .fill)
-                    .clipShape(RoundedRectangle(cornerRadius: 5))
+            if let image = clipboard.thumbnail(for: item, size: Int(Self.cardWidth * 2)) {
+                Image(nsImage: image).resizable().aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             } else {
-                ThemeSymbol("photo")
+                ThemeSymbol("photo").themeFont(.body, size: 22).opacity(0.5)
             }
         case .files:
-            Image(nsImage: NSWorkspace.shared.icon(forFile: item.paths.first ?? "/")).resizable()
+            VStack(alignment: .leading, spacing: 6) {
+                Image(nsImage: NSWorkspace.shared.icon(forFile: item.paths.first ?? "/")).resizable()
+                    .frame(width: 34, height: 34)
+                Text(item.paths.map { URL(filePath: $0).lastPathComponent }.joined(separator: "\n"))
+                    .themeFont(.body, .callout)
+            }
         case .link:
-            ThemeSymbol("link").themeFont(.body, size: 13).opacity(0.8)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(URL(string: item.text)?.host() ?? item.text)
+                    .themeFont(.body, .callout, weight: .semibold)
+                    .lineLimit(2)
+                Text(item.text)
+                    .themeFont(.body, .caption2)
+                    .foregroundStyle(.themeInk.opacity(0.6))
+            }
         case .text:
-            ThemeSymbol("text.alignleft").themeFont(.body, size: 13).opacity(0.8)
+            if let swatch = Self.hexColor(item.text) {
+                VStack(alignment: .leading, spacing: 6) {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous).fill(swatch).frame(height: 44)
+                    Text(item.text.trimmingCharacters(in: .whitespacesAndNewlines).uppercased())
+                        .themeFont(.mono, .callout)
+                }
+            } else {
+                Text(item.text).themeFont(.body, .callout)
+            }
         }
     }
 
-    private func title(_ item: ClipItem) -> String {
+    /// A copied color such as "#FF8A4C", to show as its swatch.
+    static func hexColor(_ text: String) -> Color? {
+        let hex = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard hex.wholeMatch(of: /#?[0-9A-Fa-f]{6}/) != nil, let value = Int(hex.trimmingPrefix("#"), radix: 16)
+        else { return nil }
+        return Color(
+            red: Double(value >> 16 & 0xFF) / 255, green: Double(value >> 8 & 0xFF) / 255,
+            blue: Double(value & 0xFF) / 255)
+    }
+
+    private func kind(_ item: ClipItem) -> String {
         switch item.kind {
-        case .files:
-            let names = item.paths.map { URL(filePath: $0).lastPathComponent }
-            return names.count == 1 ? names[0] : "\(names[0]) and \(names.count - 1) more"
-        default:
-            return item.text.split(whereSeparator: \.isNewline).first.map(String.init) ?? item.text
+        case .image: "Image"
+        case .files: item.paths.count == 1 ? "File" : "\(item.paths.count) Files"
+        case .link: "Link"
+        case .text: Self.hexColor(item.text) == nil ? "Text" : "Color"
+        }
+    }
+
+    private func symbol(_ item: ClipItem) -> String {
+        switch item.kind {
+        case .image: "photo"
+        case .files: "folder.fill"
+        case .link: "link"
+        case .text: "text.alignleft"
         }
     }
 
@@ -254,4 +337,36 @@ struct ClipboardView: View {
         let when = item.copied.formatted(.relative(presentation: .named))
         return [item.source, when].compactMap { $0 }.joined(separator: " · ")
     }
+}
+
+/// The colors a clipboard card can take, like sticky notes: a soft tint on a light sheet, a deep
+/// tone on a dark one, so the theme's ink reads on both.
+enum ClipColor: Int, CaseIterable {
+    case coral, peach, sand, mint, sage, fog, storm, dusk, blossom, clay
+
+    var name: String { "\(self)".capitalized }
+
+    func color(dark: Bool) -> Color {
+        let hex = dark ? Self.deep[rawValue] : Self.soft[rawValue]
+        return Color(
+            red: Double(hex >> 16 & 0xFF) / 255, green: Double(hex >> 8 & 0xFF) / 255,
+            blue: Double(hex & 0xFF) / 255)
+    }
+
+    /// A dot of the color for the card's menu, drawn as it is rather than as a template.
+    func swatch(dark: Bool) -> NSImage {
+        let color = NSColor(color(dark: dark))
+        return NSImage(size: NSSize(width: 12, height: 12), flipped: false) { rect in
+            color.setFill()
+            NSBezierPath(ovalIn: rect.insetBy(dx: 0.5, dy: 0.5)).fill()
+            return true
+        }
+    }
+
+    private static let soft = [
+        0xF8B4AC, 0xF5AB82, 0xF9F0B0, 0xDCF2CE, 0xB8DCD2, 0xD6E5EE, 0xB2CDDE, 0xD6C3DE, 0xF3DFDA, 0xE7E0D2,
+    ]
+    private static let deep = [
+        0x7A2433, 0x6E3321, 0x7A5314, 0x2D5242, 0x175F5A, 0x2B5E73, 0x2E4559, 0x4B3561, 0x6B3C51, 0x4E473E,
+    ]
 }

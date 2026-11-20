@@ -156,4 +156,24 @@ struct ClipboardTests {
         #expect(clipboard.items.map(\.text) == ["saved"])
         #expect(try self.clipboard().isRecording, "recording stays on across launches")
     }
+
+    @Test func aCardKeepsItsColorAndHistoriesFromBeforeColorsStillLoad() throws {
+        let clipboard = try clipboard()
+        clipboard.phase = .background
+        clipboard.startRecording()
+        copy("colored")
+        clipboard.check()
+        let item = try #require(clipboard.items.first)
+        clipboard.setColor(ClipColor.mint.rawValue, for: item)
+        clipboard.phase = .stopped
+        clipboard.phase = .background
+        #expect(clipboard.items.first?.color == ClipColor.mint.rawValue, "saved with the history")
+        clipboard.setColor(nil, for: item)
+        #expect(clipboard.items.first?.color == nil, "back to the theme's card")
+        // An item saved before colors has no "color" key at all.
+        var saved = try #require(try JSONSerialization.jsonObject(with: JSONEncoder().encode(item)) as? [String: Any])
+        saved["color"] = nil
+        let old = try JSONDecoder().decode(ClipItem.self, from: JSONSerialization.data(withJSONObject: saved))
+        #expect(old.color == nil && old.text == "colored")
+    }
 }

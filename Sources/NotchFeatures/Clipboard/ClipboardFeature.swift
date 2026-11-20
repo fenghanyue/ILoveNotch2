@@ -18,6 +18,9 @@ public struct ClipItem: Codable, Identifiable, Hashable, Sendable {
     public var copied: Date
     /// Favorites stay, whatever the history's length, until removed.
     public var favorite = false
+    /// The card color it was given (`ClipColor`'s raw value), like a sticky note's; none by default.
+    /// Optional, so a history saved before colors still loads.
+    public var color: Int?
 
     /// A file's paths, for `.files`.
     var paths: [String] { kind == .files ? text.split(separator: "\n").map(String.init) : [] }
@@ -201,6 +204,13 @@ public final class ClipboardFeature: NotchFeature {
         save()
     }
 
+    /// Gives an item's card a color, or takes it away (nil).
+    public func setColor(_ color: Int?, for item: ClipItem) {
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        items[index].color = color
+        save()
+    }
+
     public func remove(_ item: ClipItem) { remove([item.id]) }
 
     /// Deletes the items picked in select mode, favorites too, and their images.
@@ -222,13 +232,14 @@ public final class ClipboardFeature: NotchFeature {
         item.kind == .image ? NSImage(contentsOf: imageFile(item.id)) : nil
     }
 
-    /// A small copy of an image item for the list, made once from its file rather than on every draw.
-    public func thumbnail(for item: ClipItem) -> NSImage? {
+    /// A smaller copy of an image item, `size` pixels at most on its long side (a card's width at
+    /// 2×), made once from its file rather than on every draw.
+    public func thumbnail(for item: ClipItem, size: Int = 64) -> NSImage? {
         guard item.kind == .image else { return nil }
-        let key = item.id.uuidString as NSString
+        let key = "\(item.id.uuidString)/\(size)" as NSString
         if let cached = thumbnails.object(forKey: key) { return cached }
         let options: [CFString: Any] = [
-            kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: 64,
+            kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceThumbnailMaxPixelSize: size,
         ]
         guard let source = CGImageSourceCreateWithURL(imageFile(item.id) as CFURL, nil),
             let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
