@@ -22,10 +22,10 @@ as they land, written for the people who use the app
 - **Island.** All black like the camera housing, with rounder corners, Apple's own symbols in the tab row, and an orange accent. The player still glows with the album's colors.
 - **Glass, refreshed.** Liquid Glass below a black band across the camera, thin line icons, rounder corners, and white for the accent. Tabs show their names when they all fit.
 - **Aurora.** A black notch lit from its edges in pink, violet, cyan, and amber, with the same colors running along the seek wave and the waveform, and Geist type. Settings › Appearance sets how strong the glow is.
-- **Cozy.** Warm cocoa in a black frame with cream text in rounded Nunito, soft rounded icons, a coral wave, and a little heart-eyed notch at the head of the tabs.
-- **Brutal.** A white sheet of graph paper in a heavy black frame, Archivo Black for titles, bold line icons, a dashed seek line with a yellow head, and square black bars.
+- **Cozy.** Warm cocoa with cream text in rounded Nunito, soft rounded icons, a coral wave, and a little heart-eyed notch at the head of the tabs.
+- **Brutal.** A white sheet of graph paper with heavy black outlines and hard shadows, Archivo Black for titles, bold line icons, a dashed seek line with a yellow head, and square black bars.
 - **Matrix.** Dot-matrix type, a faint grid of dots, a seek line and waveform made of dots and lit segments, and one red accent.
-- **Paper, a light theme.** Pick it in Settings › Appearance: dark ink on a cream sheet in a black frame, track names in the Newsreader serif, and four accents to choose from. The prompter marks the word you're on with a highlighter. Closed, the notch stays black.
+- **Paper, a light theme.** Pick it in Settings › Appearance: dark ink on a cream sheet that fills the open notch, track names in the Newsreader serif, and four accents to choose from. The prompter marks the word you're on with a highlighter. Closed, the notch stays black.
 
 ## [1.5.1] - 2026-11-11
 
