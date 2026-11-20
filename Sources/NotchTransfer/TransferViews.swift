@@ -69,7 +69,7 @@ private struct IncomingCard: View {
         }
         .padding(compact ? 10 : 14)
         .frame(maxWidth: .infinity)
-        .background(.themeInk.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .themePlatter(0.08, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func request(_ offer: InboundSession.Offer, compact: Bool) -> some View {
@@ -84,7 +84,7 @@ private struct IncomingCard: View {
                 Spacer(minLength: 8)
                 VStack(alignment: .trailing, spacing: 0) {
                     Text("CODE").themeFont(.body, .caption2, weight: .semibold).foregroundStyle(.themeInk.opacity(0.45))
-                    Text(offer.pin).themeFont(.display, size: 22, weight: .semibold, design: .rounded).monospacedDigit()
+                    Text(offer.pin).themeFont(.numbers, size: 22, weight: .semibold, design: .rounded).monospacedDigit()
                         .kerning(1.5)
                 }
                 .accessibilityElement(children: .ignore)
@@ -155,7 +155,7 @@ private struct DeviceBadge: View {
         ThemeSymbol(symbol)
             .themeFont(.body, size: 17, weight: .medium)
             .frame(width: 38, height: 38)
-            .background(.themeInk.opacity(0.12), in: Circle())
+            .themePlatter(0.12, in: Circle())
             .accessibilityHidden(true)
     }
 }
