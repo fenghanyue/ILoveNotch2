@@ -19,6 +19,7 @@
     "tertiary": "#FFFFFF73",
     "fill": "#FFFFFF1A",
     "accent": "#FF5FA2",
+    "series": ["#22D3EE", "#FF5FA2"],
     "onAccent": "#000000",
     "highlight": "#8B5CF6"
   },
@@ -34,7 +35,13 @@
       "family": "Geist"
     }
   },
+  "controls": {
+    "style": "fill",
+    "radius": 12,
+    "selection": "accent"
+  },
   "icons": {
+    "everywhere": true,
     "set": "sf-symbols",
     "rendering": "hierarchical"
   },
