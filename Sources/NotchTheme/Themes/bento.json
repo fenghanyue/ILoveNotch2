@@ -14,6 +14,7 @@
     "tertiary": "#FAF1E466",
     "fill": "#FAF1E41F",
     "accent": "#E8573F",
+    "series": ["#F4B98E", "#B9DEC6"],
     "onAccent": "#FAF1E4",
     "highlight": "#F1DC8C",
     "onHighlight": "#1B1613"
@@ -34,7 +35,13 @@
       "family": "Inter"
     }
   },
+  "controls": {
+    "style": "fill",
+    "radius": 14,
+    "selection": "accent"
+  },
   "icons": {
+    "everywhere": true,
     "set": "phosphor-duotone"
   },
   "radii": {
