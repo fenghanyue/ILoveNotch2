@@ -147,4 +147,150 @@ public struct Note: Identifiable, Equatable, Sendable {
         let body = lines[(end + 1)...].joined(separator: "\n")
         return (header.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }, body)
     }
+
+    /// The text's lines, as slices of it, empty ones too; "\r\n" counts as one break.
+    static func lines(of text: String) -> [Substring] {
+        text.split(omittingEmptySubsequences: false, whereSeparator: \.isNewline)
+    }
+
+    /// The first non-empty line after the title, without its Markdown marks, for the list.
+    public var excerpt: String {
+        Self.lines(of: text).lazy.map(MarkdownLine.init)
+            .map { $0.parts.filter { $0.role != .mark }.map(\.text).joined().trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }.dropFirst().first ?? ""
+    }
+
+    /// The text with line `index` (as `lines(of:)` counts them) passed through `change`; the other
+    /// lines, and their breaks, stay as they were.
+    static func replacingLine(_ index: Int, in text: String, with change: (String) -> String) -> String {
+        let lines = lines(of: text)
+        guard lines.indices.contains(index) else { return text }
+        var text = text
+        text.replaceSubrange(lines[index].startIndex..<lines[index].endIndex, with: change(String(lines[index])))
+        return text
+    }
+}
+
+/// One line of a note's Markdown as the page draws it: a heading, a checklist item, a list item, or
+/// text, split into its marks and the text they format. Only what the page shows is read: `#`
+/// headings, `- [ ]` boxes, `-` items, and `**bold**`.
+struct MarkdownLine: Equatable {
+    enum Kind: Equatable {
+        case text
+        /// `#` to `######`, by its number of marks.
+        case heading(Int)
+        /// `- `, `* `, or `+ `.
+        case bullet
+        /// `- [ ]`, or `- [x]` once ticked.
+        case checkbox(done: Bool)
+    }
+
+    enum Role: Equatable {
+        case mark, text, bold
+    }
+
+    struct Part: Equatable {
+        let role: Role
+        let text: String
+    }
+
+    let kind: Kind
+    /// The leading mark with the indent before it, as typed: "  - [ ] " or "## "; empty for text.
+    let prefix: String
+    /// The rest of the line in order: text, and each bold span between its two `**` marks.
+    let parts: [Part]
+    /// Spaces or tabs before the mark, for nesting.
+    let indent: Int
+
+    init(_ line: some StringProtocol) {
+        let characters = Array(line)
+        indent = characters.prefix { $0 == " " || $0 == "\t" }.count
+        let rest = characters[indent...]
+        let hashes = rest.prefix { $0 == "#" }.count
+        var end = indent
+        if let marker = rest.first, "-*+".contains(marker), rest.dropFirst().first == " " {
+            let box = Array(rest.dropFirst(2).prefix(4))
+            if box.count >= 3, box[0] == "[", box[2] == "]", " xX".contains(box[1]), box.count == 3 || box[3] == " " {
+                kind = .checkbox(done: box[1] != " ")
+                end = indent + 2 + box.count
+            } else {
+                kind = .bullet
+                end = indent + 2
+            }
+        } else if (1...6).contains(hashes), hashes == rest.count || rest.dropFirst(hashes).first == " " {
+            kind = .heading(hashes)
+            end = min(characters.count, indent + hashes + 1)
+        } else {
+            kind = .text
+        }
+        prefix = kind == .text ? "" : String(characters[..<end])
+        parts = Self.parts(characters[(kind == .text ? 0 : end)...])
+    }
+
+    /// Text and `**bold**` spans; a `**` without a partner, or around nothing, stays text.
+    private static func parts(_ characters: ArraySlice<Character>) -> [Part] {
+        var parts: [Part] = []
+        var start = characters.startIndex
+        var index = start
+        func add(_ role: Role, _ range: Range<Int>) {
+            if !range.isEmpty { parts.append(Part(role: role, text: String(characters[range]))) }
+        }
+        func isMark(_ at: Int) -> Bool {
+            at + 1 < characters.endIndex && characters[at] == "*" && characters[at + 1] == "*"
+        }
+        while index < characters.endIndex {
+            guard isMark(index), index + 3 <= characters.endIndex,
+                let close = (index + 3..<characters.endIndex).first(where: isMark)
+            else {
+                index += 1
+                continue
+            }
+            add(.text, start..<index)
+            add(.mark, index..<index + 2)
+            add(.bold, index + 2..<close)
+            add(.mark, close..<close + 2)
+            index = close + 2
+            start = index
+        }
+        add(.text, start..<characters.endIndex)
+        return parts
+    }
+
+    /// The line with its box ticked, or unticked; any other line as it is.
+    static func togglingCheckbox(_ line: String) -> String {
+        let parsed = MarkdownLine(line)
+        guard case .checkbox(let done) = parsed.kind else { return line }
+        var characters = Array(line)
+        characters[parsed.indent + 3] = done ? " " : "x"  // between the brackets of "- [ ]"
+        return String(characters)
+    }
+
+    /// ⌘L: the line as a checklist item, keeping its indent and text; a checklist item goes back to
+    /// plain text.
+    static func togglingChecklist(_ line: String) -> String {
+        let parsed = MarkdownLine(line)
+        let indent = line.prefix(parsed.indent)
+        let text = line.dropFirst(parsed.kind == .text ? parsed.indent : parsed.prefix.count)
+        if case .checkbox = parsed.kind { return String(indent + text) }
+        return String(indent) + "- [ ] " + text
+    }
+
+    /// Whether a mark shows in the editor, faintly: on the lines being edited, and always in a theme
+    /// that keeps its marks or for a list's marker (the page's box or dot while reading). A heading's
+    /// and bold text's marks hide on the other lines.
+    static func showsMark(inPrefix: Bool, of kind: Kind, active: Bool, keepsMarks: Bool) -> Bool {
+        if active || keepsMarks { return true }
+        switch kind {
+        case .bullet, .checkbox: return inPrefix
+        case .text, .heading: return false
+        }
+    }
+
+    /// The lines (as `Note.lines(of:)` counts them) that the characters `range` of `text` touch; an
+    /// empty range is the caret, on one line.
+    static func lines(touching range: Range<Int>, in text: String) -> ClosedRange<Int> {
+        func line(at offset: Int) -> Int { text.prefix(offset).filter(\.isNewline).count }
+        let first = line(at: range.lowerBound)
+        return first...max(first, line(at: max(range.lowerBound, range.upperBound - 1)))
+    }
 }

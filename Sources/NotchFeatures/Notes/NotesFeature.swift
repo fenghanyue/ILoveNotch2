@@ -146,6 +146,12 @@ public final class NotesFeature: NotchFeature {
         change(id) { $0.isPinned.toggle() }
     }
 
+    /// Ticks or unticks the checklist item on line `line` of a note (as `Note.lines(of:)` counts).
+    public func toggleCheckbox(_ id: Note.ID, line: Int) {
+        guard let note = notes.first(where: { $0.id == id }) else { return }
+        update(id, text: Note.replacingLine(line, in: note.text, with: MarkdownLine.togglingCheckbox))
+    }
+
     /// Sends a note's unticked checklist items to Tasks. Returns how many were added.
     @discardableResult
     public func sendToTasks(_ id: Note.ID) -> Int {

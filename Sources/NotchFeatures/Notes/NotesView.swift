@@ -3,20 +3,29 @@ import AppKit
 import NotchTheme
 import SwiftUI
 
-/// The notes tab: a searchable list of notes beside an editor. Hovering a note lights it up and shows
-/// its pin and delete buttons; the selection slides between notes. A note's unticked checklist items
-/// can go to Tasks. Clicking into a field gives the notch keyboard focus; Escape or clicking
-/// elsewhere hands it back.
+/// The notes tab: the list on the left (each note's color, title, when it was edited, and first
+/// line; pinned notes on top) and the open note filling the right as a page (`NotePage`). Hovering
+/// a note shows its pin and delete buttons; the selection slides between notes. ↑↓ move through the
+/// list, ⏎ opens the note on the page, and Escape there goes back to the list; ⌘N starts a note,
+/// ⌘F unfolds search from its icon, and ⌘L turns the caret's line into a checkbox. Clicking into a
+/// field or the page gives the notch keyboard focus; Escape from the list or clicking elsewhere
+/// hands it back.
 struct NotesView: View {
     @Bindable var notes: NotesFeature
     @Namespace private var selectionSpace
     @Namespace private var searchSpace
     @FocusState private var editorFocused: Bool
     @FocusState private var searchFocused: Bool
+    @FocusState private var listFocused: Bool
     /// Search was opened from its icon; it also stays open while it has text.
     @State private var searching = false
     @State private var searchHovering = false
-    @State private var showsPalette = false
+    /// The page asked for the keyboard (a click, ⏎, or ⌘N), until the editor lets it go.
+    @State private var editing = false
+    /// Where the caret goes once the editor has the keyboard: the end of this line, or of the note
+    /// past the last line.
+    @State private var caretLine: Int?
+    @State private var panel = WindowLink()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.theme) private var theme
 
@@ -28,14 +37,25 @@ struct NotesView: View {
                 message: notes.usesCustomFolder
                     ? "Jot something down. Notes are saved as Markdown in \(notes.directory.lastPathComponent)."
                     : "Jot something down. Notes stay on this Mac as plain text.",
-                action: (label: "New Note", perform: { notes.add() }))
+                action: (label: "New Note", perform: newNote))
         } else {
             HStack(spacing: 10) {
-                list.frame(width: 136)
-                editor
+                list.frame(width: 142)
+                if let note = notes.selected {
+                    NotePage(notes: notes, note: note, editorFocused: $editorFocused, edit: edit)
+                }
             }
+            .takesKeyboard(editing)
+            .background { shortcuts }
+            .background { EscapeCatcher(link: panel, onEscape: backToList) }
             .onAppear(perform: takeFocusIfWanted)
             .onChange(of: notes.wantsEditorFocus) { _, _ in takeFocusIfWanted() }
+            .onChange(of: editorFocused) { _, focused in
+                editing = focused
+                guard focused, let line = caretLine else { return }
+                caretLine = nil
+                Task { @MainActor in placeCaret(atEndOf: line) }
+            }
         }
     }
 
@@ -49,35 +69,136 @@ struct NotesView: View {
     }
 
     private var spring: Animation? { reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.82) }
+    private var slide: Animation? { reduceMotion ? nil : .easeOut(duration: 0.2) }
+
+    // MARK: Keyboard
+
+    /// Opens the page's editor with the caret at the end of `line`, or of the note.
+    private func edit(_ line: Int?) {
+        caretLine = line ?? .max
+        editing = true
+        Task { @MainActor in editorFocused = true }
+    }
+
+    private func newNote() {
+        withAnimation(spring) { _ = notes.add() }
+        edit(nil)
+    }
+
+    /// Escape in the editor: back to the list, keeping the keyboard.
+    private func backToList() -> Bool {
+        guard editorFocused else { return false }
+        editorFocused = false
+        listFocused = true
+        return true
+    }
+
+    private func step(_ by: Int) -> KeyPress.Result {
+        let ids = notes.visibleNotes.map(\.id)
+        guard !ids.isEmpty else { return .ignored }
+        let next = notes.selection.flatMap { ids.firstIndex(of: $0) }.map { min(max($0 + by, 0), ids.count - 1) } ?? 0
+        withAnimation(slide) { notes.selection = ids[next] }
+        return .handled
+    }
+
+    private func select(_ id: Note.ID) {
+        withAnimation(slide) { notes.selection = id }
+        listFocused = true
+    }
+
+    /// ⌘L: the lines the caret or selection is on become checklist items, or plain text again,
+    /// through the editor so Undo takes it back.
+    private func toggleChecklist() {
+        guard editorFocused, let view = noteTextView else { return }
+        let string = view.string as NSString
+        var start = 0
+        var end = 0
+        var contentsEnd = 0
+        string.getLineStart(&start, end: &end, contentsEnd: &contentsEnd, for: view.selectedRange())
+        let range = NSRange(location: start, length: contentsEnd - start)
+        let lines = Note.lines(of: string.substring(with: range)).map { MarkdownLine.togglingChecklist(String($0)) }
+        view.insertText(lines.joined(separator: "\n"), replacementRange: range)
+    }
+
+    private func placeCaret(atEndOf line: Int) {
+        guard let view = noteTextView else { return }
+        let string = view.string
+        let lines = Note.lines(of: string)
+        let end = lines.indices.contains(line) ? lines[line].endIndex : string.endIndex
+        let caret = NSRange(location: end.utf16Offset(in: string), length: 0)
+        view.setSelectedRange(caret)
+        view.scrollRangeToVisible(caret)
+    }
+
+    /// The text view behind the page's editor, while it has the keyboard.
+    private var noteTextView: NSTextView? {
+        guard let view = panel.window?.firstResponder as? NSTextView, !view.isFieldEditor else { return nil }
+        return view
+    }
+
+    /// ⌘N, ⌘F, and ⌘L, wherever the keyboard is in the tab.
+    private var shortcuts: some View {
+        ZStack {
+            Button("New Note", action: newNote).keyboardShortcut("n", modifiers: .command)
+            Button("Search Notes") {
+                if searching { searchFocused = true } else { openSearch() }
+            }
+            .keyboardShortcut("f", modifiers: .command)
+            Button("Checkbox", action: toggleChecklist).keyboardShortcut("l", modifiers: .command)
+        }
+        .buttonStyle(.plain)
+        .opacity(0)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
 
     // MARK: List
 
     private var list: some View {
         VStack(alignment: .leading, spacing: 4) {
             header
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 2) {
-                    ForEach(notes.visibleNotes) { note in
-                        NoteRow(
-                            notes: notes, note: note, isSelected: notes.selection == note.id,
-                            selectionSpace: selectionSpace,
-                            select: { withAnimation(spring) { notes.selection = note.id } })
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 2) {
+                        ForEach(notes.visibleNotes) { note in
+                            NoteRow(
+                                notes: notes, note: note, isSelected: notes.selection == note.id,
+                                selectionSpace: selectionSpace, select: { select(note.id) }
+                            )
+                            .id(note.id)
+                        }
+                        if notes.visibleNotes.isEmpty {
+                            Text("No matches").themeFont(.body, .caption).foregroundStyle(.themeInk.opacity(0.5))
+                                .padding(6)
+                        }
                     }
-                    if notes.visibleNotes.isEmpty {
-                        Text("No matches").themeFont(.body, .caption).foregroundStyle(.themeInk.opacity(0.5)).padding(6)
-                    }
+                    .padding(.vertical, 4)
                 }
-                .padding(.vertical, 6)
+                .fadingEdges()
+                .onChange(of: notes.selection) { _, id in
+                    if let id { withAnimation(slide) { proxy.scrollTo(id) } }
+                }
             }
-            .fadingEdges()
+            .focusable()
+            .focusEffectDisabled()
+            .focused($listFocused)
+            .onKeyPress(.upArrow) { step(-1) }
+            .onKeyPress(.downArrow) { step(1) }
+            .onKeyPress(.return) {
+                guard notes.selected != nil else { return .ignored }
+                caretLine = .max
+                editorFocused = true
+                return .handled
+            }
         }
     }
 
-    /// Search, sort, and new note as three icons of one size. Search opens out of its icon into a
-    /// field across the header, and folds back when closed or left empty.
+    /// Where the notes are kept, then search, sort, and new note as three icons of one size. Search
+    /// opens out of its icon into a field across the header, and folds back when closed or left
+    /// empty.
     private var header: some View {
         let open = searching || !notes.search.isEmpty
-        return HStack(spacing: 6) {
+        return HStack(spacing: 4) {
             if open {
                 HStack(spacing: 4) {
                     searchGlass
@@ -99,6 +220,8 @@ struct NotesView: View {
                 .background { searchField }
                 .transition(.opacity)
             } else {
+                folder
+                Spacer(minLength: 0)
                 Button(action: openSearch) {
                     searchGlass
                         .frame(width: HeaderIcon.side, height: HeaderIcon.side)
@@ -107,9 +230,8 @@ struct NotesView: View {
                 }
                 .buttonStyle(.plain)
                 .onHover { inside in withAnimation(.easeOut(duration: 0.15)) { searchHovering = inside } }
-                .help("Search notes")
+                .help("Search notes (⌘F)")
                 .accessibilityLabel("Search")
-                Spacer(minLength: 0)
                 Menu {
                     Picker("Sort By", selection: $notes.sort) {
                         ForEach(NoteSort.allCases) { sort in Text(sort.name).tag(sort) }
@@ -125,13 +247,11 @@ struct NotesView: View {
                 .help("Sort notes")
                 .accessibilityLabel("Sort")
                 .transition(.opacity.combined(with: .scale(scale: 0.6)))
-                Button {
-                    withAnimation(spring) { _ = notes.add() }
-                } label: {
+                Button(action: newNote) {
                     HeaderIcon(symbol: "square.and.pencil")
                 }
                 .buttonStyle(.plain)
-                .help("New note")
+                .help("New note (⌘N)")
                 .accessibilityLabel("New Note")
                 .transition(.opacity.combined(with: .scale(scale: 0.6)))
             }
@@ -141,6 +261,26 @@ struct NotesView: View {
             // Clicking away from an empty search folds it back into its icon.
             if !focused, notes.search.isEmpty { withAnimation(spring) { searching = false } }
         }
+    }
+
+    /// Where the notes are kept: iCloud Drive, a folder the user chose, or this Mac. Just its icon
+    /// when the name doesn't fit.
+    private var folder: some View {
+        let path = notes.directory.path
+        let inCloud = path.contains("/Mobile Documents/")
+        let chosen = notes.usesCustomFolder ? FileManager.default.displayName(atPath: path) : "This Mac"
+        let name = inCloud ? "iCloud Drive" : chosen
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 4) {
+                ThemeSymbol(inCloud ? "icloud" : "folder.fill")
+                Text(name).lineLimit(1)
+            }
+            ThemeSymbol(inCloud ? "icloud" : "folder.fill")
+        }
+        .themeFont(.body, size: 10)
+        .foregroundStyle(.themeInk.opacity(0.6))
+        .layoutPriority(1)  // ahead of the spacer, which only takes what's left
+        .help("Notes are saved as Markdown files in \(name)")
     }
 
     /// The icon and the field's backdrop are shared, so the icon's circle stretches into the field.
@@ -170,102 +310,6 @@ struct NotesView: View {
         }
         searchFocused = false
     }
-
-    // MARK: Editor
-
-    @ViewBuilder private var editor: some View {
-        if let note = notes.selected {
-            VStack(alignment: .leading, spacing: 4) {
-                toolbar(note)
-                TextEditor(text: Binding(get: { note.text }, set: { notes.update(note.id, text: $0) }))
-                    .themeFont(.body, .callout)
-                    .scrollContentBackground(.hidden)
-                    .focused($editorFocused)
-                    .accessibilityLabel("Note text")
-                    .padding(6)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .background(tint(note.color), in: RoundedRectangle(cornerRadius: 8))
-                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: note.color)
-                footer(note)
-            }
-        }
-    }
-
-    private func tint(_ color: NoteColor?) -> Color {
-        guard let color else { return theme.color(.ink).opacity(0.06) }
-        return color.swatch.opacity(0.18)
-    }
-
-    private func toolbar(_ note: Note) -> some View {
-        HStack(spacing: ColorPalette.gap) {
-            Button {
-                showsPalette.toggle()
-            } label: {
-                Circle()
-                    .fill(note.color?.swatch ?? theme.color(.ink).opacity(0.35))
-                    .frame(width: ColorPalette.dot, height: ColorPalette.dot)
-                    .overlay(Circle().strokeBorder(.themeInk.opacity(showsPalette ? 0.9 : 0.5), lineWidth: 1))
-                    .scaleEffect(showsPalette && !reduceMotion ? 1.2 : 1)
-                    .animation(spring, value: showsPalette)
-                    .contentShape(Circle().inset(by: -4))
-            }
-            .help(showsPalette ? "Close colors" : "Color")
-            .accessibilityLabel("Color")
-            // The palette opens over the other buttons, which step aside while it's out.
-            ZStack(alignment: .leading) {
-                HStack(spacing: 10) {
-                    ToolbarButton(
-                        symbol: note.isPinned ? "pin.fill" : "pin", help: note.isPinned ? "Unpin" : "Pin to top",
-                        isOn: note.isPinned
-                    ) { withAnimation(spring) { notes.togglePin(note.id) } }
-                    Spacer(minLength: 0)
-                    // What the note is (color, pin) on the left; what to do with its text on the right.
-                    if note.hasOpenChecklist {
-                        ToolbarButton(symbol: "checklist", help: "Send unticked items to Tasks", isOn: false) {
-                            _ = notes.sendToTasks(note.id)
-                        }
-                        .transition(.opacity)
-                    }
-                    ShareLink(item: note.text, subject: Text(note.title)) {
-                        ThemeSymbol("square.and.arrow.up")
-                    }
-                    .help("Share to Notes, Mail, Messages, and more")
-                    .accessibilityLabel("Share")
-                }
-                .opacity(showsPalette ? 0 : 1)
-                .allowsHitTesting(!showsPalette)
-                .accessibilityHidden(showsPalette)
-                // Out of the way at once; back once the swatches have folded up.
-                .animation(
-                    showsPalette ? .easeOut(duration: 0.1) : .easeIn(duration: 0.18).delay(0.12), value: showsPalette)
-                ColorPalette(selected: note.color, open: showsPalette) { color in
-                    notes.setColor(note.id, color)
-                    showsPalette = false
-                }
-            }
-        }
-        .onChange(of: notes.selection) { _, _ in showsPalette = false }
-        .buttonStyle(.plain)
-        .themeFont(.body, size: 11, weight: .medium)
-        .foregroundStyle(.themeInk.opacity(0.75))
-        .frame(height: HeaderIcon.side)  // in line with the list's header
-    }
-
-    private func footer(_ note: Note) -> some View {
-        HStack(spacing: 6) {
-            Text(note.wordCount == 1 ? "1 word" : "\(note.wordCount) words")
-            Spacer(minLength: 0)
-            if let notice = notes.notice {
-                Text(notice).foregroundStyle(.themeInk.opacity(0.85)).transition(.opacity)
-            } else {
-                Text("Edited \(note.modified, format: .relative(presentation: .named))")
-            }
-        }
-        .themeFont(.body, .caption2)
-        .foregroundStyle(.themeInk.opacity(0.45))
-        .lineLimit(1)
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: notes.notice)
-    }
 }
 
 extension NoteColor {
@@ -284,8 +328,10 @@ extension NoteColor {
     }
 }
 
-/// One note in the list. The selection highlight slides between rows; hovering shows a lighter
-/// highlight, a preview tooltip, and pin and delete buttons.
+/// One note in the list: its color, title, and pin, then when it was edited and its first line. The
+/// selection shows in the theme's style, sliding between rows: behind the row, or under the title
+/// for a line or a dot. Hovering shows a lighter highlight, a preview tooltip, and pin and delete
+/// buttons.
 private struct NoteRow: View {
     let notes: NotesFeature
     let note: Note
@@ -295,51 +341,39 @@ private struct NoteRow: View {
 
     @State private var hovering = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.theme) private var theme
 
     var body: some View {
-        HStack(spacing: 5) {
-            if let color = note.color {
-                Circle().fill(color.swatch).frame(width: 6, height: 6)
+        let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
+        let underTitle = theme.controls?.selection == .underline || theme.controls?.selection == .dot
+        VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 6) {
+                NoteDot(color: note.color, size: 7)
+                Text(note.title)
+                    .themeFont(.display, size: 12, weight: .semibold)
+                    .lineLimit(1)
+                    .background {
+                        if isSelected, underTitle { mark(Capsule()) }
+                    }
+                Spacer(minLength: 0)
+                accessory
             }
-            Text(note.title)
-                .themeFont(.body, .caption)
+            Text(note.excerpt.isEmpty ? Self.when(note.modified) : "\(Self.when(note.modified)) · \(note.excerpt)")
+                .themeFont(.body, size: 10)
+                .opacity(0.65)
                 .lineLimit(1)
-            Spacer(minLength: 0)
-            if hovering {
-                HStack(spacing: 5) {
-                    Button {
-                        notes.togglePin(note.id)
-                    } label: {
-                        ThemeSymbol(note.isPinned ? "pin.slash" : "pin")
-                    }
-                    .accessibilityLabel(note.isPinned ? "Unpin" : "Pin")
-                    Button {
-                        withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { notes.delete(note.id) }
-                    } label: {
-                        ThemeSymbol("trash")
-                    }
-                    .accessibilityLabel("Move to Trash")
-                }
-                .buttonStyle(.plain)
-                .themeFont(.body, size: 9, weight: .semibold)
-                .foregroundStyle(.themeInk.opacity(0.7))
-                .transition(.opacity.combined(with: .move(edge: .trailing)))
-            } else if note.isPinned {
-                ThemeSymbol("pin.fill").themeFont(.body, size: 8).foregroundStyle(.themeInk.opacity(0.5))
-            }
+                .padding(.leading, 13)
         }
-        .padding(.horizontal, 6)
+        .themeSelectionInk(isSelected && !underTitle, unlit: 1)
+        .padding(.horizontal, 7)
         .padding(.vertical, 4)
         .background {
-            if isSelected {
-                Color.clear
-                    .themePlatter(0.14, in: RoundedRectangle(cornerRadius: 6))
-                    .matchedGeometryEffect(id: "selection", in: selectionSpace)
-            } else if hovering {
-                Color.clear.themePlatter(0.07, in: RoundedRectangle(cornerRadius: 6))
+            if isSelected, !underTitle {
+                mark(shape)
+            } else if hovering, !isSelected {
+                Color.clear.themePlatter(0.07, in: shape)
             }
         }
-        .scaleEffect(hovering && !isSelected && !reduceMotion ? 1.02 : 1, anchor: .leading)
         .contentShape(Rectangle())
         .onTapGesture(perform: select)
         .onHover { inside in
@@ -371,6 +405,52 @@ private struct NoteRow: View {
         .accessibilityAction(named: "Move to Trash") { notes.delete(note.id) }
     }
 
+    /// The selection, which slides from row to row.
+    private func mark(_ shape: some Shape) -> some View {
+        SelectionMark(in: shape, strength: 0.12).matchedGeometryEffect(id: "selection", in: selectionSpace)
+    }
+
+    /// Pin and delete under the pointer, else a pin on a pinned note.
+    @ViewBuilder private var accessory: some View {
+        if hovering {
+            HStack(spacing: 5) {
+                Button {
+                    notes.togglePin(note.id)
+                } label: {
+                    ThemeSymbol(note.isPinned ? "pin.slash" : "pin")
+                }
+                .accessibilityLabel(note.isPinned ? "Unpin" : "Pin")
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { notes.delete(note.id) }
+                } label: {
+                    ThemeSymbol("trash")
+                }
+                .accessibilityLabel("Move to Trash")
+            }
+            .buttonStyle(.plain)
+            .themeFont(.body, size: 9, weight: .semibold)
+            .foregroundStyle(.themeInk.opacity(0.7))
+            .transition(.opacity.combined(with: .move(edge: .trailing)))
+        } else if note.isPinned {
+            ThemeSymbol("pin.fill").themeFont(.body, size: 8).opacity(0.6)
+        }
+    }
+
+    /// "now", a time today, a weekday this week, or a date.
+    static func when(_ date: Date, now: Date = .now) -> String {
+        let calendar = Calendar.current
+        let days =
+            calendar.dateComponents([.day], from: calendar.startOfDay(for: date), to: calendar.startOfDay(for: now))
+            .day ?? 0
+        if abs(now.timeIntervalSince(date)) < 60 { return "now" }
+        if days == 0 { return date.formatted(date: .omitted, time: .shortened) }
+        if (1..<7).contains(days) { return date.formatted(.dateTime.weekday(.abbreviated)) }
+        if calendar.isDate(date, equalTo: now, toGranularity: .year) {
+            return date.formatted(.dateTime.month(.abbreviated).day())
+        }
+        return date.formatted(.dateTime.month(.abbreviated).day().year())
+    }
+
     private var tooltip: String {
         let edited = "Edited " + note.modified.formatted(date: .abbreviated, time: .shortened)
         return note.preview.isEmpty ? "\(note.title)\n\(edited)" : "\(note.title)\n\(note.preview)\n\(edited)"
@@ -397,92 +477,52 @@ private struct HeaderIcon: View {
     }
 }
 
-/// A small icon button in the editor's toolbar that brightens on hover.
-private struct ToolbarButton: View {
-    let symbol: String
-    let help: String
-    let isOn: Bool
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            ThemeSymbol(symbol)
-                .opacity(hovering || isOn ? 1 : 0.7)
-                .scaleEffect(hovering ? 1.12 : 1)
-                .contentShape(Rectangle())
-        }
-        .onHover { hovering = $0 }
-        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: hovering)
-        .help(help)
-        .accessibilityLabel(help)
-    }
+/// The window the notes are drawn in, for the text view behind the page's TextEditor.
+@MainActor private final class WindowLink {
+    weak var window: NSWindow?
 }
 
-/// The colour choices, as swatches that grow under the pointer. Opening, they spring out of the
-/// colour dot one after another; closing, they fold back into it, the last one first.
-private struct ColorPalette: View {
-    /// The colour dot, and the gap between it and the first swatch.
-    static let dot: CGFloat = 10
-    static let gap: CGFloat = 10
-    private static let side: CGFloat = 11
-    private static let spacing: CGFloat = 5
-    private static let choices: [NoteColor?] = [nil] + NoteColor.allCases.map(Optional.some)
+/// Escape while the page's editor has the keyboard goes back to the list rather than closing the
+/// notch: a local monitor sees keys addressed to this app before the notch's panel turns Escape
+/// into closing. It's installed only while the notes are on screen, and leaves an input method's
+/// composition, and every other key, alone. It also keeps `link` pointing at its window.
+private struct EscapeCatcher: NSViewRepresentable {
+    let link: WindowLink
+    /// Returns whether it took the Escape.
+    let onEscape: () -> Bool
 
-    let selected: NoteColor?
-    let open: Bool
-    let choose: (NoteColor?) -> Void
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeNSView(context: Context) -> CatcherView {
+        let view = CatcherView()
+        view.link = link
+        return view
+    }
 
-    var body: some View {
-        HStack(spacing: Self.spacing) {
-            ForEach(Array(Self.choices.enumerated()), id: \.offset) { index, color in
-                Swatch(color: color, isSelected: selected == color) { choose(color) }
-                    .scaleEffect(open || reduceMotion ? 1 : 0.2)
-                    .offset(x: open || reduceMotion ? 0 : -folded(index))
-                    .opacity(open ? 1 : 0)
-                    .animation(animation(index), value: open)
+    func updateNSView(_ view: CatcherView, context: Context) { view.onEscape = onEscape }
+
+    final class CatcherView: NSView {
+        var onEscape: (() -> Bool)?
+        var link: WindowLink?
+        private var monitor: Any?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            link?.window = window
+            if let monitor { NSEvent.removeMonitor(monitor) }
+            monitor = nil
+            guard window != nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+                let taken = MainActor.assumeIsolated { self?.take(event) ?? false }
+                return taken ? nil : event
             }
         }
-        .allowsHitTesting(open)
-        .accessibilityHidden(!open)
-    }
 
-    /// How far back swatch `index` sits when folded: centred on the colour dot.
-    private func folded(_ index: Int) -> CGFloat {
-        CGFloat(index) * (Self.side + Self.spacing) + Self.side / 2 + Self.gap + Self.dot / 2
-    }
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
 
-    private func animation(_ index: Int) -> Animation {
-        if reduceMotion { return .easeInOut(duration: 0.15) }
-        let order = open ? index : Self.choices.count - 1 - index
-        return .spring(response: 0.3, dampingFraction: 0.72).delay(Double(order) * 0.02)
-    }
-
-    private struct Swatch: View {
-        let color: NoteColor?
-        let isSelected: Bool
-        let action: () -> Void
-        @State private var hovering = false
-
-        var body: some View {
-            Button(action: action) {
-                Circle()
-                    .fill(color?.swatch ?? .clear)
-                    .overlay(
-                        Circle().strokeBorder(.themeInk.opacity(isSelected ? 0.9 : 0.3), lineWidth: isSelected ? 2 : 1)
-                    )
-                    .overlay {
-                        if color == nil { ThemeSymbol("slash.circle").themeFont(.body, size: 8).opacity(0.6) }
-                    }
-                    .frame(width: 11, height: 11)
-                    .scaleEffect(hovering ? 1.3 : 1)
-            }
-            .buttonStyle(.plain)
-            .onHover { hovering = $0 }
-            .animation(.spring(response: 0.25, dampingFraction: 0.6), value: hovering)
-            .help(color?.name ?? "No Color")
-            .accessibilityLabel(color?.name ?? "No Color")
+        private func take(_ event: NSEvent) -> Bool {
+            guard event.keyCode == 53, event.window === window, let editor = window?.firstResponder as? NSTextView,
+                !editor.isFieldEditor, !editor.hasMarkedText()
+            else { return false }
+            return onEscape?() ?? false
         }
     }
 }
