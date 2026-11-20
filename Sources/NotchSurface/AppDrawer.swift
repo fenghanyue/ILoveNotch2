@@ -49,7 +49,7 @@ struct AppDrawer: View {
         }
         .padding(.vertical, 2)
         // A tab dragged down from the row lights the grid it would drop into.
-        .background(.themeInk.opacity(editor?.hiding == true ? 0.08 : 0), in: RoundedRectangle(cornerRadius: 14))
+        .themePlatter(editor?.hiding == true ? 0.08 : 0, in: RoundedRectangle(cornerRadius: 14))
         .animation(.easeOut(duration: 0.15), value: editor?.hiding)
     }
 
@@ -84,7 +84,7 @@ struct AppDrawer: View {
             let shape = RoundedRectangle(cornerRadius: compact ? 9 : 11, style: .continuous)
             ThemeIcon(editing ? .done : .edit, size: compact ? 17 : 19)
                 .frame(width: compact ? 38 : 46, height: compact ? 30 : 38)
-                .background(.themeInk.opacity(editing ? 0.24 : hovering ? 0.1 : 0), in: shape)
+                .themePlatter(editing ? 0.24 : hovering ? 0.1 : 0, in: shape)
                 .overlay(
                     shape.strokeBorder(
                         .themeInk.opacity(editing ? 0.55 : 0.35),
@@ -109,7 +109,7 @@ struct AppIcon: View {
         let shape = RoundedRectangle(cornerRadius: compact ? 9 : 11, style: .continuous)
         ThemeIcon(feature, size: compact ? 17 : 19)
             .frame(width: compact ? 38 : 46, height: compact ? 30 : 38)
-            .background(.themeInk.opacity(lit ? 0.24 : hovering ? 0.16 : 0.1), in: shape)
+            .themePlatter(lit ? 0.24 : hovering ? 0.16 : 0.1, in: shape)
             .overlay(shape.strokeBorder(.themeInk.opacity(lit ? 0.55 : 0.12), lineWidth: lit ? 1 : 0.5))
     }
 }

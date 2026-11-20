@@ -152,7 +152,7 @@ struct EditingRow: View {
         let lifted = editor.drag?.feature == feature
         return ThemeIcon(feature)
             .frame(width: width, height: 26)
-            .background(.themeInk.opacity(0.12), in: Capsule().inset(by: 2))
+            .themePlatter(0.12, in: Capsule().inset(by: 2))
             .overlay(alignment: .topLeading) {
                 if removable, !lifted {
                     // A gray badge, as the plus is green, in every theme.
@@ -219,7 +219,7 @@ struct LiftedTab: View {
         if let drag = editor.drag {
             ThemeIcon(drag.feature, size: 18)
                 .frame(width: 42, height: 34)
-                .background(.themeInk.opacity(0.24), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .themePlatter(0.24, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(
                         .themeInk.opacity(0.4), lineWidth: 0.5)
