@@ -19,6 +19,7 @@
     "tertiary": "#FFFFFF73",
     "fill": "#FFFFFF2E",
     "accent": "#FF3B30",
+    "series": ["#FFFFFF", "#FF3B30"],
     "onAccent": "#000000",
     "highlight": "#FF3B30"
   },
@@ -34,7 +35,14 @@
       "family": "JetBrains Mono"
     }
   },
+  "controls": {
+    "style": "outline",
+    "radius": 2,
+    "lineColor": "#FFFFFF33",
+    "selection": "dot"
+  },
   "icons": {
+    "everywhere": true,
     "set": "tabler",
     "cap": "square"
   },
