@@ -14,6 +14,7 @@
     "tertiary": "#6E7277",
     "fill": "#D6D9DD1F",
     "accent": "#FFB000",
+    "series": ["#FFB000", "#D6D9DD"],
     "onAccent": "#000000",
     "highlight": "#FFB000",
     "onHighlight": "#000000"
@@ -30,7 +31,15 @@
       "family": "VT323"
     }
   },
+  "controls": {
+    "style": "well",
+    "radius": 6,
+    "well": "#070A09",
+    "lineColor": "#2A2A2A",
+    "selection": "dot"
+  },
   "icons": {
+    "everywhere": true,
     "set": "phosphor-bold"
   },
   "radii": {
