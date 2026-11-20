@@ -68,7 +68,7 @@ app-store: ## Upload the App Store edition to App Store Connect: make app-store 
 	scripts/app-store.sh $(VERSION)
 
 test: ## Run unit and performance tests (warnings are errors in OpenNotch's own targets: Package.swift)
-	swift test
+	swift test $(TEST_FLAGS)
 
 lint: ## Fail on formatting drift (config: .swift-format)
 	swift format lint --strict --recursive $(SWIFT_SOURCES)

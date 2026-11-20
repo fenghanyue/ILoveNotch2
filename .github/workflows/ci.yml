@@ -70,7 +70,9 @@ jobs:
         run: make changelog
 
       - name: Unit and performance tests
-        run: make test
+        # One test at a time: in parallel, the snapshot renders starve the main actor on the runner's few
+        # cores and timing tests miss their 30 s deadlines. About twice as long, and never a false red.
+        run: make test TEST_FLAGS=--no-parallel
 
   app:
     name: App and licenses
