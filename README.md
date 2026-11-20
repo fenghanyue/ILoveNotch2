@@ -20,21 +20,31 @@ https://github.com/user-attachments/assets/9d0c486c-5169-4297-b8b9-8fedbb9eadda
 
 An **original, open-source** macOS menu-notch utility — turns the notch on Apple
 Silicon MacBooks into an interactive tray for media and sound, files, your
-calendar, tasks, notes, shortcuts, timers, your network speed, your camera, and
-how much of your AI plans you've used. Built native (SwiftUI + AppKit) with a **hard focus on low RAM and
+calendar, tasks, notes, shortcuts, timers, a teleprompter, your network speed,
+your camera, and how much of your AI plans you've used, in ten themes that
+restyle every tab. Built native (SwiftUI + AppKit) with a **hard focus on low RAM and
 near-zero idle CPU** ([measured](#efficiency)).
 
+**New in 2.0:** every tab redrawn, ten themes, a Home tab you arrange, and a
+teleprompter under the camera. See [what's new](CHANGELOG.md#200---2026-11-20).
+
 <p align="center">
-  <img src="docs/media/ai-usage.gif" width="760" alt="The open notch on the AI Usage tab: Claude and Codex as cards with rings and bars, then Claude's limits, spend, and daily usage chart">
+  <img src="docs/media/screenshots/home.png" width="760" alt="Your whole day in the notch: Home's tiles for the song that's on, the next meeting with Join, today's tasks, a timer, network speed, and the prompter">
 </p>
 
 <p align="center">
-  <img src="docs/media/screenshots/ai-usage.png" width="49%" alt="Keep an eye on your AI limits: Claude, Codex, and Copilot usage as cards in the notch">
-  <img src="docs/media/screenshots/claude.png" width="49%" alt="Know exactly where you stand: Claude's session and weekly limits, spend, and a 30-day chart">
-  <img src="docs/media/screenshots/codex.png" width="49%" alt="Every model, one glance: Codex's limits, resets, spend, and credits">
-  <img src="docs/media/screenshots/shelf.png" width="49%" alt="Park it in the notch: files dropped on the notch shelf, ready to drag out or AirDrop">
-  <img src="docs/media/screenshots/timer.png" width="49%" alt="Focus in one tap: preset timers from 1 minute to 1 hour, plus a stopwatch">
-  <img src="docs/media/screenshots/calendar.png" width="49%" alt="Your day, one hover away: today's events in the notch">
+  <img src="docs/media/screenshots/themes.png" width="49%" alt="Dress up your notch: one song in the Paper, Terminal, Brutal, and Hi-Fi themes">
+  <img src="docs/media/screenshots/music.png" width="49%" alt="The cover comes first: big artwork, a rippling seek bar, and a waveform that moves with the music">
+  <img src="docs/media/screenshots/calendar.png" width="49%" alt="Your week, one hover away: a strip of the week, the day's agenda, and the tasks due beside it">
+  <img src="docs/media/screenshots/tasks.png" width="49%" alt="Today, next, and done: your reminders on a board of three columns">
+  <img src="docs/media/screenshots/notes.png" width="49%" alt="Jot it down before it's gone: Markdown notes in a list beside the page, with checklists you tick">
+  <img src="docs/media/screenshots/clipboard.png" width="49%" alt="Everything you copied: text, links, images, and colors as a board of cards">
+  <img src="docs/media/screenshots/shelf.png" width="49%" alt="Park your files up top: files on the notch shelf as thumbnails, to drag out, AirDrop, or copy">
+  <img src="docs/media/screenshots/timer.png" width="49%" alt="Set a timer in one tap: a dial with the presets around it, a stopwatch with laps, and Keep Awake">
+  <img src="docs/media/screenshots/prompter.png" width="49%" alt="Your script, by the camera: a teleprompter under the camera that follows your voice">
+  <img src="docs/media/screenshots/ai-usage.png" width="49%" alt="Know your AI limits: session and weekly limits for Claude, Codex, Cursor, Copilot, and more">
+  <img src="docs/media/screenshots/agents.png" width="49%" alt="Know when agents need you: Claude Code and Codex sessions in one feed">
+  <img src="docs/media/screenshots/sound.png" width="49%" alt="A volume for every app: a fader for each app, the master, and the outputs">
 </p>
 
 > **Not affiliated with, endorsed by, or derived from any commercial notch app.**
@@ -72,6 +82,8 @@ trial. If you're looking around, here's what ILoveNotch offers:
   Code or Codex is waiting for your approval (both in the GitHub build).
 - The everyday things: now playing and every app's volume, a file shelf, your
   calendar and Reminders, notes, Shortcuts, timers, and your network speed.
+- **Ten themes** that restyle every tab, a **teleprompter** under the camera,
+  and a **Home** tab you arrange.
 
 ## What it does
 
@@ -84,56 +96,67 @@ trial. If you're looking around, here's what ILoveNotch offers:
   Launchpad: click one to open it, and the grid button takes you back. The
   drawer's Edit tile (or a right-click on the tabs) lets you drag the tabs into
   your own order and keep the ones you use less in the drawer, right in the
-  notch. On macOS 26, open it in Liquid Glass instead of black. Works on every
-  display: where there's no notch, it draws one inside the menu bar, or a
-  floating pill if you'd rather.
-- **Media.** What's playing in any app, with artwork, controls, shuffle and
-  repeat, a seek bar, and a waveform that moves with the music. Music's up next
-  and lyrics, Spotify's recently played, output and volume, swipe to skip, and
-  the cover in the closed notch while it plays.
-- **Sound.** Every app playing sound on a fader of its own, with its icon, to
-  turn it down or mute it; your output's and microphone's volume; and a switch
-  between your speakers, headphones, AirPods and other Bluetooth devices,
-  AirPlay, and displays. [More below](#sound).
-- **Shelf.** Drop files on the notch to keep them at hand; drag them back out,
-  preview them with Quick Look, or send them with AirDrop. Android phones
-  share with it too, over Quick Share on your Wi-Fi: send shelf files to a
-  phone, and accept files and links from one right in the notch.
+  notch. Works on every display: where there's no notch, it draws one inside
+  the menu bar, or a floating pill if you'd rather.
+- **Themes.** Ten looks in Settings › Appearance, each drawing every tab its
+  own way, down to the icons, buttons, cards, and the player: Island, Glass
+  (Liquid Glass on macOS 26), Bento, Hi-Fi with VU meters, Terminal, Aurora,
+  Cozy, Brutal, Matrix, and Paper, a light one. A theme is one JSON file, so
+  adding your own is adding a file ([docs/themes.md](docs/themes.md)).
+- **Home.** The song that's on, what's next today, your tasks, your AI plan, a
+  timer, and your script as tiles, each opening its tab, with buttons that work
+  right on the tile. Remove tiles, drag them into your order, and add your
+  latest note, recent copies, favorite shortcuts, or network speed; more tiles
+  than fit go on pages you swipe through. Off until you turn it on.
+- **Media.** What's playing in any app, led by the cover, with controls,
+  shuffle and repeat, a seek bar, and a waveform that moves with the music.
+  Music's up next and lyrics, Spotify's recently played, output and volume,
+  swipe to skip, and the cover in the closed notch while it plays.
+- **Sound.** A mixer desk: every app playing sound on a fader of its own, with
+  its icon, to turn it down or mute it; your output's and microphone's volume;
+  and a switch between your speakers, headphones, AirPods and other Bluetooth
+  devices, AirPlay, and displays. [More below](#sound).
+- **Shelf.** Drop files on the notch to keep them at hand as thumbnails; drag
+  them back out, preview them with Quick Look, or send them with AirDrop.
+  Android phones share with it too, over Quick Share on your Wi-Fi: send shelf
+  files to a phone, and accept files and links from one right in the notch.
   [More below](#android).
-- **Clipboard.** Turn on a history of what you copy (text, links, images, and
-  files), search it with ⌃⌥V from any app, and copy anything again, with
-  favorites that stay. Passwords and anything marked private are skipped.
-- **Calendar and Tasks.** Today's events with the tasks due today, an event
+- **Clipboard.** Turn on a history of what you copy (text, links, images,
+  colors, and files) as a board of cards, search it with ⌃⌥V from any app, and
+  copy anything again, with favorites that stay and a color for any card.
+  Passwords and anything marked private are skipped.
+- **Calendar and Tasks.** The week across the top; pick a day for its events,
+  the next one with its countdown and Join, and your tasks beside them. An event
   field that understands "Lunch tomorrow 1pm", and your own events to edit or
-  delete right in the notch. A Join button for Zoom,
-  Google Meet, Teams, Webex, Whereby, Jitsi, and FaceTime calls, and a
-  countdown in the closed notch for the five minutes before one starts. Your
-  Apple Reminders, grouped by date or list, synced to your iPhone through
-  iCloud: add them in plain words ("Pay rent fri 9am !! #Home"), set dates,
-  priorities, lists, and alerts, block time for one in Calendar, and see it on
-  the notch when it's due.
-- **Notes, Shortcuts, and Timer.** Markdown notes that save as you type, with
-  colors, pins, search, checklists you can send to Tasks, and a
-  Control-Option-N shortcut; your shortcuts one click away; a timer and a
-  stopwatch with laps; and Keep Awake, which stops your Mac sleeping for a
-  while or until you turn it off, with the time left in the closed notch.
-- **Network.** Your download and upload speed as it happens, over a graph of
-  the last minute, and how much you've downloaded, uploaded, and both together,
-  by the hour, day, or month. The menu bar beside the notch shows the speed
-  while a download runs, and what it downloaded when it's done.
-  [More below](#network).
-- **Mirror.** Your camera, off until you turn it on, and on only while its tab
-  is open.
+  delete right in the notch. A Join button for Zoom, Google Meet, Teams, Webex,
+  Whereby, Jitsi, and FaceTime calls, and a countdown in the closed notch for
+  the five minutes before one starts. Your Apple Reminders on a board of Today,
+  Upcoming, and Done, synced to your iPhone through iCloud: add them in plain
+  words ("Pay rent fri 9am !! #Home"), drag one to another day, click one to see
+  all of it, set dates, priorities, lists, and alerts, block time for one in
+  Calendar, and see it on the notch when it's due.
+- **Notes, Shortcuts, and Timer.** Markdown notes in a list beside the page,
+  read formatted, with colors, pins, search, checkboxes you tick or send to
+  Tasks, and a Control-Option-N shortcut; four favorite shortcuts beside a log
+  of recent runs; a timer dial with the presets around it, a stopwatch with
+  laps, and Keep Awake, which stops your Mac sleeping for a while or until you
+  turn it off, with the time left in the closed notch.
+- **Network.** Your download and upload speed as it happens, and a ledger of
+  today, this week, and this month beside bars for any day, week, month, or
+  year. The menu bar beside the notch shows the speed while a download runs,
+  and what it downloaded when it's done. [More below](#network).
+- **Mirror.** Your camera in a round mirror with a ring light you can brighten
+  and warm, off until you turn it on, and on only while its tab is open.
 - **Prompter.** A script just under the camera that follows your voice
   (recognized on your Mac), scrolls at your pace, or moves on while you speak,
   and stays out of screen sharing while it's up. Paste it, or import text,
   Markdown, or a PowerPoint deck's speaker notes. Off until you turn it on.
 - **AI Usage.** How much of each AI coding plan you've used, as a card per tool,
   across 11 providers. [More below](#ai-usage).
-- **Agents.** When Claude Code or Codex needs your approval, the closed notch
-  says so until you answer, and it tells you when one finishes while you're in
-  another app; one click takes you back to its terminal.
-  [More below](#agent-status).
+- **Agents.** A timeline of what Claude Code and Codex did. When one needs your
+  approval, the closed notch says so until you answer, and it tells you when
+  one finishes while you're in another app; one click takes you back to its
+  terminal. [More below](#agent-status).
 - **System activities.** Volume, charging and battery, and Bluetooth accessory
   batteries show briefly in the notch, and it can stand in for the macOS volume
   display.
@@ -211,13 +234,14 @@ hover, clicks, drags, sleep/lock, display changes
 |--------|------|
 | `App/` | App target generated from `project.yml`: wires features in, menu bar item, Settings |
 | `NotchCore` | State machine, `NotchEngine`, `FeatureHost` lifecycle, preferences, typed logging and signposts. No AppKit. |
+| `NotchTheme` | The themes, one JSON file each (`NotchTheme/Themes`), with the fonts and icon sets they name and the themed controls every tab draws with ([docs/themes.md](docs/themes.md)) |
 | `NotchSurface` | Fixed click-through `NSPanel` per display, animatable `NotchShape`, `PanelCoordinator` (displays, sleep, lock), notch geometry from **public** APIs (`safeAreaInsets`, `auxiliaryTop*Area`), and the tab row's editor (`TabEditor`) and app drawer (`AppDrawer`) |
-| `NotchFeatures` | Feature modules (Media, Shelf, Clipboard, Calendar, Tasks, Notes, Shortcuts, Timer, Network, Mirror, and Prompter, adapted from [Textream](https://github.com/f/textream) (MIT)), each a `NotchFeature` with its views and settings, and the event-driven system monitors and hooks (volume, battery, accessories, volume keys, keyboard shortcuts, Show in Notch) |
+| `NotchFeatures` | Feature modules (Home, Media, Shelf, Clipboard, Calendar, Tasks, Notes, Shortcuts, Timer, Network, Mirror, and Prompter, adapted from [Textream](https://github.com/f/textream) (MIT)), each a `NotchFeature` with its views and settings, and the event-driven system monitors and hooks (volume, battery, accessories, volume keys, keyboard shortcuts, Show in Notch) |
 | `NotchUsage` | The GitHub build's developer tabs: AI Usage (provider tiles, rings, pace, spend, and trends, over providers adapted from [OpenUsage](https://github.com/robinebers/openusage) (MIT) in `NotchUsage/OpenUsage`) and Agents (Claude Code and Codex hooks, in `NotchUsage/Agents`) |
 | `NotchTransfer` | The GitHub build's Android sharing: Quick Share on Apple's own frameworks (Bonjour, CryptoKit, Network.framework) in `NotchTransfer/QuickShare`, with the shelf's request card, the send window, and settings |
 | `NotchMixer` | The GitHub build's Sound tab: output and input devices and their volume, and per-app volume on Core Audio process taps (macOS 14.2+), with a private aggregate device for each app turned down while it plays |
 | `ThirdParty/` | [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter) (BSD-3-Clause) as a git submodule |
-| `Tests/` | Unit tests (reducer transitions and fuzzing, engine, feature host, preferences, geometry, features, the mixer, network counters and history), offscreen snapshot tests, XCTest performance tests, and OpenUsage's provider tests on its fixtures (`OpenUsageTests`) |
+| `Tests/` | Unit tests (reducer transitions and fuzzing, engine, feature host, preferences, geometry, features, themes, the mixer, network counters and history), offscreen snapshot tests, XCTest performance tests, OpenUsage's provider tests on its fixtures (`OpenUsageTests`), and the renders behind the screenshots above (`StoreScreenshotTests`) |
 
 The full design is in the [implementation plan](docs/plan/implementation-plan.md)
 and the [architecture diagram](docs/plan/architecture.html).
