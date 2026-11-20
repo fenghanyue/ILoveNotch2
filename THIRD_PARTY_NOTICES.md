@@ -263,8 +263,8 @@ https://iconoir.com (https://github.com/iconoir-icons/iconoir)
 Copyright (c) 2021 Luca Burgio
 
 The icons in `Sources/NotchTheme/Icons/iconoir` are Iconoir 7.12.2's regular
-SVGs (solid for `pin-on`), unchanged but renamed by role; `set.json` maps each
-role to its Iconoir name.
+SVGs (solid for the filled ones, such as `pin-on` and `star-fill`), unchanged
+but renamed by role; `set.json` maps each role to its Iconoir name.
 
 ```text
 MIT License
@@ -353,7 +353,7 @@ Richard9394/MingCute)
 Copyright MingCute Design
 
 The icons in `Sources/NotchTheme/Icons/mingcute` are MingCute Icons 3.1.0's
-Core Regular SVGs (Core Filled for `apps-on` and `pin-on`), unchanged but
+Core Regular SVGs (Core Filled for the filled ones, such as `pin-on`), unchanged but
 renamed by role; `set.json` maps each role to its path under the release's
 `assets/svg/core`. The full license ships beside them as `LICENSE`.
 
@@ -377,7 +377,7 @@ https://phosphoricons.com (https://github.com/phosphor-icons/core)
 Copyright (c) 2023 Phosphor Icons
 
 The icons in `Sources/NotchTheme/Icons/phosphor-duotone` and `phosphor-bold`
-are Phosphor 2.1.1's duotone and bold SVGs (fill for `apps-on` and `pin-on`),
+are Phosphor 2.1.1's duotone and bold SVGs (fill for the filled ones, such as `pin-on`),
 from npm `@phosphor-icons/core@2.1.1`, unchanged but renamed by role;
 `set.json` maps each role to its Phosphor name.
 
