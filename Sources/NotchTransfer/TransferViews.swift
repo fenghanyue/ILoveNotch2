@@ -6,11 +6,11 @@ import NotchTheme
 import SwiftUI
 
 extension TransferFeature {
-    /// The Shelf tab, with a phone's request, its transfer, or the text it sent in place of the
-    /// shelf while there is one.
+    /// The Shelf tab, with a phone's request, its transfer, or the text it sent as a wide tile at
+    /// the head of the shelf's grid while there is one.
     public func shelfView(_ shelf: AnyView) -> some View { TransferShelf(transfer: self, shelf: shelf) }
 
-    /// Receiving from Android, for the shelf's footer.
+    /// Receiving from Android, for the shelf's bar.
     public var receiveControl: some View { ReceiveControl(transfer: self) }
 
     /// Settings › Shelf: receiving from Android.
@@ -23,127 +23,161 @@ private struct TransferShelf: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        Group {
-            if let incoming = transfer.incoming, incoming.offer != nil {
-                IncomingCard(transfer: transfer, incoming: incoming)
-                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
-            } else {
-                shelf.transition(.opacity)
-            }
-        }
-        .animation(reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.85), value: transfer.incoming?.id)
+        shelf
+            .environment(\.shelfIncoming, tile)
+            .animation(
+                reduceMotion ? nil : .spring(response: 0.32, dampingFraction: 0.85), value: transfer.incoming?.id)
+    }
+
+    /// The phone's tile, once it has said what it's sending.
+    private var tile: AnyView? {
+        guard let incoming = transfer.incoming, incoming.offer != nil else { return nil }
+        return AnyView(IncomingTile(transfer: transfer, incoming: incoming))
     }
 }
 
 // MARK: - In the notch
 
-/// A phone asking to send, then its progress, or the text it sent. The smallest notch gets a
-/// denser card, with its buttons moved up beside the details.
-private struct IncomingCard: View {
+/// A phone asking to send, then its progress, or the text it sent, as a wide tile in the shelf's
+/// grid: the phone and what it's sending over what to do, or, a row of the smallest notch tall,
+/// all in one line. Without styled controls (Black) it glows in the accent, the one lit tile.
+private struct IncomingTile: View {
     let transfer: TransferFeature
     let incoming: Incoming
 
     @Environment(\.theme) private var theme
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: theme.controls?.radius ?? 14, style: .continuous)
         ViewThatFits(in: .vertical) {
-            card(compact: false)
-            card(compact: true)
+            content(compact: false)
+            content(compact: true)
         }
-        .frame(maxHeight: .infinity)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background {
+            if theme.controls == nil {
+                shape.fill(
+                    LinearGradient(
+                        colors: [theme.color(.accent).opacity(0.24), theme.color(.ink).opacity(0.06)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing)
+                )
+                .shadow(color: theme.color(.accent).opacity(0.28), radius: 12)
+            }
+        }
+        .themePlatter(theme.controls == nil ? 0 : 0.08, in: shape)
         .buttonStyle(.plain)
+        .help(incoming.text == nil ? incoming.offer?.detail ?? "" : "")
         .accessibilityElement(children: .contain)
     }
 
-    private func card(compact: Bool) -> some View {
-        VStack(spacing: 12) {
-            if let text = incoming.text {
-                received(text, compact: compact)
-            } else if let offer = incoming.offer {
-                if let progress = incoming.progress {
-                    receiving(offer, progress: progress)
-                } else {
-                    request(offer, compact: compact)
-                }
+    @ViewBuilder private func content(compact: Bool) -> some View {
+        if let text = incoming.text {
+            received(text, compact: compact)
+        } else if let offer = incoming.offer {
+            if let progress = incoming.progress {
+                receiving(offer, progress: progress, compact: compact)
+            } else {
+                request(offer, compact: compact)
             }
         }
-        .padding(compact ? 10 : 14)
-        .frame(maxWidth: .infinity)
-        .themePlatter(0.08, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func request(_ offer: InboundSession.Offer, compact: Bool) -> some View {
-        VStack(spacing: compact ? 8 : 12) {
-            HStack(spacing: 12) {
-                DeviceBadge(symbol: offer.kind.symbol)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(offer.device).themeFont(.body, .headline).lineLimit(1)
-                    Text("wants to send \(offer.what)").themeFont(.body, .callout)
-                        .foregroundStyle(.themeInk.opacity(0.65)).lineLimit(1)
-                }
-                Spacer(minLength: 8)
-                VStack(alignment: .trailing, spacing: 0) {
-                    Text("CODE").themeFont(.body, .caption2, weight: .semibold).foregroundStyle(.themeInk.opacity(0.45))
-                    Text(offer.pin).themeFont(.numbers, size: 22, weight: .semibold, design: .rounded).monospacedDigit()
-                        .kerning(1.5)
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Code \(offer.pin.map(String.init).joined(separator: " "))")
-                .help("The same code shows on the phone")
-            }
-            // Middle-truncated, so the last name and the size stay in view.
-            let detail = Text(offer.detail ?? "").themeFont(.body, .caption).foregroundStyle(.themeInk.opacity(0.5))
-                .lineLimit(1)
-                .truncationMode(.middle).frame(maxWidth: .infinity, alignment: .leading)
-            if !compact, offer.detail != nil { detail }
-            HStack(spacing: 8) {
-                if compact { detail } else { Spacer() }
+        arrange(
+            compact: compact,
+            head: head(offer.kind.symbol, offer.device, Text("wants to send \(offer.what)"), compact: compact),
+            leading: code(offer.pin),
+            buttons: HStack(spacing: 6) {
                 CapsuleButton("Decline", prominent: false, action: transfer.declineIncoming)
                 CapsuleButton("Accept", prominent: true, action: transfer.acceptIncoming)
-            }
-        }
+            })
     }
 
-    private func receiving(_ offer: InboundSession.Offer, progress: Double) -> some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 12) {
-                DeviceBadge(symbol: offer.kind.symbol)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Receiving from \(offer.device)").themeFont(.body, .headline).lineLimit(1)
-                    Text("\(offer.what.capitalizedFirst) · \(Int(progress * 100))%").themeFont(.body, .callout)
-                        .monospacedDigit()
-                        .foregroundStyle(.themeInk.opacity(0.65)).lineLimit(1)
-                }
-                Spacer(minLength: 8)
-                CapsuleButton("Cancel", prominent: false, action: transfer.cancelIncoming)
-            }
-            ProgressView(value: progress).progressViewStyle(.linear).tint(theme.color(.ink))
-                .accessibilityLabel("Receiving")
-        }
+    private func receiving(_ offer: InboundSession.Offer, progress: Double, compact: Bool) -> some View {
+        arrange(
+            compact: compact,
+            head: head(
+                offer.kind.symbol, "Receiving from \(offer.device)",
+                Text("\(offer.what.capitalizedFirst) · \(Int(progress * 100))%").monospacedDigit(), compact: compact),
+            leading: ProgressView(value: progress).progressViewStyle(.linear).tint(theme.color(.ink))
+                .frame(maxWidth: compact ? 72 : .infinity)
+                .accessibilityLabel("Receiving"),
+            buttons: CapsuleButton("Cancel", prominent: false, action: transfer.cancelIncoming))
     }
 
     private func received(_ text: ReceivedText, compact: Bool) -> some View {
-        VStack(alignment: .leading, spacing: compact ? 8 : 10) {
-            HStack(spacing: 12) {
-                DeviceBadge(symbol: text.isLink ? "link" : "text.alignleft")
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(incoming.device) sent \(text.isLink ? "a link" : "text")").themeFont(.body, .headline)
-                        .lineLimit(1)
-                    ThemeLabel("Copied to the clipboard", symbol: "checkmark").themeFont(.body, .callout)
-                        .foregroundStyle(.themeInk.opacity(0.65))
+        arrange(
+            compact: compact,
+            head: head(
+                text.isLink ? "link" : "text.alignleft", "\(incoming.device) sent \(text.isLink ? "a link" : "text")",
+                ThemeLabel("Copied to the clipboard", symbol: "checkmark"), compact: compact),
+            leading: Group {
+                if !compact {
+                    Text(text.text).themeFont(.body, size: 11).lineLimit(1).truncationMode(.middle)
+                        .textSelection(.enabled).foregroundStyle(.themeInk.opacity(0.85))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                Spacer(minLength: 0)
-            }
-            let sent = Text(text.text).themeFont(.body, .callout).lineLimit(compact ? 1 : 3).truncationMode(.middle)
-                .textSelection(.enabled).foregroundStyle(.themeInk.opacity(0.85))
-                .frame(maxWidth: .infinity, alignment: .leading)
-            if !compact { sent }
-            HStack(spacing: 8) {
-                if compact { sent } else { Spacer() }
+            },
+            buttons: HStack(spacing: 6) {
                 CapsuleButton("Done", prominent: !text.isLink, action: transfer.dismissText)
                 if text.isLink { CapsuleButton("Open", prominent: true, action: transfer.openLink) }
+            })
+    }
+
+    /// The device and two lines beside it; in one row, the lines alone, so the name has room.
+    private func head(_ symbol: String, _ title: String, _ subtitle: some View, compact: Bool) -> some View {
+        HStack(spacing: 10) {
+            if !compact { DeviceBadge(symbol: symbol) }
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title).themeFont(.display, size: 14, weight: .semibold).lineLimit(1)
+                subtitle.themeFont(.body, size: 11).foregroundStyle(.themeSecondary).lineLimit(1)
             }
         }
+    }
+
+    /// The head over `leading` and the buttons, or all in one row.
+    private func arrange(compact: Bool, head: some View, leading: some View, buttons: some View) -> some View {
+        Group {
+            if compact {
+                HStack(spacing: 8) {
+                    head
+                    Spacer(minLength: 4)
+                    leading
+                    buttons
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    head
+                    Spacer(minLength: 6)
+                    HStack(alignment: .bottom, spacing: 6) {
+                        leading
+                        Spacer(minLength: 4)
+                        buttons
+                    }
+                }
+            }
+        }
+    }
+
+    /// The code both screens show; a theme that picks with a block (Terminal) prints it inverted.
+    private func code(_ pin: String) -> some View {
+        let block = theme.controls?.selection == .block
+        return VStack(alignment: .leading, spacing: 2) {
+            Text("CODE").themeFont(.body, size: 9, weight: .semibold).kerning(0.7).foregroundStyle(.themeSecondary)
+            Text(pin).themeFont(.numbers, size: 19, weight: .semibold, design: .rounded).monospacedDigit()
+                .kerning(1.5)
+                .foregroundStyle(block ? .themeOnAccent : .themeInk)
+                .padding(.horizontal, block ? 4 : 0)
+                .background {
+                    if block { Rectangle().fill(.themeAccent) }
+                }
+        }
+        .fixedSize()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Code \(pin.map(String.init).joined(separator: " "))")
+        .help("The same code shows on the phone")
     }
 }
 
@@ -153,14 +187,14 @@ private struct DeviceBadge: View {
 
     var body: some View {
         ThemeSymbol(symbol)
-            .themeFont(.body, size: 17, weight: .medium)
-            .frame(width: 38, height: 38)
+            .themeFont(.body, size: 15, weight: .medium)
+            .frame(width: 32, height: 32)
             .themePlatter(0.12, in: Circle())
             .accessibilityHidden(true)
     }
 }
 
-/// The notch's buttons: a light capsule, filled with the accent color for the main action.
+/// The notch's buttons: a chip in the theme's shape, filled with the accent for the main action.
 private struct CapsuleButton: View {
     let title: String
     let prominent: Bool
@@ -175,20 +209,27 @@ private struct CapsuleButton: View {
     }
 
     var body: some View {
+        let shape =
+            theme.controls?.radius.map { AnyShape(RoundedRectangle(cornerRadius: $0, style: .continuous)) }
+            ?? AnyShape(Capsule())
         Button(action: action) {
             Text(title)
-                .themeFont(.body, .callout, weight: .semibold)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 5)
-                .background(prominent ? theme.color(.accent) : .clear, in: Capsule())
-                .themePlatter(prominent ? 0 : 0.14, in: Capsule())
-                .contentShape(Capsule())
+                .themeFont(.body, size: 11, weight: .semibold)
+                .fixedSize()  // a tight row truncates the device's name, never a button
+                .foregroundStyle(prominent ? ThemeStyle.themeOnAccent : .themeSecondary)
+                .padding(.horizontal, prominent ? 12 : 10)
+                .frame(height: 26)
+                .background {
+                    if prominent { shape.fill(.themeAccent) }
+                }
+                .themePlatter(prominent ? 0 : 0.1, in: Capsule())
+                .contentShape(shape)
         }
         .buttonStyle(.plain)
     }
 }
 
-/// In the shelf's footer: receive for 10 minutes, how long is left, or that the Mac is visible.
+/// In the shelf's bar: receive for 10 minutes, how long is left, or that the Mac is visible.
 private struct ReceiveControl: View {
     let transfer: TransferFeature
 
@@ -224,16 +265,10 @@ private struct ReceiveControl: View {
                     .help("Android phones on this Wi-Fi can send files to this Mac with Quick Share")
             } else {
                 Button(action: transfer.receiveForTenMinutes) {
-                    Label {
-                        ViewThatFits(in: .horizontal) {
-                            Text("Receive from Android")
-                            Text("Receive")
-                        }
-                    } icon: {
-                        ThemeSymbol("arrow.down.circle")
-                    }
+                    ThemeLabel("Receive", symbol: "dot.radiowaves.left.and.right")
                 }
                 .help("Let Android phones on this Wi-Fi find this Mac for 10 minutes")
+                .accessibilityLabel("Receive from Android")
             }
         }
         .labelStyle(.titleAndIcon)

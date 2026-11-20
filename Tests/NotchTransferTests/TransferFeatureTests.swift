@@ -91,22 +91,29 @@ struct TransferSnapshotTests {
             size: photos.reduce(0) { $0 + $1.size })
     }
 
+    /// An empty shelf: the phone's tile heads its grid.
+    private func emptyShelf() throws -> AnyView {
+        let folder = FileManager.default.temporaryDirectory.appending(path: "AndroidOffer-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        return AnyView(ShelfFeature(storeURL: folder.appending(path: "shelf.json")).view)
+    }
+
     @Test func aPhoneAskingToSend() throws {
         transfer.show(incoming: Incoming(id: UUID(), link: link, offer: offer()))
-        try render(transfer.shelfView(AnyView(Color.clear)), name: "android-request")
+        try render(transfer.shelfView(emptyShelf()), name: "android-request")
         transfer.show(incoming: Incoming(id: UUID(), link: link, offer: offer(files: 1)))
-        try render(transfer.shelfView(AnyView(Color.clear)), name: "android-request-one-file")
+        try render(transfer.shelfView(emptyShelf()), name: "android-request-one-file")
     }
 
     @Test func receivingAndReceivedText() throws {
         transfer.show(incoming: Incoming(id: UUID(), link: link, offer: offer(), progress: 0.62))
-        try render(transfer.shelfView(AnyView(Color.clear)), name: "android-receiving")
+        try render(transfer.shelfView(emptyShelf()), name: "android-receiving")
         let link = TextOffer(title: "Swift Concurrency", kind: .url, size: 40, payloadID: 9)
         transfer.show(
             incoming: Incoming(
                 id: UUID(), link: self.link, offer: offer(files: 0, text: link),
                 text: ReceivedText(text: "https://www.swift.org/documentation/concurrency/", kind: .url)))
-        try render(transfer.shelfView(AnyView(Color.clear)), name: "android-link")
+        try render(transfer.shelfView(emptyShelf()), name: "android-link")
     }
 
     @Test func theShelfWithAndroidInItsFooter() throws {

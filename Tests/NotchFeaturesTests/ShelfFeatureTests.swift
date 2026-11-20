@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-import Foundation
+import AppKit
 import NotchCore
 import Testing
 
@@ -71,8 +71,37 @@ struct ShelfFeatureTests {
         #expect(shelf.items.count == 2, "missing files are shown, not dropped")
         #expect(shelf.url(for: shelf.items[0]) == nil)
         #expect(shelf.url(for: shelf.items[1]) != nil)
-        shelf.remove(shelf.items[0])
+        shelf.remove([shelf.items[0]])
         #expect(ShelfFeature(storeURL: store).items.map(\.name) == ["kept.txt"])
+    }
+
+    @Test func theBarActsOnThePickOrOnEverything() throws {
+        let pasteboard = NSPasteboard(name: .init("ShelfTests.\(UUID().uuidString)"))
+        let shelf = ShelfFeature(storeURL: store, pasteboard: pasteboard)
+        shelf.add([try file("a.txt"), try file("b.txt"), try file("c.txt")])
+        let (a, b, c) = (shelf.items[0], shelf.items[1], shelf.items[2])
+        #expect(shelf.targets.map(\.name) == ["a.txt", "b.txt", "c.txt"], "nothing picked: every file")
+
+        shelf.select(c, adding: false)
+        shelf.select(a, adding: true)
+        #expect(shelf.targets.map(\.name) == ["a.txt", "c.txt"], "in shelf order")
+        shelf.select(c, adding: true)
+        #expect(shelf.selection == [a.id], "⌘-click takes a picked file out")
+        shelf.select(b, adding: false)
+        #expect(shelf.selection == [b.id], "a plain click picks just that one")
+
+        shelf.copy(shelf.targets)
+        let other = ShelfFeature(storeURL: folder.appending(path: "other.json"), pasteboard: pasteboard)
+        #expect(other.paste())
+        #expect(other.items.map(\.name) == ["b.txt"], "a copied file pastes as itself")
+        #expect(!other.paste(), "pasting it again adds nothing")
+
+        shelf.remove(shelf.targets)
+        #expect(shelf.items.map(\.name) == ["a.txt", "c.txt"])
+        #expect(shelf.selection.isEmpty, "a removed file leaves the pick")
+        shelf.select(a, adding: false)
+        shelf.phase = .background
+        #expect(shelf.selection.isEmpty, "closing the notch drops the pick")
     }
 
     @Test func theShelfIsBounded() throws {

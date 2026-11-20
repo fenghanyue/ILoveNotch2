@@ -19,11 +19,14 @@ public struct ShelfItem: Codable, Hashable, Identifiable, Sendable {
 public final class ShelfFeature: NotchFeature {
     public let id = FeatureID.shelf
     public var phase: FeaturePhase = .stopped {
-        didSet { if phase == .foreground { refresh() } }
+        // Off screen, the pick is dropped, so the shelf never opens holding the keyboard for one.
+        didSet { if phase == .foreground { refresh() } else { selection = [] } }
     }
     public private(set) var items: [ShelfItem] = []
     /// Where each file is now. An item without a location is missing.
     public private(set) var locations: [ShelfItem.ID: URL] = [:]
+    /// The files picked in the tray.
+    public var selection: Set<ShelfItem.ID> = []
     /// Raised when files land on the shelf.
     @ObservationIgnored public var onActivity: ((Activity) -> Void)?
     /// Sends files to an Android phone, in the build that can (the GitHub build's Quick Share).
@@ -37,12 +40,14 @@ public final class ShelfFeature: NotchFeature {
     /// security-scoped bookmark, and holds access to each file while it's on the shelf.
     static let sandboxed = ProcessInfo.processInfo.environment["APP_SANDBOX_CONTAINER_ID"] != nil
     @ObservationIgnored private let storeURL: URL
+    @ObservationIgnored private let pasteboard: NSPasteboard
     @ObservationIgnored private let quickLook = QuickLookSource()
     /// Files whose security scope is open, in a sandboxed build.
     @ObservationIgnored private var accessing: [ShelfItem.ID: URL] = [:]
 
-    public init(storeURL: URL = AppSupport.file("shelf.json")) {
+    public init(storeURL: URL = AppSupport.file("shelf.json"), pasteboard: NSPasteboard = .general) {
         self.storeURL = storeURL
+        self.pasteboard = pasteboard
         if let data = try? Data(contentsOf: storeURL) {
             items = (try? JSONDecoder().decode([ShelfItem].self, from: data)) ?? []
         }
@@ -71,27 +76,54 @@ public final class ShelfFeature: NotchFeature {
         return true
     }
 
-    public func remove(_ item: ShelfItem) {
-        items.removeAll { $0.id == item.id }
-        locations[item.id] = nil
-        accessing.removeValue(forKey: item.id)?.stopAccessingSecurityScopedResource()
+    /// Takes files off the shelf; they stay on disk.
+    public func remove(_ gone: [ShelfItem]) {
+        let ids = Set(gone.map(\.id))
+        items.removeAll { ids.contains($0.id) }
+        selection.subtract(ids)
+        for id in ids {
+            locations[id] = nil
+            accessing.removeValue(forKey: id)?.stopAccessingSecurityScopedResource()
+        }
         save()
     }
 
-    public func removeAll() {
-        items = []
-        locations = [:]
-        for url in accessing.values { url.stopAccessingSecurityScopedResource() }
-        accessing = [:]
-        save()
+    public func removeAll() { remove(items) }
+
+    /// A click picks just this file; with ⌘ it adds it to the pick, or takes it out.
+    public func select(_ item: ShelfItem, adding: Bool) {
+        selection = adding ? selection.symmetricDifference([item.id]) : [item.id]
     }
+
+    /// The picked files, in shelf order.
+    public var selected: [ShelfItem] { items.filter { selection.contains($0.id) } }
+
+    /// What the tray's bar acts on: the picked files, or every file when none is picked.
+    public var targets: [ShelfItem] { selection.isEmpty ? items : selected }
 
     /// The file's current location, or nil if it's missing.
     public func url(for item: ShelfItem) -> URL? { locations[item.id] }
 
-    public func quickLook(_ item: ShelfItem) {
-        guard let url = url(for: item) else { return }
-        quickLook.show(url)
+    /// Previews the files, one after another with the panel's arrows.
+    public func quickLook(_ items: [ShelfItem]) {
+        let urls = items.compactMap(url(for:))
+        guard !urls.isEmpty else { return }
+        quickLook.show(urls)
+    }
+
+    /// Puts the files on the clipboard, as Finder's Copy does, to paste in Finder or an app.
+    public func copy(_ items: [ShelfItem]) {
+        let urls = items.compactMap(url(for:))
+        guard !urls.isEmpty else { return }
+        pasteboard.clearContents()
+        pasteboard.writeObjects(urls as [NSURL])
+    }
+
+    /// Adds the files on the clipboard. Returns whether any were new to the shelf.
+    @discardableResult
+    public func paste() -> Bool {
+        let options: [NSPasteboard.ReadingOptionKey: Any] = [.urlReadingFileURLsOnly: true]
+        return add(pasteboard.readObjects(forClasses: [NSURL.self], options: options) as? [URL] ?? [])
     }
 
     public func airDrop(_ items: [ShelfItem]) {
@@ -144,24 +176,25 @@ public final class ShelfFeature: NotchFeature {
     }
 }
 
-/// Feeds one file to the shared Quick Look panel, independent of the notch's views, so the preview
+/// Feeds files to the shared Quick Look panel, independent of the notch's views, so the preview
 /// stays open when the notch collapses.
 @MainActor
 private final class QuickLookSource: NSObject, @preconcurrency QLPreviewPanelDataSource {
-    private var url: URL?
+    private var urls: [URL] = []
 
-    func show(_ url: URL) {
-        self.url = url
+    func show(_ urls: [URL]) {
+        self.urls = urls
         guard let panel = QLPreviewPanel.shared() else { return }
         panel.dataSource = self
         panel.reloadData()
+        panel.currentPreviewItemIndex = 0
         NSApp.activate()
         panel.makeKeyAndOrderFront(nil)
     }
 
-    func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int { url == nil ? 0 : 1 }
+    func numberOfPreviewItems(in panel: QLPreviewPanel!) -> Int { urls.count }
 
     func previewPanel(_ panel: QLPreviewPanel!, previewItemAt index: Int) -> (any QLPreviewItem)! {
-        url as NSURL?
+        urls.indices.contains(index) ? urls[index] as NSURL : nil
     }
 }
