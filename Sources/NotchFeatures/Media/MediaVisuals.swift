@@ -146,6 +146,71 @@ struct Waveform: View, Animatable {
     }
 }
 
+/// A VU meter for the Hi-Fi player: a cream face with its scale, red zone, and ticks, and a needle
+/// that swings with the loudest of the lower bands (`channel` 0) or the upper ones (1), or sways
+/// while nothing can be heard. It rests at the left when paused. The face is the meter's own
+/// artwork, in its own colors whatever the accent.
+struct VUMeter: View, Animatable {
+    /// 1 while playing, 0 when paused; animating it lays the needle down.
+    var level: Double
+    var time: Double
+    var bands: [Float] = []
+    var channel: Int
+
+    nonisolated var animatableData: Double {
+        get { level }
+        set { level = newValue }
+    }
+
+    private static let face = Color(red: 0xF5 / 255, green: 0xDF / 255, blue: 0xA8 / 255)
+    private static let ink = Color(red: 0x2A / 255, green: 0x24 / 255, blue: 0x20 / 255)
+    private static let red = Color(red: 0xC4 / 255, green: 0x35 / 255, blue: 0x2B / 255)
+
+    var body: some View {
+        Canvas { context, size in
+            let outline = Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 8)
+            context.fill(outline, with: .color(Self.face))
+            context.clip(to: outline)
+            // The needle pivots below the face; 0° points straight up, the scale runs ±45°.
+            let pivot = CGPoint(x: size.width / 2, y: size.height * 1.2)
+            let radius = size.height * 0.95
+            func point(_ degrees: Double, _ distance: CGFloat) -> CGPoint {
+                let angle = degrees * .pi / 180
+                return CGPoint(x: pivot.x + distance * sin(angle), y: pivot.y - distance * cos(angle))
+            }
+            func arc(from start: Double, to end: Double) -> Path {
+                Path { path in
+                    path.move(to: point(start, radius))
+                    for degrees in stride(from: start, through: end, by: 1) { path.addLine(to: point(degrees, radius)) }
+                }
+            }
+            context.stroke(arc(from: -45, to: 45), with: .color(Self.ink), lineWidth: 1.5)
+            context.stroke(arc(from: 22, to: 45), with: .color(Self.red), lineWidth: 4)
+            for degrees in stride(from: -45.0, through: 45, by: 18) {
+                let tick = Path { $0.addLines([point(degrees, radius), point(degrees, radius - 6)]) }
+                context.stroke(tick, with: .color(Self.ink), lineWidth: 1)
+            }
+            context.draw(
+                Text("VU").font(.system(size: 12, design: .serif).italic()).foregroundStyle(Self.ink),
+                at: CGPoint(x: size.width / 2, y: size.height * 0.62))
+            context.draw(
+                Text(channel == 0 ? "L" : "R").font(.system(size: 8, weight: .bold)).foregroundStyle(Self.ink),
+                at: CGPoint(x: 9, y: size.height - 9))
+            let needle = Path { $0.addLines([pivot, point(-45 + 90 * min(max(energy * level, 0), 1), radius + 4)]) }
+            context.stroke(needle, with: .color(.black.opacity(0.9)), lineWidth: 1.6)
+        }
+    }
+
+    private var energy: Double {
+        guard !bands.isEmpty else {
+            let shift = Double(channel) * 1.7
+            return 0.55 + 0.2 * sin(time * 2.3 + shift) + 0.1 * sin(time * 6.1 + shift)
+        }
+        let half = bands.count / 2
+        return Double((channel == 0 ? bands[..<half] : bands[half...]).max() ?? 0)
+    }
+}
+
 /// Shrinks a little while pressed and springs back, so controls feel physical.
 public struct PressableButtonStyle: ButtonStyle {
     public init() {}

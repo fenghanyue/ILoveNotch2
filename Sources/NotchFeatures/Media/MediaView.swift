@@ -28,7 +28,6 @@ struct MediaView: View {
     /// The player's color: the artwork's, or the theme's when its seek bar says so.
     private var tint: Color { theme.color(theme.seekBar.fill, artwork: media.accent?.color) }
     private var waveformTint: Color { theme.color(theme.waveform.fill, artwork: media.accent?.color) }
-    private var terminal: Bool { theme.skin(.musicPlayer) == "terminal" }
 
     var body: some View {
         if let now = media.nowPlaying {
@@ -68,13 +67,21 @@ struct MediaView: View {
     /// beside the track, so the player never clips.
     private func player(_ now: NowPlaying) -> some View {
         Group {
-            if terminal {
+            switch theme.skin(.musicPlayer) {
+            case "terminal"?:
                 ViewThatFits(in: .vertical) {
                     terminalPlayer(now, art: true, waveform: true)
                     terminalPlayer(now, art: true, waveform: false)
                     terminalPlayer(now, art: false, waveform: false)
                 }
-            } else {
+            case "hifi"?:
+                ViewThatFits {
+                    hifiPlayer(now, meters: true, waveform: true, compact: false)
+                    hifiPlayer(now, meters: false, waveform: true, compact: false)
+                    hifiPlayer(now, meters: false, waveform: false, compact: false)
+                    hifiPlayer(now, meters: false, waveform: false, compact: true)
+                }
+            default:
                 ViewThatFits(in: .vertical) {
                     player(now, artwork: 72, waveform: true)
                     player(now, artwork: 72, waveform: false)
@@ -523,6 +530,169 @@ struct MediaView: View {
         .accessibilityAddTraits(lit ? .isSelected : [])
     }
 
+    // MARK: Hi-Fi skin
+
+    // The display's and keys' own colors, the hardware's whatever the accent.
+    private static let well = Color(red: 0x07 / 255, green: 0x0A / 255, blue: 0x09 / 255)
+    private static let wellLine = Color(white: 0x2A / 255)
+    private static let keyUp = [
+        Color(white: 0xED / 255), Color(red: 0xA7 / 255, green: 0xA9 / 255, blue: 0xAC / 255),
+    ]
+    private static let keyDown = [
+        Color(white: 0xD9 / 255), Color(red: 0x9A / 255, green: 0x9C / 255, blue: 0x9F / 255),
+    ]
+    private static let keyInk = Color(white: 0x22 / 255)
+    private static let keyEdge = Color(red: 0x4A / 255, green: 0x4A / 255, blue: 0x4C / 255)
+
+    /// The Hi-Fi theme's player: a glowing display (the track, the seek line, and the waveform),
+    /// silver keys under it, and two VU meters beside it, with no artwork. The meters and the
+    /// waveform move only while music plays, and lie still with Reduce Motion. Narrower notches drop
+    /// the meters, shorter ones the waveform, then (`compact`) the album line, shuffle, and repeat.
+    private func hifiPlayer(_ now: NowPlaying, meters: Bool, waveform: Bool, compact: Bool) -> some View {
+        let animating = now.isPlaying && !reduceMotion
+        return TimelineView(.animation(minimumInterval: 1 / 30, paused: !animating)) { context in
+            let time = context.date.timeIntervalSinceReferenceDate
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 12) {
+                    display(now, at: context.date, time: time, waveform: waveform, meta: !compact)
+                        // Fits by the room the notch has, not by how long the track's name is.
+                        .frame(minWidth: 160, idealWidth: 160, maxWidth: .infinity)
+                    if meters {
+                        let heard = media.audio.isHearing ? media.audio.bands : []
+                        VStack(spacing: 8) {
+                            ForEach(0..<2, id: \.self) { channel in
+                                VUMeter(level: animating ? 1 : 0, time: time, bands: heard, channel: channel)
+                                    .frame(width: 128, height: 54)
+                            }
+                        }
+                        .animation(.easeInOut(duration: 0.5), value: animating)
+                        .accessibilityHidden(true)
+                    }
+                }
+                hifiKeys(now, modes: media.hasModes && !compact)
+                if media.automationDenied, let player = media.scriptedPlayer {
+                    permissionHint(player)
+                }
+            }
+        }
+    }
+
+    /// The display: the title and the panels' words, the artist, album, and app, the seek line, and
+    /// the waveform, in capitals in the accent. The words glow, as a fluorescent display's do.
+    private func display(_ now: NowPlaying, at date: Date, time: Double, waveform: Bool, meta: Bool) -> some View {
+        let app = now.appBundleID.flatMap { NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0) }
+        let line = [now.artist, now.album, app?.deletingPathExtension().lastPathComponent].compactMap { $0 }
+            .joined(separator: " · ")
+        let glow = theme.color(.accent).opacity(reduceTransparency ? 0 : 0.6)
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(now.title).themeFont(.mono, size: 30).lineLimit(1)
+                Spacer(minLength: 0)
+                hifiPanelButtons
+            }
+            .shadow(color: glow, radius: 4)
+            if meta, !line.isEmpty {
+                Text(line).themeFont(.mono, size: 17).opacity(0.6).lineLimit(1).shadow(color: glow, radius: 4)
+            }
+            seekBar(now, at: date, phase: time * 2.4)
+            if waveform { liveWaveform(animating: now.isPlaying && !reduceMotion, time: time) }
+        }
+        .textCase(.uppercase)
+        .foregroundStyle(.themeAccent)
+        .padding(10)
+        .background(Self.well, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Self.wellLine, lineWidth: 1))
+    }
+
+    @ViewBuilder private var hifiPanelButtons: some View {
+        if let player = media.scriptedPlayer {
+            let spotify = player == .spotify
+            displayWord(spotify ? "History" : "Next", label: spotify ? "Recently played" : "Up next") { show(.list) }
+        }
+        if media.lyrics != nil {
+            displayWord("Lyrics", label: "Lyrics") { show(.lyrics) }
+        }
+        if media.outputControl != nil {
+            displayWord("Out", label: "Output and volume") { show(.output) }
+        }
+    }
+
+    private func displayWord(_ word: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(word).themeFont(.mono, size: 17).opacity(0.6)
+        }
+        .buttonStyle(PressableButtonStyle())
+        .help(label)
+        .accessibilityLabel(label)
+    }
+
+    /// Silver keys: back, play or pause (pressed in while playing, with its light on), ahead, and
+    /// shuffle and repeat, lit while on.
+    private func hifiKeys(_ now: NowPlaying, modes: Bool) -> some View {
+        let interval = now.skipsByInterval
+        let repeatMode = media.repeatMode ?? .off
+        return HStack(spacing: 8) {
+            key(width: 56, label: interval ? "Back 15 seconds" : "Previous track") {
+                media.send(interval ? .skipBackward : .previousTrack)
+            } face: {
+                Image(systemName: interval ? "gobackward.15" : "backward.fill")
+            }
+            key(width: 76, pressed: now.isPlaying, led: now.isPlaying, label: now.isPlaying ? "Pause" : "Play") {
+                media.send(.togglePlayPause)
+            } face: {
+                Image(systemName: now.isPlaying ? "pause.fill" : "play.fill")
+            }
+            key(width: 56, label: interval ? "Forward 15 seconds" : "Next track") {
+                media.send(interval ? .skipForward : .nextTrack)
+            } face: {
+                Image(systemName: interval ? "goforward.15" : "forward.fill")
+            }
+            if modes {
+                key(width: 70, led: media.shuffle == true, label: "Shuffle", action: media.toggleShuffle) {
+                    Text("SHUFFLE")
+                }
+                key(width: 70, led: repeatMode != .off, label: "Repeat", action: media.cycleRepeat) {
+                    Text(repeatMode == .one ? "REPEAT 1" : "REPEAT")
+                }
+            }
+        }
+        .disabled(!media.hasControls)
+    }
+
+    /// A silver key on a dark edge, sunk in while `pressed`, with a light in the accent at its corner
+    /// while `led`. The edge is a shape, not a shadow, so the label casts none.
+    private func key(
+        width: CGFloat, pressed: Bool = false, led: Bool = false, label: String, action: @escaping () -> Void,
+        @ViewBuilder face: () -> some View
+    ) -> some View {
+        Button(action: action) {
+            face()
+                .themeFont(.body, size: 10, weight: .heavy)
+                .imageScale(.large)  // the transport symbols, beside the 10 pt labels
+                .tracking(0.8)
+                .foregroundStyle(Self.keyInk)
+                .frame(width: width, height: 30)
+                .background(
+                    LinearGradient(colors: pressed ? Self.keyDown : Self.keyUp, startPoint: .top, endPoint: .bottom),
+                    in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                )
+                .padding(.bottom, pressed ? 1 : 3)
+                .background(Self.keyEdge, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                .padding(.top, pressed ? 2 : 0)  // sunk in, the row keeps its height
+                .overlay(alignment: .topTrailing) {
+                    if led {
+                        Circle().fill(.themeAccent).frame(width: 5, height: 5)
+                            .shadow(color: theme.color(.accent), radius: 3)
+                            .padding(5)
+                    }
+                }
+        }
+        .buttonStyle(PressableButtonStyle())
+        .help(label)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(led ? .isSelected : [])
+    }
+
     // MARK: Panels
 
     /// A panel in the player's place: a back button and its title, over its content.
@@ -618,7 +788,7 @@ struct MediaView: View {
 
     /// A soft, saturated blur of the cover behind the whole notch; the notch clips it to its outline.
     @ViewBuilder private var glow: some View {
-        if let image = media.artwork, !reduceTransparency, !terminal {
+        if let image = media.artwork, !reduceTransparency, theme.skin(.musicPlayer) == nil {
             Image(nsImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
