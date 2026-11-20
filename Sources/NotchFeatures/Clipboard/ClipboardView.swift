@@ -50,11 +50,13 @@ struct ClipboardView: View {
         return VStack(spacing: 6) {
             HStack(spacing: 6) {
                 ThemeSymbol("magnifyingglass").themeFont(.body, .caption).opacity(0.6)
-                TextField("Search what you copied", text: $query)
-                    .textFieldStyle(.plain)
-                    .themeFont(.body, .body)
-                    .focused($searching)
-                    .onSubmit { if let first = found.first { clipboard.pick(first) } }
+                TextField(
+                    "Search what you copied", text: $query, prompt: theme.prompt("Search what you copied")
+                )
+                .textFieldStyle(.plain)
+                .themeFont(.body, .body)
+                .focused($searching)
+                .onSubmit { if let first = found.first { clipboard.pick(first) } }
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 5)

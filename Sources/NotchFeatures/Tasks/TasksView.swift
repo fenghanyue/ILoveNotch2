@@ -178,7 +178,8 @@ struct TasksView: View {
                 DraftChips(draft: parsed)
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
-            TextField("New task: try \u{201C}Pay rent fri 9am !! #Home\u{201D}", text: $draft)
+            let placeholder = "New task: try \u{201C}Pay rent fri 9am !! #Home\u{201D}"
+            TextField(placeholder, text: $draft, prompt: theme.prompt(placeholder))
                 .textFieldStyle(.plain)
                 .themeFont(.body, .body)
                 .padding(.horizontal, 8)
@@ -334,7 +335,7 @@ private struct TaskRow: View {
             .accessibilityLabel("Complete \(task.title)")
             VStack(alignment: .leading, spacing: 1) {
                 if editing {
-                    TextField("Task", text: $title)
+                    TextField("Task", text: $title, prompt: theme.prompt("Task", .callout))
                         .textFieldStyle(.plain)
                         .themeFont(.body, .callout)
                         .focused($focused)

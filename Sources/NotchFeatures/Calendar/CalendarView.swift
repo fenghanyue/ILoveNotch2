@@ -49,7 +49,8 @@ struct CalendarView: View {
                 }
                 // Steps aside while an event is edited, which gives the editor room in the smallest notch.
                 if editing == nil {
-                    TextField("New event: try \u{201C}Lunch tomorrow 1pm for 1h\u{201D}", text: $draft)
+                    let placeholder = "New event: try \u{201C}Lunch tomorrow 1pm for 1h\u{201D}"
+                    TextField(placeholder, text: $draft, prompt: theme.prompt(placeholder))
                         .textFieldStyle(.plain)
                         .themeFont(.body, .body)
                         .padding(.horizontal, 8)

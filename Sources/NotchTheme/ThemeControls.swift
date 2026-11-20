@@ -17,6 +17,14 @@ extension View {
     }
 }
 
+extension Theme {
+    /// A text field's placeholder in the theme's body face, for `TextField(_:text:prompt:)`: macOS
+    /// draws a placeholder in the system font unless it comes as the field's prompt.
+    public func prompt(_ placeholder: String, _ style: Font.TextStyle = .body) -> Text {
+        Text(placeholder).font(font(.body, style))
+    }
+}
+
 /// What marks the chosen tab or segment, in the theme's selection style (`controls.selection`):
 /// the ink at `strength` in `shape` (Black's pill), an accent pill or square block, a line in the
 /// accent under it, or a lit dot. Put it behind the chosen one; it can travel between them with

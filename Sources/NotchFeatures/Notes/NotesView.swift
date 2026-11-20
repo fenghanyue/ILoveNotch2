@@ -81,7 +81,7 @@ struct NotesView: View {
             if open {
                 HStack(spacing: 4) {
                     searchGlass
-                    TextField("Search", text: $notes.search)
+                    TextField("Search", text: $notes.search, prompt: theme.prompt("Search", .caption))
                         .textFieldStyle(.plain)
                         .themeFont(.body, .caption)
                         .focused($searchFocused)
