@@ -370,13 +370,14 @@ private struct AppearancePage: View {
 
     var body: some View {
         SettingsPage(page: .appearance) {
+            Section("Theme") {
+                ThemePicker(themeID: $preferences.themeID, glassAvailable: Self.glassAvailable)
+                    // Shows the new look right away, the way Preview shows an animation.
+                    .onChange(of: preferences.themeID) { previewAnimation() }
+            }
             Section {
-                LabeledContent("Theme") {
-                    ThemePicker(themeID: $preferences.themeID, glassAvailable: Self.glassAvailable)
-                }
-                // Shows the new look right away, the way Preview shows an animation.
-                .onChange(of: preferences.themeID) { previewAnimation() }
                 let theme = Themes.theme(preferences.themeID)
+                LabeledContent("Theme", value: theme.name)
                 if let choices = theme.accentChoices, !choices.isEmpty {
                     LabeledContent("Accent") {
                         AccentPicker(
@@ -451,29 +452,38 @@ private struct AppearancePage: View {
     }
 }
 
-/// Every bundled theme as a small open notch over a wallpaper, picked the way System Settings picks
-/// Light or Dark. A new file in NotchTheme's Themes/ shows up here.
+/// Every bundled theme as a small open notch in its own look over a wallpaper, across the page,
+/// picked the way System Settings picks a wallpaper. A new file in NotchTheme's Themes/ shows up here.
 private struct ThemePicker: View {
     @Binding var themeID: String
     let glassAvailable: Bool
 
     var body: some View {
         let chosen = Themes.theme(themeID).id
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 90), spacing: 14)], spacing: 10) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 132), spacing: 14)], spacing: 14) {
             ForEach(Themes.all) { option in
                 let selected = option.id == chosen
                 Button {
                     themeID = option.id
                 } label: {
-                    VStack(spacing: 5) {
-                        preview(option)
-                            .padding(3)
+                    VStack(spacing: 6) {
+                        ThemePreview(theme: option)
                             .overlay {
-                                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                    .strokeBorder(selected ? Color.accentColor : .clear, lineWidth: 2.5)
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .strokeBorder(
+                                        selected ? Color.accentColor : .primary.opacity(0.12),
+                                        lineWidth: selected ? 2.5 : 1)
                             }
-                        Text(option.name).font(.caption).foregroundStyle(selected ? .primary : .secondary)
+                        HStack(spacing: 4) {
+                            if selected {
+                                Image(systemName: "checkmark.circle.fill").foregroundStyle(Color.accentColor)
+                            }
+                            Text(option.name)
+                        }
+                        .font(.callout.weight(selected ? .semibold : .regular))
+                        .foregroundStyle(selected ? .primary : .secondary)
                     }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .disabled(option.surface.kind == .glass && !glassAvailable)
@@ -481,23 +491,69 @@ private struct ThemePicker: View {
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }
+        .padding(.vertical, 6)
     }
+}
 
-    private func preview(_ option: Theme) -> some View {
-        let notch = UnevenRoundedRectangle(bottomLeadingRadius: 9, bottomTrailingRadius: 9, style: .continuous)
-        return ZStack(alignment: .top) {
+/// A theme in miniature, drawn by the theme itself: its notch over a wallpaper, with four tabs in its
+/// icons (the first chosen, in its selection style), a track title in its display face, a seek line
+/// in its accent, and a play button on its controls.
+private struct ThemePreview: View {
+    let theme: Theme
+
+    var body: some View {
+        let notch = UnevenRoundedRectangle(bottomLeadingRadius: 14, bottomTrailingRadius: 14, style: .continuous)
+        ZStack(alignment: .top) {
             LinearGradient(
                 colors: [AboutSettings.peach, AboutSettings.coral, .indigo], startPoint: .topLeading,
                 endPoint: .bottomTrailing)
-            if option.surface.kind == .glass {
-                notch.fill(.white.opacity(0.28)).overlay(notch.stroke(.white.opacity(0.7), lineWidth: 0.75))
-                    .frame(width: 58, height: 26)
-            } else {
-                notch.fill(option.surface.color.color).frame(width: 58, height: 26)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 3) {
+                    ForEach([FeatureID.media, .shelf, .calendar, .timer], id: \.self) { tab in
+                        ThemeIcon(tab, size: 11)
+                            .padding(3)
+                            .themeSelectionInk(tab == .media)
+                            .background {
+                                if tab == .media { SelectionMark() }
+                            }
+                    }
+                }
+                Text("Midnight City")
+                    .themeFont(.display, size: 11, weight: .semibold)
+                    .foregroundStyle(.themeInk)
+                    .lineLimit(1)
+                HStack(spacing: 6) {
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(.themeInk.opacity(0.2))
+                        Capsule().fill(.themeAccent).frame(width: 30)
+                    }
+                    .frame(height: 3)
+                    ThemeSymbol("play.fill")
+                        .themeFont(.body, size: 8)
+                        .foregroundStyle(.themeInk)
+                        .frame(width: 20, height: 14)
+                        .themePlatter(0.14, in: Capsule())
+                }
             }
+            .padding(.horizontal, 10)
+            .padding(.top, 8)
+            .padding(.bottom, 10)
+            .frame(width: 116, alignment: .leading)
+            .background { surface(notch) }
+            .clipShape(notch)
+            .environment(\.theme, theme)
+            .environment(\.colorScheme, theme.appearance.colorScheme)
         }
-        .frame(width: 84, height: 52)
-        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .frame(height: 86)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    @ViewBuilder private func surface(_ notch: some Shape) -> some View {
+        if theme.surface.kind == .glass {
+            notch.fill(.white.opacity(0.28)).overlay(notch.stroke(.white.opacity(0.7), lineWidth: 0.75))
+        } else {
+            notch.fill(theme.surface.color.color)
+        }
     }
 }
 
