@@ -24,7 +24,7 @@
     "tertiary": "#9A9A9A",
     "fill": "#FF8FC7",
     "accent": "#FFD60A",
-    "series": ["#000000", "#FFD60A"],
+    "series": ["#000000", "#FF4D00"],
     "onAccent": "#000000",
     "highlight": "#FFD60A"
   },
