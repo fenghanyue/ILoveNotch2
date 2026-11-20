@@ -247,3 +247,22 @@ public struct ThemeSymbol: View {
         return Set(roles.values).subtracting(existing).sorted()
     }
 }
+
+/// `Label(title, systemImage:)` with the theme's icon for the symbol (`ThemeSymbol`).
+public struct ThemeLabel: View {
+    let title: String
+    let symbol: String
+
+    public init(_ title: String, symbol: String) {
+        self.title = title
+        self.symbol = symbol
+    }
+
+    public var body: some View {
+        Label {
+            Text(title)
+        } icon: {
+            ThemeSymbol(symbol)
+        }
+    }
+}
