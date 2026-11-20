@@ -19,6 +19,7 @@
     "tertiary": "#1F8A17",
     "fill": "#4AF62626",
     "accent": "#4AF626",
+    "series": ["#4AF626", "#B6FFA3"],
     "onAccent": "#000000",
     "highlight": "#4AF626",
     "onHighlight": "#000000"
@@ -35,7 +36,14 @@
       "family": "IBM Plex Mono"
     }
   },
+  "controls": {
+    "style": "outline",
+    "radius": 0,
+    "lineColor": "#1F8A17",
+    "selection": "block"
+  },
   "icons": {
+    "everywhere": true,
     "set": "pixelarticons"
   },
   "radii": {
