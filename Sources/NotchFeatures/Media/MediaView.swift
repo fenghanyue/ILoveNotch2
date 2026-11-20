@@ -82,10 +82,12 @@ struct MediaView: View {
                     hifiPlayer(now, meters: false, waveform: false, compact: true)
                 }
             default:
+                // Shorter notches shrink the cover and tuck the waveform behind the controls; it's
+                // never dropped.
                 ViewThatFits(in: .vertical) {
-                    player(now, artwork: 72, waveform: true)
-                    player(now, artwork: 72, waveform: false)
-                    player(now, artwork: 52, waveform: false)
+                    player(now, artwork: 108, waveform: true)
+                    player(now, artwork: 84, waveform: false)
+                    player(now, artwork: 64, waveform: false)
                     player(now, artwork: 52, waveform: false, inline: true)
                 }
             }
@@ -99,24 +101,39 @@ struct MediaView: View {
         }
     }
 
-    /// `inline` puts the controls beside the track, and shuffle and repeat with the small buttons
-    /// under it, in place of the app it plays in.
+    /// The cover leads, beside the track and its app, with the panels' buttons stacked on the right.
+    /// `waveform` gives the live waveform a row of its own; without it the waveform sits faintly
+    /// behind the controls. `inline` puts the controls beside the track, and shuffle and repeat
+    /// with the small buttons under it.
     private func player(_ now: NowPlaying, artwork size: CGFloat, waveform: Bool, inline: Bool = false)
         -> some View
     {
         let animating = now.isPlaying && !reduceMotion
         return VStack(spacing: 8) {
-            HStack(spacing: 14) {
+            HStack(alignment: .top, spacing: 16) {
                 artwork(size)
-                details(now, inline: inline)
-                if inline { controls(now, modes: false) }
+                details(now, inline: inline, large: size >= 84)
+                    .frame(height: size)
+                if inline {
+                    controls(now, modes: false).frame(height: size)
+                } else {
+                    VStack(alignment: .trailing, spacing: 6) { panelChips }
+                }
             }
             // One timeline drives the wave, the waveform, and the times, and stops when paused.
             TimelineView(.animation(minimumInterval: 1 / 30, paused: !animating)) { context in
                 let time = context.date.timeIntervalSinceReferenceDate
                 VStack(spacing: 8) {
                     seekBar(now, at: context.date, phase: time * 2.4)
-                    if !inline { controls(now, modes: media.hasModes) }
+                        .background {
+                            if inline { waveformBars(animating: animating, time: time).opacity(0.3) }
+                        }
+                    if !inline {
+                        controls(now, modes: media.hasModes)
+                            .background {
+                                if !waveform { waveformBars(animating: animating, time: time).opacity(0.3) }
+                            }
+                    }
                     if waveform { liveWaveform(animating: animating, time: time) }
                 }
             }
@@ -129,15 +146,20 @@ struct MediaView: View {
     // MARK: Parts
 
     private func liveWaveform(animating: Bool, time: Double) -> some View {
-        let heard = media.audio.isHearing ? media.audio.bands : []
-        return Group {
+        Group {
             Spacer(minLength: 0)
-            Waveform(level: animating ? 1 : 0, time: time, tint: waveformTint, bands: heard)
-                .frame(height: 18)
-                .fadingEdges(.horizontal, length: 28)
-                .animation(.easeInOut(duration: 0.5), value: animating)
-                .accessibilityHidden(true)
+            waveformBars(animating: animating, time: time).frame(height: 24)
         }
+    }
+
+    /// The waveform, following what's heard from the audio tap, or its stand-in motion without it.
+    private func waveformBars(animating: Bool, time: Double) -> some View {
+        let heard = media.audio.isHearing ? media.audio.bands : []
+        return Waveform(level: animating ? 1 : 0, time: time, tint: waveformTint, bands: heard)
+            .fadingEdges(.horizontal, length: 28)
+            .animation(.easeInOut(duration: 0.5), value: animating)
+            .accessibilityHidden(true)
+            .allowsHitTesting(false)
     }
 
     private func artwork(_ size: CGFloat) -> some View {
@@ -154,8 +176,23 @@ struct MediaView: View {
                 }
             }
             .frame(width: size, height: size)
-            .clipShape(RoundedRectangle(cornerRadius: size * 0.2, style: .continuous))
-            .shadow(color: tint.opacity(0.45), radius: 12, y: 4)
+            .clipShape(RoundedRectangle(cornerRadius: coverRadius(size), style: .continuous))
+            .overlay {
+                // A theme with outlined controls frames the cover like a print.
+                if theme.controls?.style == .outline {
+                    RoundedRectangle(cornerRadius: coverRadius(size), style: .continuous)
+                        .stroke(theme.controls?.lineColor?.color ?? theme.color(.ink).opacity(0.4), lineWidth: 1)
+                }
+            }
+            .background {
+                // A print's offset backing, as a shape: an offset shadow can draw on the wrong side.
+                if theme.controls?.style == .outline {
+                    RoundedRectangle(cornerRadius: coverRadius(size), style: .continuous)
+                        .fill(theme.controls?.shadow == .hard ? theme.color(.ink) : theme.color(.ink).opacity(0.12))
+                        .offset(x: 5, y: 5)
+                }
+            }
+            .shadow(color: theme.controls?.style == .outline ? .clear : tint.opacity(0.45), radius: 14, y: 6)
             .animation(.easeInOut(duration: 0.16), value: media.artwork)
         }
         .buttonStyle(PressableButtonStyle())
@@ -163,27 +200,36 @@ struct MediaView: View {
         .accessibilityLabel("Open the player")
     }
 
-    private func details(_ now: NowPlaying, inline: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+    /// The track in the theme's display face, the artist and album under it, then the app it plays
+    /// in; `large` beside a big cover.
+    private func details(_ now: NowPlaying, inline: Bool, large: Bool) -> some View {
+        let subtitle =
+            large ? [now.artist, now.album].compactMap { $0 }.joined(separator: " · ") : now.artist ?? now.album
+        return VStack(alignment: .leading, spacing: 3) {
             Text(now.title)
-                .themeFont(.display, size: 16, weight: .semibold)
+                .themeFont(.display, size: large ? 22 : 16, weight: .semibold)
                 .lineLimit(1)
                 .id(now.title)
                 .transition(.push(from: .bottom))
-            if let subtitle = now.artist ?? now.album {
+            if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .themeFont(.body, size: 13)
+                    .themeFont(.body, size: large ? 14 : 13)
                     .foregroundStyle(.themeInk.opacity(0.6))
                     .lineLimit(1)
                     .id(subtitle)
                     .transition(.push(from: .bottom))
             }
             accessories(now, inline: inline)
-                .padding(.top, 2)
+                .padding(.top, large ? 6 : 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .clipped()
         .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.82), value: now.title)
+    }
+
+    /// The cover's corners: the theme's own radius for its controls, or a fifth of the cover.
+    private func coverRadius(_ size: CGFloat) -> CGFloat {
+        theme.controls?.radius.map { CGFloat($0) } ?? size * 0.2
     }
 
     /// Under the track: the app it plays in and the panels' buttons, or, beside inline controls,
@@ -199,12 +245,37 @@ struct MediaView: View {
                 Spacer(minLength: 0)
             }
         } else {
-            HStack(spacing: 6) {
-                sourceApp(now)
-                Spacer(minLength: 0)
-                panelButtons
-            }
+            sourceApp(now)
         }
+    }
+
+    /// The panels' buttons as words, stacked beside the track: what plays next (or what played),
+    /// lyrics, and where sound plays.
+    @ViewBuilder private var panelChips: some View {
+        if let player = media.scriptedPlayer {
+            let spotify = player == .spotify
+            panelChip(spotify ? "History" : "Up next", help: spotify ? "Recently played" : "Up next") { show(.list) }
+        }
+        if media.lyrics != nil {
+            panelChip("Lyrics", help: "Lyrics") { show(.lyrics) }
+        }
+        if media.outputControl != nil {
+            panelChip("Output", help: "Output and volume") { show(.output) }
+        }
+    }
+
+    private func panelChip(_ title: String, help: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .themeFont(.body, size: 11, weight: .semibold)
+                .foregroundStyle(.themeInk.opacity(0.75))
+                .padding(.horizontal, 10)
+                .frame(height: 22)
+                .themePlatter(0.1, in: Capsule())
+                .contentShape(Capsule())
+        }
+        .buttonStyle(PressableButtonStyle())
+        .help(help)
     }
 
     @ViewBuilder private var panelButtons: some View {
@@ -229,15 +300,18 @@ struct MediaView: View {
 
     @ViewBuilder private func sourceApp(_ now: NowPlaying) -> some View {
         if let id = now.appBundleID, let app = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) {
-            HStack(spacing: 4) {
+            HStack(spacing: 5) {
                 Image(nsImage: NSWorkspace.shared.icon(forFile: app.path))
                     .resizable()
                     .frame(width: 13, height: 13)
-                Text(FileManager.default.displayName(atPath: app.path))
+                Text(FileManager.default.displayName(atPath: app.path).replacing(".app", with: ""))
                     .lineLimit(1)
             }
-            .themeFont(.body, size: 11)
-            .foregroundStyle(.themeInk.opacity(0.45))
+            .themeFont(.body, size: 11, weight: .semibold)
+            .foregroundStyle(.themeInk.opacity(0.6))
+            .padding(.horizontal, 8)
+            .frame(height: 22)
+            .themePlatter(0.08, in: Capsule())
         }
     }
 
@@ -786,20 +860,20 @@ struct MediaView: View {
         .fadingEdges(.vertical, length: 8)
     }
 
-    /// A soft, saturated blur of the cover behind the whole notch; the notch clips it to its outline.
+    /// The area around the cover lit in its color, fading out across the notch. Not on a light
+    /// sheet, where it reads as a stain rather than light, nor behind a skin's own player.
     @ViewBuilder private var glow: some View {
-        // Not on a light sheet, where a blur of the cover reads as a stain rather than light.
-        if let image = media.artwork, !reduceTransparency, theme.skin(.musicPlayer) == nil, theme.appearance == .dark {
-            Image(nsImage: image)
-                .resizable()
-                .aspectRatio(contentMode: .fill)
-                .blur(radius: 50)
-                .saturation(1.3)
-                .opacity(0.35)
-                .padding(-60)
-                .allowsHitTesting(false)
-                .transition(.opacity)
-                .animation(.easeInOut(duration: 0.3), value: media.artwork)
+        if media.artwork != nil, let color = media.accent?.color, !reduceTransparency,
+            theme.skin(.musicPlayer) == nil, theme.appearance == .dark
+        {
+            RadialGradient(
+                colors: [color.opacity(0.34), color.opacity(0.08), .clear], center: UnitPoint(x: 0.1, y: 0.3),
+                startRadius: 0, endRadius: 300
+            )
+            .padding(-60)
+            .allowsHitTesting(false)
+            .transition(.opacity)
+            .animation(.easeInOut(duration: 0.3), value: media.accent)
         }
     }
 
