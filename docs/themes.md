@@ -48,6 +48,8 @@ Required unless marked optional.
 | `colors.onAccent` | text and icons on an accent fill |
 | `colors.highlight` | optional: the prompter's current word, search matches; the accent without one |
 | `colors.onHighlight` | optional: the prompter's current word on the highlight; the ink without one |
+| `fonts.numbers` | optional: speeds, timers, and percentages, as the faces below; the display face without it |
+| `colors.series` | optional: two colors for paired data (the Network tab's download and upload); Vercel's blue and amber without it |
 | `fonts.display`, `.body`, `.mono` | `{"family": "system"}` or a family in Fonts/; optional `design` (system only: `default`, `rounded`, `serif`, `monospaced`), `weight` (overrides the view's: `ultralight` … `black`), `scale` (size multiplier) |
 | `icons.set` | a folder in Icons/ |
 | `icons.rendering` | optional, symbol sets only: `monochrome` (the default) or `hierarchical` |

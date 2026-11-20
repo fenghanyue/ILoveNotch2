@@ -163,6 +163,8 @@ public struct Theme: Decodable, Identifiable, Sendable {
         public let highlight: ThemeColor?
         /// The prompter's current word on the highlight; the ink without one.
         public let onHighlight: ThemeColor?
+        /// Optional: two colors for paired data, such as download and upload.
+        public let series: [ThemeColor]?
     }
 
     public struct Closed: Decodable, Sendable {
@@ -206,13 +208,17 @@ public struct Theme: Decodable, Identifiable, Sendable {
         public let display: Face
         public let body: Face
         public let mono: Face
+        /// Optional: speeds, timers, and percentages; the display face without it.
+        public let numbers: Face?
 
         public enum Role: Sendable {
-            /// Titles, track names, big numbers.
+            /// Titles and track names.
             case display
             case body
             /// Times, keys, code.
             case mono
+            /// Big numbers: speeds, timers, percentages.
+            case numbers
         }
 
         public subscript(role: Role) -> Face {
@@ -220,6 +226,7 @@ public struct Theme: Decodable, Identifiable, Sendable {
             case .display: display
             case .body: body
             case .mono: mono
+            case .numbers: numbers ?? display
             }
         }
     }
