@@ -129,7 +129,7 @@ private struct IncomingCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("\(incoming.device) sent \(text.isLink ? "a link" : "text")").themeFont(.body, .headline)
                         .lineLimit(1)
-                    Label("Copied to the clipboard", systemImage: "checkmark").themeFont(.body, .callout)
+                    ThemeLabel("Copied to the clipboard", symbol: "checkmark").themeFont(.body, .callout)
                         .foregroundStyle(.themeInk.opacity(0.65))
                 }
                 Spacer(minLength: 0)
@@ -152,7 +152,7 @@ private struct DeviceBadge: View {
     let symbol: String
 
     var body: some View {
-        Image(systemName: symbol)
+        ThemeSymbol(symbol)
             .themeFont(.body, size: 17, weight: .medium)
             .frame(width: 38, height: 38)
             .background(.themeInk.opacity(0.12), in: Circle())
@@ -197,7 +197,7 @@ private struct ReceiveControl: View {
                 Button {
                     NSWorkspace.shared.open(.privacySettings("Privacy_LocalNetwork"))
                 } label: {
-                    Label("Allow Local Network", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    ThemeLabel("Allow Local Network", symbol: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                 }
                 .help("macOS stops ILoveNotch from finding phones until Local Network is on for it")
             } else if let until = transfer.visibleUntil {
@@ -212,13 +212,13 @@ private struct ReceiveControl: View {
                             left
                         }
                     } icon: {
-                        Image(systemName: "dot.radiowaves.left.and.right")
+                        ThemeSymbol("dot.radiowaves.left.and.right")
                     }
                 }
                 .help("Android phones on this Wi-Fi can find this Mac. Click to stop.")
                 .accessibilityLabel("Visible to Android. Stop")
             } else if transfer.isVisible {
-                Label("Visible", systemImage: "dot.radiowaves.left.and.right")
+                ThemeLabel("Visible", symbol: "dot.radiowaves.left.and.right")
                     .foregroundStyle(.themeInk.opacity(0.6))
                     .help("Android phones on this Wi-Fi can send files to this Mac with Quick Share")
             } else {
@@ -229,7 +229,7 @@ private struct ReceiveControl: View {
                             Text("Receive")
                         }
                     } icon: {
-                        Image(systemName: "arrow.down.circle")
+                        ThemeSymbol("arrow.down.circle")
                     }
                 }
                 .help("Let Android phones on this Wi-Fi find this Mac for 10 minutes")
@@ -359,7 +359,7 @@ struct SendView: View {
         let name = outgoing.device?.name ?? "Android device"
         return VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 12) {
-                Image(systemName: outgoing.device?.kind.symbol ?? "smartphone")
+                ThemeSymbol(outgoing.device?.kind.symbol ?? "smartphone")
                     .font(.system(size: 22, weight: .medium))
                     .frame(width: 44, height: 44)
                     .background(.quaternary, in: Circle())
@@ -451,10 +451,10 @@ private struct DeviceRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
-                Image(systemName: device.kind.symbol).font(.system(size: 16)).frame(width: 24)
+                ThemeSymbol(device.kind.symbol).font(.system(size: 16)).frame(width: 24)
                 Text(device.name).lineLimit(1)
                 Spacer()
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                ThemeSymbol("chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
