@@ -272,7 +272,7 @@ private struct ProviderTile: View {
             }
             Spacer(minLength: 0)
             if let value {
-                Text(value).themeFont(.display, size: 12, weight: .bold, design: .rounded).monospacedDigit()
+                Text(value).themeFont(.numbers, size: 12, weight: .bold, design: .rounded).monospacedDigit()
             }
             status
         }
@@ -335,7 +335,7 @@ private struct ProviderTile: View {
     @ViewBuilder private func placeholder(style: ProviderStyle) -> some View {
         if let spend = snapshot?.dollars(for: "Today") ?? snapshot?.dollars(for: "Last 30 Days") {
             Text(MetricFormatter.number(spend, kind: .dollars, style: .row))
-                .themeFont(.display, size: 20, weight: .bold, design: .rounded)
+                .themeFont(.numbers, size: 20, weight: .bold, design: .rounded)
                 .foregroundStyle(style.end)
         } else {
             Text(error ?? (refreshing || snapshot == nil ? "Checking…" : "No limits to show"))
@@ -462,7 +462,7 @@ private struct MeterRow: View {
                 Text(meter.label).themeFont(.body, size: 11, weight: .medium)
                 Spacer()
                 Text(meter.detail)
-                    .themeFont(.display, size: 11, weight: .semibold, design: .rounded)
+                    .themeFont(.numbers, size: 11, weight: .semibold, design: .rounded)
                     .monospacedDigit()
                     .contentTransition(.numericText())
             }
@@ -494,7 +494,7 @@ private struct SpendRow: View {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(period).themeFont(.body, size: 9, weight: .medium).foregroundStyle(.themeInk.opacity(0.5))
                         Text(values.first.map { MetricFormatter.string(for: $0, style: .row) } ?? "–")
-                            .themeFont(.display, size: 12, weight: .semibold, design: .rounded)
+                            .themeFont(.numbers, size: 12, weight: .semibold, design: .rounded)
                             .monospacedDigit()
                         if values.count > 1 {
                             Text(MetricFormatter.string(for: values[1], style: .row))

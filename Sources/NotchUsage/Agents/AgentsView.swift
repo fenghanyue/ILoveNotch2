@@ -44,7 +44,7 @@ struct AgentsView: View {
                         .themeFont(.body, .caption, weight: .semibold)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
-                        .background(.themeInk.opacity(0.15), in: Capsule())
+                        .themePlatter(0.15, in: Capsule())
                 }
             }
             if let failure = agents.failure {

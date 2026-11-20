@@ -62,7 +62,7 @@ struct UsageRing: View {
                 .rotationEffect(.degrees(-90))
                 .shadow(color: tone.end.opacity(0.5), radius: size * 0.08)
             Text(meter.headline)
-                .themeFont(.display, size: size * 0.25, weight: .bold, design: .rounded)
+                .themeFont(.numbers, size: size * 0.25, weight: .bold, design: .rounded)
                 .monospacedDigit()
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
