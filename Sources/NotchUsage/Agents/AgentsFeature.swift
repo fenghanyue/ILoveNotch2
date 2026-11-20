@@ -69,6 +69,42 @@ public struct AgentSession: Identifiable, Hashable, Sendable {
     }
 }
 
+/// Something an agent did, one line of the tab's timeline. The hooks can't tell a run that failed
+/// from one that finished, so there's no failed.
+public struct AgentEvent: Identifiable, Hashable, Sendable {
+    public enum Kind: Sendable {
+        /// It took a prompt and went to work.
+        case started
+        /// It asked for approval.
+        case asked
+        case finished
+    }
+
+    public let id = UUID()
+    public let kind: Kind
+    /// When its hook wrote it.
+    public let time: Date
+    /// Its session's id, "<tool>-<session id>".
+    public let session: String
+    public let tool: AgentTool
+    public let project: String
+    public let app: String?
+    /// What it asked for, in the tool's words.
+    public let detail: String?
+    /// How long it worked, for one that finished after the tab saw it start.
+    public let took: TimeInterval?
+
+    /// What it asked for, short: "use Bash", from Claude Code's "Claude needs your permission to use
+    /// Bash" or Codex's "Wants to use Bash" (as `AgentSession` reads it). Nil for any other words.
+    public var request: String? {
+        guard let detail else { return nil }
+        for prefix in ["Claude needs your permission to ", "Wants to "] where detail.hasPrefix(prefix) {
+            return String(detail.dropFirst(prefix.count))
+        }
+        return nil
+    }
+}
+
 /// Agent status: what Claude Code and Codex are doing in their terminals. Their own hooks (added
 /// only when the user connects a tool, see `AgentHooks`) write a small file per session; this
 /// watches that folder for changes, so nothing runs between events. While an agent waits for
@@ -83,6 +119,8 @@ public final class AgentsFeature: NotchFeature {
     }
     /// Waiting ones first, then newest first.
     public private(set) var sessions: [AgentSession] = []
+    /// What the agents did, newest first: the last day, at most 50 events, in memory only.
+    public private(set) var events: [AgentEvent] = []
     /// Tools with the notch's hooks in their settings.
     public private(set) var connected: Set<AgentTool> = []
     /// Why the last connect or disconnect failed.
@@ -133,10 +171,20 @@ public final class AgentsFeature: NotchFeature {
     /// Brings the app the session runs in forward. Through Launch Services, like opening Calendar
     /// from its tab: the notch's app is never active, and macOS ignores activation requests from
     /// apps that aren't.
-    public func open(_ session: AgentSession) {
-        guard let app = session.app, let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app)
-        else { return }
+    public func open(_ session: AgentSession) { open(app: session.app) }
+
+    /// Brings forward the app an event's session ran in, even once the session is over.
+    public func open(_ event: AgentEvent) { open(app: event.app) }
+
+    private func open(app: String?) {
+        guard let app, let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: app) else { return }
         NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
+    }
+
+    /// Whether `event` is an ask its agent is still waiting on: its session's latest write.
+    public func needsYou(_ event: AgentEvent) -> Bool {
+        event.kind == .asked
+            && sessions.contains { $0.id == event.session && $0.state == .waiting && $0.updated == event.time }
     }
 
     /// Forgets a session, for one whose agent ended without saying so.
@@ -163,6 +211,7 @@ public final class AgentsFeature: NotchFeature {
             watcher?.cancel()
             watcher = nil
             sessions = []
+            events = []
             showWaiting(nil)
             return
         }
@@ -205,13 +254,16 @@ public final class AgentsFeature: NotchFeature {
         }
         // Waiting ones first, since those need the user; then the latest news.
         found.sort { ($0.state == .waiting ? 1 : 0, $0.updated) > ($1.state == .waiting ? 1 : 0, $1.updated) }
-        let before = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0.state) })
+        let before = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0) })
         sessions = found
+        record(found, since: before, now: now)
         if announcing, announcesDone {
             // Only a session seen working finishes; one found already done is old news.
             let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
             for session in found where session.state == .done {
-                guard let previous = before[session.id], previous != .done, session.app != front else { continue }
+                guard let previous = before[session.id]?.state, previous != .done, session.app != front else {
+                    continue
+                }
                 onActivity?(
                     Activity(
                         feature: .agents, symbol: "checkmark.circle.fill", title: session.project,
@@ -219,6 +271,34 @@ public final class AgentsFeature: NotchFeature {
             }
         }
         showWaiting(Self.waiting(in: found))
+    }
+
+    /// Adds each session the hook wrote since the last look to the timeline, at the time it wrote;
+    /// the first look adds every session as it stands. An answered ask isn't news of its own: it just
+    /// stops waiting.
+    private func record(_ found: [AgentSession], since before: [String: AgentSession], now: Date) {
+        for session in found.sorted(by: { $0.updated < $1.updated }) {
+            let previous = before[session.id]
+            guard previous?.state != session.state || previous?.updated != session.updated,
+                !(previous?.state == .waiting && session.state == .working)
+            else { continue }
+            let kind: AgentEvent.Kind =
+                switch session.state {
+                case .working: .started
+                case .waiting: .asked
+                case .done: .finished
+                }
+            // Its latest start, if the tab saw one since it last finished.
+            let start = events.prefix { !($0.session == session.id && $0.kind == .finished) }
+                .first { $0.session == session.id && $0.kind == .started }
+            events.append(
+                AgentEvent(
+                    kind: kind, time: session.updated, session: session.id, tool: session.tool,
+                    project: session.project, app: session.app, detail: kind == .asked ? session.detail : nil,
+                    took: kind == .finished ? start.map { session.updated.timeIntervalSince($0.time) } : nil))
+        }
+        let dayAgo = now.addingTimeInterval(-24 * 3600)
+        events = Array(events.sorted { $0.time > $1.time }.prefix { $0.time > dayAgo }.prefix(50))
     }
 
     /// The closed notch's reminder that agents are waiting for approval: the project when it's one.
