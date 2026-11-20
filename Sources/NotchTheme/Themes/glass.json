@@ -31,6 +31,7 @@
     }
   },
   "icons": {
+    "everywhere": true,
     "set": "lucide",
     "stroke": 1.5
   },
