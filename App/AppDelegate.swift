@@ -96,7 +96,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let usage: AnyView? = preferences.isEnabled(.usage) ? AnyView(self.usage.homeView) : nil
             #endif
             return AnyView(
-                HomeView(media: media, calendar: calendar, prompter: prompter, usage: usage) { [weak self] tab in
+                HomeView(
+                    media: media, calendar: calendar, tasks: tasks, timer: timer, prompter: prompter, usage: usage,
+                    tabs: Set(preferences.tabs)
+                ) { [weak self] tab in
                     self?.coordinator?.open(tab)
                 })
         case .media: return AnyView(media.view)
