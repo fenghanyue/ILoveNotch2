@@ -12,6 +12,8 @@ public struct Countdown: Equatable, Sendable {
     public var endsAt: Date?
     /// Time left when paused.
     public var remaining: TimeInterval
+    /// When it was started, which pausing and adding time don't move.
+    public var startedAt: Date
 
     public var isRunning: Bool { endsAt != nil }
 
@@ -62,6 +64,8 @@ public final class TimerFeature: NotchFeature {
     public var phase: FeaturePhase = .stopped
     public var mode = Mode.countdown
     public private(set) var countdown: Countdown?
+    /// The countdown that starting another one replaced, until `undoSwap` brings it back.
+    public private(set) var replaced: Countdown?
     public private(set) var stopwatch = Stopwatch()
     /// When keeping the Mac awake ends: nil while it's off, `.distantFuture` until it's turned off.
     public private(set) var awakeUntil: Date?
@@ -87,8 +91,20 @@ public final class TimerFeature: NotchFeature {
 
     // MARK: Countdown
 
+    /// Starts a countdown, replacing the one running, if any; `undoSwap` brings that one back.
     public func start(_ seconds: TimeInterval, now: Date = .now) {
-        countdown = Countdown(total: seconds, endsAt: now.addingTimeInterval(seconds), remaining: seconds)
+        replaced = countdown
+        countdown = Countdown(
+            total: seconds, endsAt: now.addingTimeInterval(seconds), remaining: seconds, startedAt: now)
+        scheduleAlarm()
+    }
+
+    /// Brings back the countdown that starting another replaced, as if it had kept going: one that
+    /// ran out meanwhile rings at once.
+    public func undoSwap() {
+        guard let replaced else { return }
+        countdown = replaced
+        self.replaced = nil
         scheduleAlarm()
     }
 
@@ -119,6 +135,7 @@ public final class TimerFeature: NotchFeature {
     public func cancel() {
         alarm?.cancel()
         countdown = nil
+        replaced = nil
     }
 
     /// Whether a countdown is waiting to ring.
@@ -139,6 +156,7 @@ public final class TimerFeature: NotchFeature {
     func ring() {
         alarm = nil
         countdown = nil
+        replaced = nil
         NSSound(named: "Glass")?.play()
         onActivity?(Activity(feature: .timer, symbol: "timer", title: "Timer done", duration: .seconds(4)))
     }

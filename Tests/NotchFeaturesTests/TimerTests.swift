@@ -32,6 +32,29 @@ struct TimerFeatureTests {
         #expect(timer.countdown?.remaining(at: start) == 120)
     }
 
+    @Test func startingAnotherCountdownCanBeUndone() {
+        let timer = TimerFeature()
+        timer.start(600, now: start)
+        timer.start(1500, now: start + 100)
+        #expect(timer.countdown?.total == 1500 && timer.countdown?.startedAt == start + 100)
+        timer.undoSwap()
+        #expect(timer.countdown?.total == 600, "the first one is back")
+        #expect(timer.countdown?.remaining(at: start + 400) == 200, "as if it had kept going")
+        #expect(timer.replaced == nil && timer.alarmPending)
+        timer.start(60)
+        timer.cancel()
+        #expect(timer.replaced == nil, "nothing to bring back once cancelled")
+    }
+
+    @Test func typedMinutesBecomeALength() {
+        #expect(TimerView.seconds(fromMinutes: " 25 ") == 1500)
+        #expect(TimerView.seconds(fromMinutes: "1,5") == 90)
+        #expect(TimerView.seconds(fromMinutes: "0") == nil)
+        #expect(TimerView.seconds(fromMinutes: "-3") == nil)
+        #expect(TimerView.seconds(fromMinutes: "abc") == nil)
+        #expect(TimerView.seconds(fromMinutes: "2000") == nil, "a day at most")
+    }
+
     @Test func aFinishedCountdownRingsOnceThroughItsDeadline() async throws {
         let timer = TimerFeature()
         var activities: [Activity] = []
