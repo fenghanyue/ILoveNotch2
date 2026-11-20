@@ -180,7 +180,8 @@ private struct CapsuleButton: View {
                 .themeFont(.body, .callout, weight: .semibold)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 5)
-                .background(prominent ? theme.color(.accent) : theme.color(.ink).opacity(0.14), in: Capsule())
+                .background(prominent ? theme.color(.accent) : .clear, in: Capsule())
+                .themePlatter(prominent ? 0 : 0.14, in: Capsule())
                 .contentShape(Capsule())
         }
         .buttonStyle(.plain)

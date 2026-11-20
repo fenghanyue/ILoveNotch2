@@ -364,7 +364,7 @@ private struct TaskRow: View {
         }
         .padding(.vertical, 3)
         .padding(.horizontal, 4)
-        .background(hovering ? theme.color(.ink).opacity(0.07) : Color.clear, in: RoundedRectangle(cornerRadius: 7))
+        .themePlatter(hovering ? 0.07 : 0, in: RoundedRectangle(cornerRadius: 7))
         .contentShape(Rectangle())
         .onHover { inside in
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) { hovering = inside }

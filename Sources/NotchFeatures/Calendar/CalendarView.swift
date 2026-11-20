@@ -183,7 +183,7 @@ private struct EventRow: View {
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 2)
-        .background(hovering ? theme.color(.ink).opacity(0.07) : .clear, in: RoundedRectangle(cornerRadius: 7))
+        .themePlatter(hovering ? 0.07 : 0, in: RoundedRectangle(cornerRadius: 7))
         .contentShape(Rectangle())
         .onHover { inside in
             withAnimation(reduceMotion ? nil : .easeOut(duration: 0.15)) {
@@ -259,7 +259,8 @@ private struct EventRow: View {
                 .padding(.horizontal, 9)
                 .padding(.vertical, 4)
                 // Green while the meeting is about to start, in every theme.
-                .background(soon ? Color.green.opacity(0.85) : theme.color(.ink).opacity(0.14), in: Capsule())
+                .background(soon ? Color.green.opacity(0.85) : .clear, in: Capsule())
+                .themePlatter(soon ? 0 : 0.14, in: Capsule())
         }
         .buttonStyle(.plain)
         .help("Join on \(meeting.service). Right-click to copy the link.")

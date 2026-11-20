@@ -54,7 +54,10 @@ struct PrompterView: View {
             .themeFont(.body, .caption, weight: .semibold)
             .padding(.horizontal, 9)
             .padding(.vertical, 3)
-            .background(prompter.mode == mode ? theme.color(.ink).opacity(0.16) : .clear, in: Capsule())
+            .themeSelectionInk(prompter.mode == mode, unlit: 1)
+            .background {
+                if prompter.mode == mode { SelectionMark() }
+            }
             .help(Self.explanation(mode))
             .accessibilityHint(Self.explanation(mode))
             .accessibilityAddTraits(prompter.mode == mode ? .isSelected : [])
@@ -173,7 +176,7 @@ struct PrompterView: View {
             ThemeSymbol(symbol)
                 .themeFont(.body, size: 12, weight: .semibold)
                 .frame(width: 24, height: 22)
-                .background(lit ? theme.color(.ink).opacity(0.16) : .clear, in: RoundedRectangle(cornerRadius: 6))
+                .themePlatter(lit ? 0.16 : 0, in: RoundedRectangle(cornerRadius: 6))
         }
         .help(label)
         .accessibilityLabel(label)

@@ -73,7 +73,8 @@ struct AgentsView: View {
                     .themeFont(.body, .caption, weight: .semibold)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(waiting ? Color.orange.opacity(0.85) : theme.color(.ink).opacity(0.14), in: Capsule())
+                    .background(waiting ? Color.orange.opacity(0.85) : .clear, in: Capsule())
+                    .themePlatter(waiting ? 0 : 0.14, in: Capsule())
                     .help("Go to its terminal")
             }
         }
