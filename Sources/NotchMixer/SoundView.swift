@@ -87,7 +87,7 @@ public struct SoundView: View {
             order: output ? 0 : 1, badge: nil, set: { mixer.setDeviceLevel($0, for: direction) },
             toggleMute: { mixer.toggleDeviceMute(direction) }, reset: nil,
             icon: {
-                Image(systemName: symbol)
+                ThemeSymbol(symbol)
                     .themeFont(.body, size: 12, weight: .semibold)
                     .contentTransition(.symbolEffect(.replace))
                     .frame(width: 24, height: 24)
@@ -136,7 +136,7 @@ public struct SoundView: View {
 
     private var empty: some View {
         VStack(spacing: 5) {
-            Image(systemName: "waveform")
+            ThemeSymbol("waveform")
                 .themeFont(.body, size: 16, weight: .medium)
                 .foregroundStyle(.themeInk.opacity(0.45))
             Text("Apps playing sound show up here")
@@ -150,7 +150,7 @@ public struct SoundView: View {
 
     private var permission: some View {
         HStack(spacing: 6) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+            ThemeSymbol("exclamationmark.triangle.fill").foregroundStyle(.yellow)
             Text("Allow System Audio Recording to change app volumes").lineLimit(1)
             Button("Open Settings") { NSWorkspace.shared.open(.privacySettings("Privacy_AudioCapture")) }
                 .buttonStyle(.plain)
@@ -206,7 +206,7 @@ private struct DeviceList: View {
             withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.8)) { direction = kind }
         } label: {
             HStack(spacing: 3) {
-                Image(systemName: symbol).themeFont(.body, size: 8.5, weight: .semibold)
+                ThemeSymbol(symbol).themeFont(.body, size: 8.5, weight: .semibold)
                 Text(title).themeFont(.body, size: 10, weight: .semibold)
             }
             .foregroundStyle(.themeInk.opacity(chosen ? 1 : 0.5))
@@ -238,7 +238,7 @@ private struct DeviceRow: View {
         let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
         Button(action: choose) {
             HStack(spacing: 5) {
-                Image(systemName: device.symbol)
+                ThemeSymbol(device.symbol)
                     .themeFont(.body, size: 10.5, weight: .semibold)
                     .frame(width: 15)
                 Text(SoundView.shortName(device.name))
@@ -246,7 +246,7 @@ private struct DeviceRow: View {
                     .lineLimit(1)
                 Spacer(minLength: 0)
                 if current {
-                    Image(systemName: "checkmark").themeFont(.body, size: 8.5, weight: .bold)
+                    ThemeSymbol("checkmark").themeFont(.body, size: 8.5, weight: .bold)
                 }
             }
             .foregroundStyle(.themeInk.opacity(current ? 1 : hovering ? 0.85 : 0.6))
@@ -356,7 +356,7 @@ private struct LevelSlider: View {
                 if let image {
                     Image(nsImage: image).resizable().frame(width: 13, height: 13)
                 } else if let symbol {
-                    Image(systemName: symbol).themeFont(.body, size: 10, weight: .semibold).frame(width: 13)
+                    ThemeSymbol(symbol).themeFont(.body, size: 10, weight: .semibold).frame(width: 13)
                 }
                 Text(title).lineLimit(1)
                 Spacer(minLength: 0)
@@ -450,7 +450,7 @@ private struct Fader<Icon: View>: View {
                     .overlay(alignment: .bottomTrailing) {
                         if muted, let badge {
                             // A dark badge over the app's icon, the same in every theme.
-                            Image(systemName: badge)
+                            ThemeSymbol(badge)
                                 .themeFont(.body, size: 6.5, weight: .bold)
                                 .foregroundStyle(.white)
                                 .frame(width: 13, height: 13)
