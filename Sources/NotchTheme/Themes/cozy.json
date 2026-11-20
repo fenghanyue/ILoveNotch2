@@ -19,6 +19,7 @@
     "tertiary": "#FAF1E4A6",
     "fill": "#FAF1E41A",
     "accent": "#E8573F",
+    "series": ["#E8573F", "#F4B98E"],
     "onAccent": "#FAF1E4",
     "highlight": "#E8573F"
   },
@@ -36,7 +37,13 @@
       "weight": "bold"
     }
   },
+  "controls": {
+    "style": "fill",
+    "radius": 14,
+    "selection": "accent"
+  },
   "icons": {
+    "everywhere": true,
     "set": "mingcute"
   },
   "radii": {
