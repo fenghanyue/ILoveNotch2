@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+import Foundation
 import Testing
 
 @testable import NotchFeatures
@@ -56,6 +57,21 @@ struct PrompterTests {
         #expect(!ScriptAlignment.isFuzzyMatch("we", "me"))
         #expect(ScriptAlignment.isFuzzyMatch("launching", "lunching"))
         #expect(!ScriptAlignment.isFuzzyMatch("morning", "evening"))
+    }
+
+    @MainActor @Test func carriesOnFromAPickedWordAndReadsAgainOnceDone() {
+        let prompter = PrompterFeature(defaults: UserDefaults(suiteName: "PT-\(UUID())")!)
+        prompter.phase = .foreground
+        prompter.script = script.joined(separator: " ")
+        prompter.mode = .scroll  // no microphone
+        prompter.start()
+        prompter.pause()
+        prompter.jump(to: 5)
+        #expect(prompter.current == 5)
+        prompter.jump(to: 99)
+        #expect(prompter.isFinished, "past the end is done")
+        prompter.jump(to: 2)
+        #expect(!prompter.isFinished && prompter.current == 2, "and a word picked after that reads on from it")
     }
 
     @Test func markdownReadsAsPlainText() {

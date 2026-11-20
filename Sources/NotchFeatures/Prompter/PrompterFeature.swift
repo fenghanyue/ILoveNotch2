@@ -33,7 +33,7 @@ public final class PrompterFeature: NotchFeature {
         public var symbol: String {
             switch self {
             case .voice: "mic"
-            case .scroll: "arrow.down.to.line"
+            case .scroll: "arrow.down"  // not import's tray and arrow, which icon sets draw alike
             case .words: "waveform"
             }
         }
@@ -104,7 +104,9 @@ public final class PrompterFeature: NotchFeature {
 
     /// A comfortable speaking pace: 150 words a minute.
     public static let wordsPerSecond = 2.5
-    public static let speeds: [Double] = [0.5, 0.75, 1, 1.25, 1.5, 2, 2.5, 3]
+    /// Scroll and Words speeds, in steps of `speedStep`.
+    public static let speeds: ClosedRange<Double> = 0.5...3
+    public static let speedStep = 0.25
     public static let textSizes: ClosedRange<Double> = 16...40
 
     private enum Key {
@@ -156,12 +158,7 @@ public final class PrompterFeature: NotchFeature {
     public func start() {
         guard phase == .foreground, !isRunning else { return }
         if !isReading {
-            wordRanges = script.ranges(of: /\S+/).map { NSRange($0, in: script) }
-            words = wordRanges.map { (script as NSString).substring(with: $0) }
-            guard !words.isEmpty else { return }
-            alignment = ScriptAlignment(words)
-            current = 0
-            stopwatch.reset()
+            guard prepare() else { return }
             isReading = true
         }
         guard !isFinished else { return }
@@ -185,14 +182,31 @@ public final class PrompterFeature: NotchFeature {
 
     /// Back to the first word.
     public func restart() {
-        current = 0
         stopwatch.reset()
+        if isRunning { stopwatch.start(at: .now) }
+        jump(to: 0)
+    }
+
+    /// Carries on from the word at `index`: one clicked, or scrolled to the reading line.
+    public func jump(to index: Int) {
+        guard isReading else { return }
+        current = min(max(index, 0), wordRanges.count)
+        alignment = ScriptAlignment(words, at: current)
         if isRunning {
-            stopwatch.start(at: .now)
-            listener.stop()  // a fresh transcript for the top of the script
+            listener.stop()  // a fresh transcript from here
             move()
         }
         publish()
+    }
+
+    /// The script split into words to read, from the first; false when it has none.
+    private func prepare() -> Bool {
+        wordRanges = script.ranges(of: /\S+/).map { NSRange($0, in: script) }
+        words = wordRanges.map { (script as NSString).substring(with: $0) }
+        alignment = ScriptAlignment(words)
+        current = 0
+        stopwatch.reset()
+        return !words.isEmpty
     }
 
     /// Back to the editor.
@@ -295,7 +309,8 @@ public final class PrompterFeature: NotchFeature {
 
     // MARK: Importing
 
-    /// Picks a text, Markdown, or PowerPoint file and makes it the script.
+    /// Picks a text, Markdown, or PowerPoint file and makes it the script; while reading, it's read
+    /// from its top.
     public func importScript() {
         keepOpen?()
         let panel = NSOpenPanel()
@@ -321,6 +336,11 @@ public final class PrompterFeature: NotchFeature {
                 script = try String(contentsOf: url, usedEncoding: &encoding)
             }
             problem = nil
+            if isReading {  // imported while reading: the new script, from its top
+                pause()
+                isReading = prepare()
+                publish()
+            }
         } catch {
             problem = .message(error.localizedDescription)
         }
