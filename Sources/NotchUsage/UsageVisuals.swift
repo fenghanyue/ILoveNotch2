@@ -174,7 +174,7 @@ struct RefreshButton: View {
         let spins = spinning && !reduceMotion
         let spin: Animation = spins ? .linear(duration: 1).repeatForever(autoreverses: false) : .default
         Button(action: action) {
-            Image(systemName: "arrow.clockwise")
+            ThemeSymbol("arrow.clockwise")
                 .themeFont(.body, size: 11, weight: .semibold)
                 .rotationEffect(.degrees(spins ? 360 : 0))
                 .animation(spin, value: spinning)

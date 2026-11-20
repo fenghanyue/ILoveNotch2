@@ -282,7 +282,7 @@ private struct ProviderTile: View {
         if refreshing {
             ProgressView().controlSize(.mini)
         } else if error != nil {
-            Image(systemName: "exclamationmark.triangle.fill")
+            ThemeSymbol("exclamationmark.triangle.fill")
                 .themeFont(.body, size: 10)
                 .foregroundStyle(Color(hex: 0xF59E_0B))  // warning amber in every theme
                 .help(error ?? "")
@@ -303,7 +303,7 @@ private struct ProviderTile: View {
         return HStack(spacing: 6) {
             if let left {
                 HStack(spacing: 3) {
-                    Image(systemName: "clock.arrow.circlepath")
+                    ThemeSymbol("clock.arrow.circlepath")
                     Text(left).monospacedDigit()
                 }
                 .help("Resets in \(left)")
@@ -360,7 +360,7 @@ struct ProviderDetail: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 7) {
                 Button(action: back) {
-                    Image(systemName: "chevron.left")
+                    ThemeSymbol("chevron.left")
                         .themeFont(.body, size: 11, weight: .semibold)
                         .frame(width: 20, height: 20)
                         .contentShape(Rectangle())
@@ -376,7 +376,7 @@ struct ProviderDetail: View {
                     Link(destination: dashboard) {
                         HStack(spacing: 2) {
                             Text("Dashboard")
-                            Image(systemName: "arrow.up.right").themeFont(.body, size: 7, weight: .bold)
+                            ThemeSymbol("arrow.up.right").themeFont(.body, size: 7, weight: .bold)
                         }
                     }
                     .themeFont(.body, size: 10, weight: .medium)
@@ -404,7 +404,7 @@ struct ProviderDetail: View {
     }
 
     private func banner(_ message: String) -> some View {
-        Label(message, systemImage: "exclamationmark.triangle.fill")
+        ThemeLabel(message, symbol: "exclamationmark.triangle.fill")
             .themeFont(.body, size: 10)
             .foregroundStyle(Color(hex: 0xFDE6_8A))  // warning amber in every theme
             .lineLimit(2)
@@ -569,7 +569,7 @@ private struct UsageOnboarding: View {
         let accents = ["claude", "copilot", "cursor"].map { ProviderStyle.of($0).start }
         return VStack(spacing: 8) {
             if !compact {
-                Image(systemName: "gauge.with.dots.needle.67percent")
+                ThemeSymbol("gauge.with.dots.needle.67percent")
                     .themeFont(.body, size: 24, weight: .semibold)
                     .foregroundStyle(LinearGradient(colors: accents, startPoint: .leading, endPoint: .trailing))
                     .accessibilityHidden(true)
@@ -616,7 +616,7 @@ private struct ProviderTray: View {
             Button {
                 usage.openSettings?()
             } label: {
-                Image(systemName: "slider.horizontal.3")
+                ThemeSymbol("slider.horizontal.3")
                     .themeFont(.body, size: 11, weight: .medium)
                     .frame(width: 22, height: 22)
                     .contentShape(Rectangle())
@@ -664,7 +664,7 @@ private struct TrayItem: View {
                         in: RoundedRectangle(cornerRadius: side * 0.3, style: .continuous)
                     )
                     .overlay(alignment: .bottomTrailing) {
-                        Image(systemName: needsKey ? "key.fill" : "plus.circle.fill")
+                        ThemeSymbol(needsKey ? "key.fill" : "plus.circle.fill")
                             .themeFont(.body, size: labeled ? 10 : 8, weight: .bold)
                             .foregroundStyle(signedIn ? style.end : ink.opacity(0.7))
                             // Cut out of the plate in the notch's own color.
