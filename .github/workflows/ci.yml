@@ -37,7 +37,8 @@ jobs:
           PR: ${{ github.event.pull_request.number }}
         run: |
           [ -z "$PR" ] && { echo "code=true" >> "$GITHUB_OUTPUT"; exit 0; }  # a run by hand checks everything
-          files=$(gh pr diff "$PR" --repo "$GITHUB_REPOSITORY" --name-only)
+          # The files API pages through up to 3,000 files; `gh pr diff` gives up past 300.
+          files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --jq '.[].filename')
           echo "$files"
           # Anything but Markdown, docs/, the appcast, and the license is code.
           if grep -qvE '^(docs/.*|.*\.md|appcast\.xml|LICENSE)$' <<< "$files"; then
