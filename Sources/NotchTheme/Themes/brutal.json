@@ -24,6 +24,7 @@
     "tertiary": "#9A9A9A",
     "fill": "#FF8FC7",
     "accent": "#FFD60A",
+    "series": ["#000000", "#FFD60A"],
     "onAccent": "#000000",
     "highlight": "#FFD60A"
   },
@@ -43,7 +44,16 @@
       "weight": "bold"
     }
   },
+  "controls": {
+    "style": "outline",
+    "radius": 0,
+    "line": 2,
+    "lineColor": "#000000",
+    "shadow": "hard",
+    "selection": "block"
+  },
   "icons": {
+    "everywhere": true,
     "set": "tabler",
     "stroke": 2.5,
     "cap": "square"
