@@ -93,9 +93,12 @@ struct GlassPlatter<S: Shape>: View {
     let shape: S
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.theme) private var theme
 
     var body: some View {
-        if #available(macOS 26, *), !reduceTransparency, contrast != .increased {
+        if theme.controls != nil {
+            Color.clear.themePlatter(0.08, in: shape)  // a theme that styles its controls draws its own
+        } else if #available(macOS 26, *), !reduceTransparency, contrast != .increased {
             Color.clear.glassEffect(.regular, in: shape)
         } else {
             shape.fill(.themeInk.opacity(0.08))

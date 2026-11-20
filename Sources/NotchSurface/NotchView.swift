@@ -531,10 +531,10 @@ struct NotchView: View {
         let row = preferences.rowTabs
         let tabs = row.contains(selected) ? row : row + [selected]
         let tabWidth = Self.tabWidth(count: tabs.count, room: tabRoom)
-        // The terminal skin numbers its tabs like a shell's windows ("1:media 2:shelf"), and lights
-        // the open one as an inverted block.
+        // The terminal skin numbers its tabs like a shell's windows ("1:media 2:shelf").
         let terminal = theme.skin(.tabRow) == "terminal"
         let names = tabs.enumerated().map { index, tab in terminal ? "\(index + 1):\(tab.rawValue)" : tab.title }
+        let inverted = theme.selectsOnAccent  // the open tab's text on the accent
         let named = theme.tabLabels == .text && namesFit(names)
         return HStack(spacing: Self.tabSpacing) {
             ForEach(Array(zip(tabs, names)), id: \.0) { tab, name in
@@ -551,14 +551,14 @@ struct NotchView: View {
                     Group {
                         if named {
                             Text(name)
-                                .themeFont(.body, size: Self.tabTextSize, weight: terminal && lit ? .bold : .medium)
+                                .themeFont(.body, size: Self.tabTextSize, weight: inverted && lit ? .bold : .medium)
                                 .padding(.horizontal, Self.tabTextPadding)
                         } else {
                             ThemeIcon(tab).frame(width: tabWidth)
                         }
                     }
                     .foregroundStyle(
-                        terminal && lit ? ThemeStyle.themeOnAccent : .themeInk.opacity(lit ? 1 : Self.unlit)
+                        inverted && lit ? ThemeStyle.themeOnAccent : .themeInk.opacity(lit ? 1 : Self.unlit)
                     )
                     .frame(height: 26)
                     .contentShape(Rectangle())
@@ -573,34 +573,27 @@ struct NotchView: View {
         .background {
             // One capsule travels between tabs, inside the row's glass: a bouncy spring carries it,
             // and a quick stretch-and-settle makes the move read as jelly instead of a jump.
-            Group {
-                if terminal {
-                    Rectangle().fill(.themeAccent.opacity(drawer ? 0 : 1))
-                } else {
-                    Capsule().fill(.themeInk.opacity(drawer ? 0 : 0.16))
+            SelectionMark()
+                .opacity(drawer ? 0 : 1)
+                .padding(2)
+                .matchedGeometryEffect(id: selected, in: selection, isSource: false)
+                .keyframeAnimator(initialValue: CGSize(width: 1, height: 1), trigger: selected) { capsule, scale in
+                    capsule.scaleEffect(scale)
+                } keyframes: { _ in
+                    let stretch: CGFloat = reduceMotion ? 1 : 1.3
+                    KeyframeTrack(\.width) {
+                        SpringKeyframe(stretch, duration: 0.12)
+                        SpringKeyframe(reduceMotion ? 1 : 0.94, duration: 0.14)
+                        SpringKeyframe(1, duration: 0.24)
+                    }
+                    KeyframeTrack(\.height) {
+                        SpringKeyframe(2 - stretch, duration: 0.12)
+                        SpringKeyframe(reduceMotion ? 1 : 1.05, duration: 0.14)
+                        SpringKeyframe(1, duration: 0.24)
+                    }
                 }
-            }
-            .padding(2)
-            .matchedGeometryEffect(id: selected, in: selection, isSource: false)
-            .keyframeAnimator(initialValue: CGSize(width: 1, height: 1), trigger: selected) { capsule, scale in
-                capsule.scaleEffect(scale)
-            } keyframes: { _ in
-                let stretch: CGFloat = reduceMotion ? 1 : 1.3
-                KeyframeTrack(\.width) {
-                    SpringKeyframe(stretch, duration: 0.12)
-                    SpringKeyframe(reduceMotion ? 1 : 0.94, duration: 0.14)
-                    SpringKeyframe(1, duration: 0.24)
-                }
-                KeyframeTrack(\.height) {
-                    SpringKeyframe(2 - stretch, duration: 0.12)
-                    SpringKeyframe(reduceMotion ? 1 : 1.05, duration: 0.14)
-                    SpringKeyframe(1, duration: 0.24)
-                }
-            }
         }
-        .background {
-            if !terminal { GlassPlatter(shape: Capsule()) }  // a terminal's tabs sit bare on the band
-        }
+        .background(GlassPlatter(shape: Capsule()))
         .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.64), value: selected)
         .contextMenu {
             Button("Edit Tabs\u{2026}", action: startEditing)
@@ -785,9 +778,12 @@ private struct GlassPlatter<S: Shape>: View {
     let shape: S
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.theme) private var theme
 
     var body: some View {
-        if #available(macOS 26, *), !reduceTransparency, contrast != .increased {
+        if theme.controls != nil {
+            Color.clear.themePlatter(0.08, in: shape)  // a theme that styles its controls draws its own
+        } else if #available(macOS 26, *), !reduceTransparency, contrast != .increased {
             Color.clear.glassEffect(.regular, in: shape)
         } else {
             shape.fill(.themeInk.opacity(0.08))

@@ -37,6 +37,44 @@ public struct Theme: Decodable, Identifiable, Sendable {
     public let seekBar: SeekBar
     public let waveform: Waveform
     public let skins: Skins?
+    /// How buttons, chips, fields, and cards are backed (`themePlatter`) and how a selected tab or
+    /// segment shows (`themeSelection`). Without it, each keeps the ink fill and capsule it has in
+    /// Black.
+    public let controls: Controls?
+
+    public struct Controls: Decodable, Sendable {
+        /// `fill` (the default): the ink at each control's own strength. `outline`: a line around
+        /// it too. `well`: a dark recess with a thin line, like a display's window.
+        public let style: Style?
+        /// One corner radius for every control, 0 for square; without it each keeps its own shape.
+        public let radius: Double?
+        /// The outline's width (style `outline`), 1 without it.
+        public let line: Double?
+        /// The outline's color; the ink at each control's strength without it.
+        public let lineColor: ThemeColor?
+        /// `hard`: a solid copy of the shape in the line's color, offset down and to the right.
+        public let shadow: Shadow?
+        /// The well's color (style `well`).
+        public let well: ThemeColor?
+        /// How a selected tab or segment shows; `pill` without it.
+        public let selection: Selection?
+
+        public enum Style: String, Decodable, Sendable {
+            case fill, outline, well
+        }
+
+        public enum Shadow: String, Decodable, Sendable {
+            case none, hard
+        }
+
+        /// `pill`: the ink faintly behind it, in its shape. `accent`: an accent pill with its text in
+        /// `onAccent`. `block`: the same, square. `underline`: a line in the accent under it. `dot`: a
+        /// lit dot in the accent under it.
+        public enum Selection: String, Decodable, Sendable {
+            case pill, accent, block, underline, dot
+        }
+    }
+
     /// A little character at the head of the tab row, by the name of one the app draws
     /// (`Theme.mascots`); an unknown one draws nothing.
     private let mascot: String?
