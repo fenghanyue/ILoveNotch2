@@ -710,7 +710,7 @@ struct NotchView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
                     .accessibilityHidden(true)
             } else {
-                Image(systemName: activity.symbol)
+                ThemeSymbol(activity.symbol)
                     .themeFont(.body, size: 12, weight: .semibold)
             }
             Group {
@@ -733,7 +733,7 @@ struct NotchView: View {
     /// Symbol, meter, and value side by side, under the camera housing (or inside the pill).
     private func levelRow(_ activity: Activity, level: Double) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: activity.symbol)
+            ThemeSymbol(activity.symbol)
                 .themeFont(.body, size: 12, weight: .semibold)
                 .contentTransition(.symbolEffect(.replace))
                 .frame(width: 20)

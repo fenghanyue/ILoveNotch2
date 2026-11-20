@@ -264,7 +264,7 @@ private struct EditBadge: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: symbol)
+            ThemeSymbol(symbol)
                 .themeFont(.body, size: 7, weight: .heavy)
                 .foregroundStyle(.white)
                 .frame(width: 14, height: 14)
