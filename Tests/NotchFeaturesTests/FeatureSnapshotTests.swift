@@ -247,8 +247,10 @@ struct FeatureSnapshotTests {
 
     /// Without a size, at the default size and again at the smallest, where every tab is tightest.
     /// `settles` draws it once what rises into place on appearing has (without animation, so at once).
+    /// `AUDIT_THEME=paper` draws every tab in that theme instead of Black, to check a theme's look.
     private func render(
-        _ view: some View, name: String, size: CGSize? = nil, settles: Bool = false, theme: Theme = Themes.black
+        _ view: some View, name: String, size: CGSize? = nil, settles: Bool = false,
+        theme: Theme = Themes.theme(ProcessInfo.processInfo.environment["AUDIT_THEME"] ?? "black")
     ) throws {
         guard let size else {
             try render(view, name: name, size: self.size, settles: settles, theme: theme)
