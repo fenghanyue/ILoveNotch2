@@ -117,7 +117,7 @@ struct NetworkTests {
         let netSpeed = folder.appending(path: "history.sqlite")
         var db: OpaquePointer?
         #expect(sqlite3_open(netSpeed.path, &db) == SQLITE_OK)
-        let hour = NetworkFeature.hour(of: .now - 3 * 3600)
+        let hour = Calendar.current.startOfDay(for: .now)  // on today's page, whatever the time
         let minutes = [(hour, 100), (hour + 60, 200), (hour + 3600, 400)].map { date, bytes in
             "(\(Int(date.timeIntervalSince1970)), \(bytes), 1)"
         }

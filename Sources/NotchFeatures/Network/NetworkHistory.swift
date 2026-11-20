@@ -18,8 +18,8 @@ public struct Traffic: Hashable, Sendable {
     public var total: Int64 { down + up }
 }
 
-/// What the history chart shows: the last 24 hours by the hour, the last 7 or 30 days by the day,
-/// or the last 12 months by the month.
+/// What the history chart shows, a calendar page at a time: a day by the hour, a week or a month by
+/// the day, or a year by the month.
 public enum HistoryRange: String, CaseIterable, Identifiable, Sendable {
     case day, week, month, year
 
@@ -34,21 +34,32 @@ public enum HistoryRange: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
+    /// As Health's charts write them, for a narrow switch.
     public var shortTitle: String {
         switch self {
-        case .day: "24h"
-        case .week: "7d"
-        case .month: "30d"
-        case .year: "1y"
+        case .day: "D"
+        case .week: "W"
+        case .month: "M"
+        case .year: "Y"
         }
     }
 
     public var caption: String {
         switch self {
-        case .day: "Last 24 hours"
-        case .week: "Last 7 days"
-        case .month: "Last 30 days"
-        case .year: "Last 12 months"
+        case .day: "A day by the hour"
+        case .week: "A week by the day"
+        case .month: "A month by the day"
+        case .year: "A year by the month"
+        }
+    }
+
+    /// What a page covers.
+    var period: Calendar.Component {
+        switch self {
+        case .day: .day
+        case .week: .weekOfYear
+        case .month: .month
+        case .year: .year
         }
     }
 
@@ -61,13 +72,23 @@ public enum HistoryRange: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    var bucketCount: Int {
-        switch self {
-        case .day: 24
-        case .week: 7
-        case .month: 30
-        case .year: 12
+    /// The page `page` periods away from the one `now` is in: 0 for today, this week, this month, or
+    /// this year, -1 for the one before. A week starts on the calendar's first weekday.
+    func interval(page: Int, now: Date, calendar: Calendar = .current) -> DateInterval? {
+        guard let day = calendar.date(byAdding: period, value: page, to: now) else { return nil }
+        return calendar.dateInterval(of: period, for: day)
+    }
+
+    /// The starts of a page's bars, oldest first: 23 to 25 hours, 7 days, 28 to 31 days, or 12 months.
+    func starts(in page: DateInterval, calendar: Calendar = .current) -> [Date] {
+        var starts: [Date] = []
+        var start = page.start
+        while start < page.end {
+            starts.append(start)
+            guard let next = calendar.date(byAdding: unit, value: 1, to: start), next > start else { break }
+            start = next
         }
+        return starts
     }
 
     /// Groups rows into bars in SQL, on the local clock, so a day is the user's midnight to midnight.
@@ -84,6 +105,8 @@ public enum HistoryRange: String, CaseIterable, Identifiable, Sendable {
 public struct TrafficBucket: Hashable, Identifiable, Sendable {
     public var start: Date
     public var traffic: Traffic
+    /// It starts after now: an empty slot on the page.
+    public var upcoming = false
     public var id: Date { start }
 }
 
@@ -135,17 +158,14 @@ final class NetworkHistory {
         exec("COMMIT")
     }
 
-    /// The range's bars, oldest first and ending with the one `now` is in, with empty periods as zeros
-    /// so the chart keeps its shape.
-    func buckets(for range: HistoryRange, now: Date = .now, calendar: Calendar = .current) -> [TrafficBucket] {
-        guard let current = calendar.dateInterval(of: range.unit, for: now)?.start else { return [] }
-        let starts = (0..<range.bucketCount).reversed().compactMap {
-            calendar.date(byAdding: range.unit, value: -$0, to: current)
-        }
-        guard let first = starts.first else { return [] }
+    /// A page's bars, a unit of the range each, oldest first, with empty ones as zeros so the chart
+    /// keeps its shape; those that start after `now` are still to come.
+    func buckets(for range: HistoryRange, in page: DateInterval, now: Date = .now, calendar: Calendar = .current)
+        -> [TrafficBucket]
+    {
         // Each group's earliest hour lands in its bar, whatever time zone the rows were written in.
         let sql = """
-            SELECT MIN(start), SUM(down), SUM(up) FROM hours WHERE start >= \(Int64(first.timeIntervalSince1970))
+            SELECT MIN(start), SUM(down), SUM(up) FROM hours \(Self.within(page))
             GROUP BY strftime('\(range.groupFormat)', start, 'unixepoch', 'localtime')
             """
         var totals: [Date: Traffic] = [:]
@@ -154,7 +174,23 @@ final class NetworkHistory {
             guard let start = calendar.dateInterval(of: range.unit, for: date)?.start else { continue }
             totals[start, default: Traffic()] += Traffic(down: row[1], up: row[2])
         }
-        return starts.map { TrafficBucket(start: $0, traffic: totals[$0] ?? Traffic()) }
+        return range.starts(in: page, calendar: calendar).map {
+            TrafficBucket(start: $0, traffic: totals[$0] ?? Traffic(), upcoming: $0 > now)
+        }
+    }
+
+    /// What moved in `interval`.
+    func traffic(in interval: DateInterval) -> Traffic {
+        query("SELECT IFNULL(SUM(down), 0), IFNULL(SUM(up), 0) FROM hours \(Self.within(interval))").first.map {
+            Traffic(down: $0[0], up: $0[1])
+        } ?? Traffic()
+    }
+
+    /// When the first hour recorded began, if there is one.
+    func earliest() -> Date? {
+        query("SELECT start FROM hours ORDER BY start LIMIT 1").first.map {
+            Date(timeIntervalSince1970: TimeInterval($0[0]))
+        }
     }
 
     /// Everything ever recorded.
@@ -162,6 +198,11 @@ final class NetworkHistory {
         query("SELECT IFNULL(SUM(down), 0), IFNULL(SUM(up), 0) FROM hours").first.map {
             Traffic(down: $0[0], up: $0[1])
         } ?? Traffic()
+    }
+
+    private static func within(_ interval: DateInterval) -> String {
+        "WHERE start >= \(Int64(interval.start.timeIntervalSince1970)) "
+            + "AND start < \(Int64(interval.end.timeIntervalSince1970))"
     }
 
     func clear() { exec("DELETE FROM hours") }

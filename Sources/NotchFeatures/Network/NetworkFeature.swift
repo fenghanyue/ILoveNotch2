@@ -60,13 +60,22 @@ public final class NetworkFeature: NotchFeature {
             update()
         }
     }
-    /// The history chart's range.
+    /// The history chart's range. Picking one turns to its page now is on.
     public var range: HistoryRange {
         didSet {
             defaults.set(range.rawValue, forKey: Self.rangeKey)
-            if phase == .foreground { reload() }
+            page = 0  // reloads
         }
     }
+    /// Which of the range's pages the chart shows: 0 for the one now is in, -1 for the one before, and
+    /// so on.
+    public var page = 0 {
+        didSet { if phase == .foreground { reload() } }
+    }
+    /// The calendar period the chart's page covers.
+    public private(set) var pageInterval: DateInterval?
+    /// When the history begins, so the chart pages back no further.
+    public private(set) var earliest: Date?
     /// The speed at the latest reading.
     public private(set) var rate = Rate()
     /// The last minute of speeds, oldest first.
@@ -78,8 +87,11 @@ public final class NetworkFeature: NotchFeature {
     /// Shows the speed on the closed notch; nil once it shouldn't.
     @ObservationIgnored public var onOngoing: ((Activity?) -> Void)?
 
-    /// The range's bars from disk, without the traffic still in memory.
+    /// The page's bars from disk, without the traffic still in memory.
     private var stored: [TrafficBucket] = []
+    /// Each range's period now is in (today, this week, this month, this year): where it starts and
+    /// what moved in it, from disk.
+    private var periods: [HistoryRange: (start: Date, traffic: Traffic)] = [:]
     /// Traffic not written yet, by the hour it moved in.
     private var pending: [Date: Traffic] = [:]
 
@@ -132,14 +144,24 @@ public final class NetworkFeature: NotchFeature {
 
     public var view: some View { NetworkView(network: self) }
 
-    /// The chart's bars: the range from disk, with the traffic still in memory added to its bar.
+    /// The chart's bars: the page from disk, with the traffic still in memory added to its bar when
+    /// it's on this page.
     public var buckets: [TrafficBucket] {
         var buckets = stored
-        for (hour, traffic) in pending {
+        guard let page = pageInterval else { return buckets }
+        for (hour, traffic) in pending where hour >= page.start && hour < page.end {
             guard let index = buckets.lastIndex(where: { $0.start <= hour }) else { continue }
             buckets[index].traffic += traffic
         }
         return buckets
+    }
+
+    /// What moved since the start of the period now is in: today since midnight, this week since its
+    /// first day, this month since the 1st, or this year since January. From disk as of the tab's last
+    /// look, with the traffic still in memory.
+    public func soFar(_ range: HistoryRange) -> Traffic {
+        guard let period = periods[range] else { return Traffic() }
+        return pending.reduce(period.traffic) { $1.key >= period.start ? $0 + $1.value : $0 }
     }
 
     /// Whether the counters are being read on a schedule.
@@ -284,9 +306,16 @@ public final class NetworkFeature: NotchFeature {
 
     private func reload() {
         let now = Date.now
+        let database = history()
         loadedHour = Self.hour(of: now)
-        stored = history().buckets(for: range, now: now)
-        lifetime = history().total() + pending.values.reduce(Traffic(), +)
+        pageInterval = range.interval(page: page, now: now)
+        stored = pageInterval.map { database.buckets(for: range, in: $0, now: now) } ?? []
+        periods = HistoryRange.allCases.reduce(into: [:]) { periods, range in
+            guard let period = range.interval(page: 0, now: now) else { return }
+            periods[range] = (period.start, database.traffic(in: period))
+        }
+        earliest = database.earliest()
+        lifetime = database.total() + pending.values.reduce(Traffic(), +)
     }
 
     /// NetSpeed's history comes in the first time the tab runs, before its first reading, so
@@ -348,8 +377,13 @@ public final class NetworkFeature: NotchFeature {
     /// "160 MB" or "2.1 GB"; nothing is "0 KB", a number rather than words that would read as a
     /// broken label on a chart.
     public nonisolated static func bytes(_ count: Int64) -> String {
-        let scaled = scaled(Double(count), units: ["KB", "MB", "GB", "TB"], decimalsUnder: 100)
-        return "\(scaled.value) \(scaled.unit)"
+        let amount = amount(count)
+        return "\(amount.value) \(amount.unit)"
+    }
+
+    /// `bytes` in two parts, "160" and "MB", for a number set larger than its unit.
+    public nonisolated static func amount(_ count: Int64) -> (value: String, unit: String) {
+        scaled(Double(count), units: ["KB", "MB", "GB", "TB"], decimalsUnder: 100)
     }
 
     /// In the decimal units Finder uses (1 KB is 1,000 bytes), from KB up, with one decimal under
