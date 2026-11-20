@@ -97,7 +97,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             #endif
             return AnyView(
                 HomeView(
-                    media: media, calendar: calendar, tasks: tasks, timer: timer, prompter: prompter, usage: usage,
+                    home: home, media: media, calendar: calendar, tasks: tasks, timer: timer, prompter: prompter,
+                    notes: notes, clipboard: clipboard, shortcuts: shortcuts, network: network, usage: usage,
                     tabs: Set(preferences.tabs)
                 ) { [weak self] tab in
                     self?.coordinator?.open(tab)
