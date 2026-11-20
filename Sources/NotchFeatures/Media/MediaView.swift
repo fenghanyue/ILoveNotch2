@@ -788,7 +788,8 @@ struct MediaView: View {
 
     /// A soft, saturated blur of the cover behind the whole notch; the notch clips it to its outline.
     @ViewBuilder private var glow: some View {
-        if let image = media.artwork, !reduceTransparency, theme.skin(.musicPlayer) == nil {
+        // Not on a light sheet, where a blur of the cover reads as a stain rather than light.
+        if let image = media.artwork, !reduceTransparency, theme.skin(.musicPlayer) == nil, theme.appearance == .dark {
             Image(nsImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
