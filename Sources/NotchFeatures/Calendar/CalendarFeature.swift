@@ -5,7 +5,7 @@ import NotchCore
 import Observation
 import SwiftUI
 
-/// One event on today's agenda, copied out of EventKit so it can cross threads.
+/// One event on the agenda, copied out of EventKit so it can cross threads.
 public struct DayEvent: Identifiable, Hashable, Sendable {
     public var id: String
     public var title: String
@@ -13,6 +13,8 @@ public struct DayEvent: Identifiable, Hashable, Sendable {
     public var end: Date
     public var isAllDay: Bool
     public var color: RGB?
+    /// Where it happens: the first line of its location, unless that's a link.
+    public var place: String?
     /// The video call to join, when the event has a link to one.
     public var meeting: MeetingLink?
     /// Declined, or canceled by the organizer: nothing to join.
@@ -28,6 +30,8 @@ public struct DayEvent: Identifiable, Hashable, Sendable {
         end = event.endDate
         isAllDay = event.isAllDay
         color = RGB(event.calendar?.cgColor)
+        let line = event.location?.split(whereSeparator: \.isNewline).first?.trimmingCharacters(in: .whitespaces)
+        place = line.flatMap { $0.isEmpty || $0.contains("://") ? nil : $0 }
         meeting = MeetingLink.find(in: [event.url?.absoluteString, event.location, event.notes])
         isDeclined =
             event.status == .canceled
@@ -37,7 +41,7 @@ public struct DayEvent: Identifiable, Hashable, Sendable {
 
     init(
         id: String, title: String, start: Date, end: Date, isAllDay: Bool = false, color: RGB? = nil,
-        meeting: MeetingLink? = nil, isDeclined: Bool = false, isEditable: Bool = true
+        place: String? = nil, meeting: MeetingLink? = nil, isDeclined: Bool = false, isEditable: Bool = true
     ) {
         self.id = id
         self.title = title
@@ -45,6 +49,7 @@ public struct DayEvent: Identifiable, Hashable, Sendable {
         self.end = end
         self.isAllDay = isAllDay
         self.color = color
+        self.place = place
         self.meeting = meeting
         self.isDeclined = isDeclined
         self.isEditable = isEditable
@@ -62,12 +67,13 @@ public struct DayEvent: Identifiable, Hashable, Sendable {
     }
 }
 
-/// Today's events from the user's calendars, with the tasks due today beneath them and a field to
-/// add an event. It asks for access only when the user taps the button, and reads the agenda (one
-/// bounded day-long query, plus one for due reminders when Reminders access is already allowed)
-/// only while the tab is on screen, refreshing on EventKit's change notification rather than
-/// polling. With access, it also counts down to the next meeting with a video link while the tab is
-/// off screen: one bounded query for it and one deadline, looked at again when the calendars change.
+/// The week of the chosen day from the user's calendars, with that day's events and its tasks, and
+/// a field to add an event. It asks for access only when the user taps the button, and reads the
+/// week (one bounded week-long query, plus one for due reminders when Reminders access is already
+/// allowed) only while the tab is on screen, again when another week is chosen, refreshing on
+/// EventKit's change notification rather than polling. With access, it also counts down to the next
+/// meeting with a video link while the tab is off screen: one bounded query for it and one
+/// deadline, looked at again when the calendars change.
 @MainActor
 @Observable
 public final class CalendarFeature: NotchFeature {
@@ -79,9 +85,22 @@ public final class CalendarFeature: NotchFeature {
         }
     }
     public private(set) var access = EventAccess(.event)
-    public private(set) var events: [DayEvent] = []
-    /// Open reminders due today or overdue, when Reminders access is allowed.
-    public private(set) var dueTasks: [TaskItem] = []
+    /// The day the agenda shows, at its start: today until another is chosen, and again once the tab
+    /// is off screen.
+    public private(set) var day = Calendar.current.startOfDay(for: .now)
+    /// The chosen week's events by day, while the tab is on screen.
+    private var weekEvents: [Date: [DayEvent]] = [:]
+    /// Open reminders due by the end of the chosen week (overdue ones too, in this week), when
+    /// Reminders access is allowed.
+    private var weekTasks: [TaskItem] = []
+    /// The seven days of the chosen week, from the calendar's first weekday.
+    public var weekDays: [Date] { Self.week(of: day) }
+    /// The chosen day's events, all-day ones first.
+    public var events: [DayEvent] { events(on: day) }
+    /// The chosen day's tasks: due that day, and on today the overdue ones too.
+    public var dueTasks: [TaskItem] {
+        Self.tasks(weekTasks, on: day, today: Calendar.current.startOfDay(for: .now))
+    }
     /// A short confirmation or problem after adding an event. Clears itself.
     public private(set) var notice: String?
     /// Per-feature setting: include all-day events.
@@ -151,13 +170,26 @@ public final class CalendarFeature: NotchFeature {
     /// Re-reads access, which may have changed in System Settings.
     public func refreshAccess() { access = EventAccess(.event) }
 
-    /// Adds an event typed as "Lunch with Sam tomorrow 1pm for 90 min" to the default calendar.
-    /// Returns whether it was added; text without a date or time is left for the user to finish.
+    /// The events on `day` (a day's start) in the chosen week.
+    public func events(on day: Date) -> [DayEvent] { weekEvents[day] ?? [] }
+
+    /// Shows the agenda of the day `date` falls on, reading its week when that's another one.
+    public func select(_ date: Date) {
+        let day = Calendar.current.startOfDay(for: date)
+        guard day != self.day else { return }
+        let sameWeek = weekDays.contains(day)
+        self.day = day
+        if !sameWeek { reload() }
+    }
+
+    /// Adds an event typed as "Lunch with Sam tomorrow 1pm for 90 min" to the default calendar; a
+    /// time with no day ("Lunch 1pm") is on the chosen day. Returns whether it was added; text
+    /// without a date or time is left for the user to finish.
     @discardableResult
     public func addEvent(_ text: String) -> Bool {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, access == .granted else { return false }
-        guard let draft = EventDraft.parse(text) else {
+        guard let draft = Self.draft(text, on: day) else {
             show(notice: "Add when it happens, like \u{201C}tomorrow 1pm\u{201D}")
             return false
         }
@@ -218,7 +250,7 @@ public final class CalendarFeature: NotchFeature {
             show(notice: "Couldn't delete the event")
             return
         }
-        events.removeAll { $0.id == event.id }
+        weekEvents = weekEvents.mapValues { $0.filter { $0.id != event.id } }
         show(notice: "Deleted \u{201C}\(event.title)\u{201D}")
         watchMeetings()
     }
@@ -232,24 +264,25 @@ public final class CalendarFeature: NotchFeature {
         return store.events(matching: around).first { DayEvent.id(for: $0) == event.id }
     }
 
-    /// Ticks off a task listed under today's events.
+    /// Ticks off a task listed beside the day's events.
     public func complete(_ task: TaskItem) {
         let store = eventStore.store
         guard let reminder = store.calendarItem(withIdentifier: task.id) as? EKReminder else { return }
         reminder.isCompleted = true
         do {
             try store.save(reminder, commit: true)
-            dueTasks.removeAll { $0.id == task.id }
+            weekTasks.removeAll { $0.id == task.id }
         } catch {
             Log.features.error("Couldn't complete a reminder: \(error.localizedDescription, privacy: .public)")
         }
     }
 
-    /// Shows the given agenda as if access were granted. For tests and snapshots only.
+    /// Shows the given events and tasks in the chosen week as if access were granted. For tests and
+    /// snapshots only.
     func show(events: [DayEvent], dueTasks: [TaskItem] = []) {
         access = .granted
-        self.events = events
-        self.dueTasks = dueTasks
+        weekEvents = Self.group(events, into: weekDays)
+        weekTasks = dueTasks
     }
 
     private func show(notice text: String) {
@@ -282,7 +315,7 @@ public final class CalendarFeature: NotchFeature {
     }
 
     /// Listens for calendar changes while the agenda is on screen or a countdown may be needed, and
-    /// holds today's events only while they're on screen.
+    /// holds the week's events only while they're on screen; off screen, the agenda goes back to today.
     private func update() {
         refreshAccess()
         let listens = access == .granted && (phase == .foreground || phase == .background && countsDownToMeetings)
@@ -302,38 +335,89 @@ public final class CalendarFeature: NotchFeature {
         if phase == .foreground {
             reload()
         } else {
-            events = []
-            dueTasks = []
+            weekEvents = [:]
+            weekTasks = []
+            day = Calendar.current.startOfDay(for: .now)
         }
         watchMeetings()
     }
 
+    /// Reads the chosen week: its events in one query, and the reminders due by its end.
     private func reload() {
         guard access == .granted, phase == .foreground else { return }
         let calendar = Calendar.current
-        let start = calendar.startOfDay(for: .now)
-        guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return }
+        let days = weekDays
+        guard let start = days.first, let last = days.last,
+            let end = calendar.date(byAdding: .day, value: 1, to: last)
+        else { return }
         let store = eventStore.store
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
-        events = store.events(matching: predicate)
-            .map(DayEvent.init)
-            .filter { showsAllDay || !$0.isAllDay }
-            .sorted(by: DayEvent.agendaOrder)
+        let events = store.events(matching: predicate).map(DayEvent.init).filter { showsAllDay || !$0.isAllDay }
+        weekEvents = Self.group(events, into: days)
         // Tasks come along only when Reminders access was already given in the Tasks tab.
         guard showsTasks, EventAccess(.reminder) == .granted else {
-            dueTasks = []
+            weekTasks = []
             return
         }
-        let due = store.predicateForIncompleteReminders(withDueDateStarting: nil, ending: end, calendars: nil)
+        // Overdue reminders only matter in the week they show in: today's.
+        let from = days.contains(calendar.startOfDay(for: .now)) ? nil : start
+        let due = store.predicateForIncompleteReminders(withDueDateStarting: from, ending: end, calendars: nil)
         // @Sendable: EventKit calls back on its own queue (see TasksFeature.reload).
         store.fetchReminders(matching: due) { @Sendable [weak self] reminders in
             let items = (reminders ?? []).map(TaskItem.init).sorted(by: TaskItem.order)
             let bounded = Array(items.prefix(Self.dueTaskLimit))
             Task { @MainActor in
-                guard let self, self.phase == .foreground else { return }
-                self.dueTasks = bounded
+                guard let self, self.phase == .foreground, self.weekDays.first == start else { return }
+                self.weekTasks = bounded
             }
         }
+    }
+
+    // MARK: The week
+
+    /// The seven days of the week `day` falls in, each at its start, from the calendar's first weekday.
+    static func week(of day: Date, calendar: Calendar = .current) -> [Date] {
+        let start = calendar.dateInterval(of: .weekOfYear, for: day)?.start ?? calendar.startOfDay(for: day)
+        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
+    }
+
+    /// `events` by the days they fall on, each day's in agenda order. An event over midnight, or an
+    /// all-day one over several days, is on every day it covers; one that ends at midnight isn't on
+    /// the next day.
+    static func group(_ events: [DayEvent], into days: [Date], calendar: Calendar = .current) -> [Date: [DayEvent]] {
+        var grouped: [Date: [DayEvent]] = [:]
+        for day in days {
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { continue }
+            grouped[day] = events.filter { $0.start < next && ($0.end > day || $0.start >= day) }
+                .sorted(by: DayEvent.agendaOrder)
+        }
+        return grouped
+    }
+
+    /// The tasks due on `day`, and on `today` the overdue ones too.
+    static func tasks(_ tasks: [TaskItem], on day: Date, today: Date, calendar: Calendar = .current) -> [TaskItem] {
+        tasks.filter { task in
+            guard let due = task.due.map(calendar.startOfDay) else { return false }
+            return due == day || day == today && due < today
+        }
+    }
+
+    /// A time of day or a length in an event's text ("1pm", "at 9:30", "noon", "for 1h"): what's left
+    /// names a day, if anything does.
+    private static let timeOfDay =
+        #"\b(at\s+)?\d{1,2}(:\d\d)?\s*(am|pm|a\.m\.|p\.m\.)|\b(at\s+)?\d{1,2}:\d\d\b|\bat\s+\d{1,2}\b"#
+        + #"|\b(noon|midnight)\b|\bfor\s+\d+(\.\d+)?\s*[a-z]+"#
+
+    /// The event `text` describes. With a time but no day ("Lunch 1pm"), it's on `day`.
+    static func draft(_ text: String, on day: Date, calendar: Calendar = .current) -> EventDraft? {
+        guard var draft = EventDraft.parse(text, calendar: calendar) else { return nil }
+        let dayless = text.replacingOccurrences(
+            of: timeOfDay, with: " ", options: [.regularExpression, .caseInsensitive])
+        guard !draft.isAllDay, EventDraft.parse(dayless, calendar: calendar) == nil else { return draft }
+        let time = calendar.dateComponents([.hour, .minute], from: draft.start)
+        draft.start =
+            calendar.date(bySettingHour: time.hour ?? 0, minute: time.minute ?? 0, second: 0, of: day) ?? draft.start
+        return draft
     }
 
     // MARK: Meeting countdown
