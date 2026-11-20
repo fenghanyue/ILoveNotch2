@@ -53,9 +53,10 @@ Applications, and open it. It updates itself from then on. See
 version in the [changelog](CHANGELOG.md).
 
 - **Homebrew:** `brew install --cask niyamvora/tap/ilovenotch`
-- **Mac App Store:** in review. The App Store edition has everything except AI
-  Usage, Agents, the Sound tab, and sharing with Android. Try it now through the
-  [TestFlight beta](https://testflight.apple.com/join/6p3zqhCS).
+- **Mac App Store:** [ILoveNotch on the App Store](https://apps.apple.com/app/id6815805975).
+  The App Store edition has everything except AI Usage, Agents, the Sound tab,
+  and sharing with Android. New builds come to the
+  [TestFlight beta](https://testflight.apple.com/join/6p3zqhCS) first.
 - **From source:** see [Build & run](#build--run).
 
 ## Coming from NotchNook?
