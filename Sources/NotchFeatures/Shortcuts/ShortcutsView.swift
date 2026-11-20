@@ -50,7 +50,7 @@ struct ShortcutsView: View {
             }
             .padding(.horizontal, 10)
             .frame(maxWidth: .infinity, minHeight: 38)
-            .background(.themeInk.opacity(running ? 0.18 : 0.1), in: RoundedRectangle(cornerRadius: 9))
+            .themePlatter(running ? 0.18 : 0.1, in: RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
         .disabled(running)

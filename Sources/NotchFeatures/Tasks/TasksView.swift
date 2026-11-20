@@ -149,11 +149,11 @@ struct TasksView: View {
             Button("Done") { tick(task) }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(.themeInk.opacity(0.18), in: Capsule())
+                .themePlatter(0.18, in: Capsule())
             Button("Snooze \(TasksFeature.snoozeMinutes) min") { tasks.snooze(task) }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(.themeInk.opacity(0.1), in: Capsule())
+                .themePlatter(0.1, in: Capsule())
             Button {
                 tasks.dismissAlert()
             } label: {
@@ -180,9 +180,10 @@ struct TasksView: View {
             }
             TextField("New task: try \u{201C}Pay rent fri 9am !! #Home\u{201D}", text: $draft)
                 .textFieldStyle(.plain)
+                .themeFont(.body, .body)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 5)
-                .background(.themeInk.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
+                .themePlatter(0.08, in: RoundedRectangle(cornerRadius: 7))
                 .onSubmit {
                     withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.85)) {
                         _ = tasks.add(draft)
@@ -484,6 +485,6 @@ private struct DraftChips: View {
             .lineLimit(1)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(.themeInk.opacity(0.12), in: Capsule())
+            .themePlatter(0.12, in: Capsule())
     }
 }

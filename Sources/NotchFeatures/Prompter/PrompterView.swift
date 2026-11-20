@@ -26,7 +26,7 @@ struct PrompterView: View {
                 .scrollContentBackground(.hidden)
                 .accessibilityLabel("Script")
                 .padding(6)
-                .background(.themeInk.opacity(0.06), in: RoundedRectangle(cornerRadius: 8))
+                .themePlatter(0.06, in: RoundedRectangle(cornerRadius: 8))
                 .overlay(alignment: .topLeading) {
                     if prompter.script.isEmpty {
                         Text("Paste or type your script, or import a text file, Markdown, or a deck's speaker notes.")
@@ -185,7 +185,7 @@ struct PrompterView: View {
             .themeFont(.body, .callout, weight: .semibold)
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
-            .background(.themeInk.opacity(0.14), in: Capsule())
+            .themePlatter(0.14, in: Capsule())
     }
 
     // MARK: Problems

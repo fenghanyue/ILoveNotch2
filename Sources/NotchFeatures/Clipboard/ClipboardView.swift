@@ -52,12 +52,13 @@ struct ClipboardView: View {
                 ThemeSymbol("magnifyingglass").themeFont(.body, .caption).opacity(0.6)
                 TextField("Search what you copied", text: $query)
                     .textFieldStyle(.plain)
+                    .themeFont(.body, .body)
                     .focused($searching)
                     .onSubmit { if let first = found.first { clipboard.pick(first) } }
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
-            .background(.themeInk.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+            .themePlatter(0.1, in: RoundedRectangle(cornerRadius: 8))
             if found.isEmpty {
                 FeatureUnavailableView(
                     symbol: "doc.on.clipboard", title: clipboard.items.isEmpty ? "Nothing copied yet" : "No matches",
@@ -199,7 +200,7 @@ struct ClipboardView: View {
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
-            .background(.themeInk.opacity(ticked ? 0.08 : 0), in: RoundedRectangle(cornerRadius: 6))
+            .themePlatter(ticked ? 0.08 : 0, in: RoundedRectangle(cornerRadius: 6))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

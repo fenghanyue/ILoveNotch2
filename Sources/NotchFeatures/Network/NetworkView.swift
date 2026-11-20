@@ -4,18 +4,30 @@ import SwiftUI
 
 /// Download in Vercel's Geist blue and upload in its amber: the dark-mode pair NetSpeed's palette
 /// validator picked to tell apart with any color vision, each with a lighter step for gradients.
-/// They mean down and up, so they're the same in every theme.
-enum NetworkTint {
-    static let down = Color(red: 0.196, green: 0.569, blue: 1)  // #3291FF
-    static let downLight = Color(red: 0.51, green: 0.76, blue: 1)  // #82C2FF
-    static let up = Color(red: 0.851, green: 0.467, blue: 0.024)  // #D97706
-    static let upLight = Color(red: 0.98, green: 0.73, blue: 0.33)  // #FABA54
+/// A theme's `colors.series` gives its own pair, which a light theme needs.
+struct NetworkTint {
+    let down: Color
+    let downLight: Color
+    let up: Color
+    let upLight: Color
+
+    init(_ theme: Theme) {
+        if let series = theme.colors.series, series.count >= 2 {
+            (down, up) = (series[0].color, series[1].color)
+            (downLight, upLight) = (down.opacity(0.6), up.opacity(0.6))
+        } else {
+            down = Color(red: 0.196, green: 0.569, blue: 1)  // #3291FF
+            downLight = Color(red: 0.51, green: 0.76, blue: 1)  // #82C2FF
+            up = Color(red: 0.851, green: 0.467, blue: 0.024)  // #D97706
+            upLight = Color(red: 0.98, green: 0.73, blue: 0.33)  // #FABA54
+        }
+    }
 
     /// Lit from the top, like the Sound tab's faders.
-    static var downFill: LinearGradient { lit(down, from: downLight) }
-    static var upFill: LinearGradient { lit(up, from: upLight) }
+    var downFill: LinearGradient { lit(down, from: downLight) }
+    var upFill: LinearGradient { lit(up, from: upLight) }
 
-    private static func lit(_ color: Color, from light: Color) -> LinearGradient {
+    private func lit(_ color: Color, from light: Color) -> LinearGradient {
         LinearGradient(colors: [light, color], startPoint: .top, endPoint: .bottom)
     }
 }
@@ -61,6 +73,8 @@ private struct Card: ViewModifier {
 private struct LiveCard: View {
     let network: NetworkFeature
     let compact: Bool
+    @Environment(\.theme) private var theme
+    private var tint: NetworkTint { NetworkTint(theme) }
 
     var body: some View {
         let rate = network.rate
@@ -72,7 +86,7 @@ private struct LiveCard: View {
                 // The minute's peak joins the caption where there's room for both.
                 ViewThatFits(in: .horizontal) {
                     HStack {
-                        label("Download", color: NetworkTint.down)
+                        label("Download", color: tint.down)
                         Spacer(minLength: 6)
                         if let peak = network.recent.map(\.rate.down).max(), peak > 0 {
                             let speed = NetworkFeature.speed(peak)
@@ -82,19 +96,19 @@ private struct LiveCard: View {
                                 .fixedSize()
                         }
                     }
-                    label("Download", color: NetworkTint.down)
+                    label("Download", color: tint.down)
                 }
             }
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 if compact {
                     ThemeSymbol("arrow.down")
                         .themeFont(.body, size: 11, weight: .heavy)
-                        .foregroundStyle(NetworkTint.downLight)
+                        .foregroundStyle(tint.downLight)
                 }
                 // ponytail: no rolling digits. A numericText transition on a number that changes every
                 // second kept the open tab at 12-51% of a core (0.5% without); roll them only if that changes.
                 Text(down.value)
-                    .themeFont(.display, size: compact ? 22 : 32, weight: .bold, design: .rounded)
+                    .themeFont(.numbers, size: compact ? 22 : 32, weight: .bold, design: .rounded)
                 Text(down.unit)
                     .themeFont(.body, size: compact ? 10 : 12, weight: .semibold)
                     .foregroundStyle(.themeInk.opacity(0.55))
@@ -103,8 +117,8 @@ private struct LiveCard: View {
                 ThemeSymbol("arrow.up").themeFont(.body, size: compact ? 8 : 9, weight: .heavy)
                 Text("\(up.value) \(up.unit)")
             }
-            .themeFont(.display, size: compact ? 10.5 : 13, weight: .semibold, design: .rounded)
-            .foregroundStyle(NetworkTint.upLight)
+            .themeFont(.numbers, size: compact ? 10.5 : 13, weight: .semibold, design: .rounded)
+            .foregroundStyle(tint.upLight)
             Sparkline(samples: network.recent)
                 .padding(.horizontal, -padding)
                 .padding(.bottom, -padding)
@@ -114,7 +128,7 @@ private struct LiveCard: View {
         .lineLimit(1)
         .padding(padding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .modifier(Card(tint: NetworkTint.down))
+        .modifier(Card(tint: tint.down))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Network speed")
         .accessibilityValue("\(Self.spoken(down)) down, \(Self.spoken(up)) up")
@@ -140,6 +154,7 @@ private struct LiveCard: View {
 /// chatter stays a ripple. Drawn once per reading, never animated in between.
 private struct Sparkline: View {
     let samples: [RateSample]
+    private var tint: NetworkTint { NetworkTint(theme) }
 
     @Environment(\.theme) private var theme
 
@@ -169,15 +184,15 @@ private struct Sparkline: View {
             context.fill(
                 area,
                 with: .linearGradient(
-                    Gradient(colors: [NetworkTint.down.opacity(0.5), NetworkTint.down.opacity(0.02)]),
+                    Gradient(colors: [tint.down.opacity(0.5), tint.down.opacity(0.02)]),
                     startPoint: CGPoint(x: 0, y: top), endPoint: CGPoint(x: 0, y: size.height)))
             context.stroke(
-                Self.smooth(points(\.up)), with: .color(NetworkTint.up),
+                Self.smooth(points(\.up)), with: .color(tint.up),
                 style: StrokeStyle(lineWidth: 1.2, lineCap: .round, lineJoin: .round))
             context.drawLayer { glow in
-                glow.addFilter(.shadow(color: NetworkTint.down, radius: 3))
+                glow.addFilter(.shadow(color: tint.down, radius: 3))
                 glow.stroke(
-                    line, with: .color(NetworkTint.downLight),
+                    line, with: .color(tint.downLight),
                     style: StrokeStyle(lineWidth: 1.6, lineCap: .round, lineJoin: .round))
                 let head = down[down.count - 1]
                 let dot = CGRect(x: head.x - 3, y: head.y - 3, width: 6, height: 6)
@@ -270,13 +285,12 @@ private struct HistoryCard: View {
                 } label: {
                     Text(short ? range.shortTitle : range.title)
                         .themeFont(.body, size: 10, weight: .semibold)
-                        .foregroundStyle(.themeInk.opacity(chosen ? 1 : 0.5))
+                        .themeSelectionInk(chosen, unlit: 0.5)
                         .padding(.horizontal, short ? 6 : 8)
                         .frame(height: short ? 16 : 18)
                         .background {
                             if chosen {
-                                Capsule().fill(.themeInk.opacity(0.16)).matchedGeometryEffect(
-                                    id: "range", in: selection)
+                                SelectionMark().matchedGeometryEffect(id: "range", in: selection)
                             }
                         }
                         .contentShape(Capsule())
@@ -288,7 +302,7 @@ private struct HistoryCard: View {
             }
         }
         .padding(2)
-        .background(.themeInk.opacity(0.07), in: Capsule())
+        .themePlatter(0.07, in: Capsule())
         .fixedSize()
     }
 
@@ -301,6 +315,7 @@ private struct Totals: View {
     let compact: Bool
 
     @Environment(\.theme) private var theme
+    private var tint: NetworkTint { NetworkTint(theme) }
 
     var body: some View {
         Group {
@@ -311,8 +326,8 @@ private struct Totals: View {
                 }
             } else {
                 HStack(alignment: .top, spacing: 8) {
-                    column("Download", traffic.down, color: NetworkTint.downLight, dot: NetworkTint.down)
-                    column("Upload", traffic.up, color: NetworkTint.upLight, dot: NetworkTint.up)
+                    column("Download", traffic.down, color: tint.downLight, dot: tint.down)
+                    column("Upload", traffic.up, color: tint.upLight, dot: tint.up)
                     column("Total", traffic.total, color: theme.color(.ink), dot: nil)
                 }
             }
@@ -327,15 +342,15 @@ private struct Totals: View {
 
     private func line(size: CGFloat) -> some View {
         HStack(spacing: size * 0.55) {
-            Text("↓ \(NetworkFeature.bytes(traffic.down))").foregroundStyle(NetworkTint.downLight)
-            Text("↑ \(NetworkFeature.bytes(traffic.up))").foregroundStyle(NetworkTint.upLight)
+            Text("↓ \(NetworkFeature.bytes(traffic.down))").foregroundStyle(tint.downLight)
+            Text("↑ \(NetworkFeature.bytes(traffic.up))").foregroundStyle(tint.upLight)
             Spacer(minLength: 0)
             HStack(spacing: 3) {
                 Text("Total").foregroundStyle(.themeInk.opacity(0.5))
                 Text(NetworkFeature.bytes(traffic.total))
             }
         }
-        .themeFont(.display, size: size, weight: .semibold, design: .rounded)
+        .themeFont(.numbers, size: size, weight: .semibold, design: .rounded)
     }
 
     private func column(_ title: String, _ bytes: Int64, color: Color, dot: Color?) -> some View {
@@ -347,7 +362,7 @@ private struct Totals: View {
             .themeFont(.body, size: 8.5, weight: .bold)
             .foregroundStyle(.themeInk.opacity(0.5))
             Text(NetworkFeature.bytes(bytes))
-                .themeFont(.display, size: 15, weight: .bold, design: .rounded)
+                .themeFont(.numbers, size: 15, weight: .bold, design: .rounded)
                 .foregroundStyle(color)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -421,15 +436,17 @@ private struct Bar: View {
     let order: Int
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.theme) private var theme
     @State private var risen = false
+    private var tint: NetworkTint { NetworkTint(theme) }
 
     var body: some View {
         let scale = risen ? scale : 0
         let radius = min(width / 2, 3)
         ZStack(alignment: .bottom) {
             let empty = traffic.total == 0
-            Rectangle().fill(empty ? AnyShapeStyle(.themeInk.opacity(0.08)) : AnyShapeStyle(NetworkTint.upFill))
-            Rectangle().fill(NetworkTint.downFill).frame(height: CGFloat(traffic.down) * scale)
+            Rectangle().fill(empty ? AnyShapeStyle(.themeInk.opacity(0.08)) : AnyShapeStyle(tint.upFill))
+            Rectangle().fill(tint.downFill).frame(height: CGFloat(traffic.down) * scale)
         }
         .frame(width: width, height: max(CGFloat(traffic.total) * scale, 2))
         .clipShape(UnevenRoundedRectangle(topLeadingRadius: radius, topTrailingRadius: radius, style: .continuous))
@@ -437,7 +454,7 @@ private struct Bar: View {
             // A glow for now's bar only: a shadow on every bar, even a clear one, costs a pass each.
             if now, traffic.total > 0 {
                 UnevenRoundedRectangle(topLeadingRadius: radius, topTrailingRadius: radius, style: .continuous)
-                    .fill(NetworkTint.down)
+                    .fill(tint.down)
                     .blur(radius: 4)
                     .opacity(0.7)
             }

@@ -705,7 +705,7 @@ struct MediaView: View {
                     ThemeSymbol("chevron.left")
                         .themeFont(.body, size: 11, weight: .bold)
                         .frame(width: 20, height: 20)
-                        .background(.themeInk.opacity(0.1), in: Circle())
+                        .themePlatter(0.1, in: Circle())
                 }
                 .buttonStyle(PressableButtonStyle())
                 .help("Back to the player")
@@ -817,7 +817,7 @@ struct MediaView: View {
                 ThemeSymbol("music.note")
                     .themeFont(.body, size: 20, weight: .semibold)
                     .frame(width: 46, height: 46)
-                    .background(.themeInk.opacity(0.08), in: Circle())
+                    .themePlatter(0.08, in: Circle())
             }
             Text("Nothing playing").themeFont(.body, .headline)
             Text(
@@ -873,7 +873,7 @@ private struct QueueRow: View {
             }
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
-            .background(.themeInk.opacity(hovering ? 0.08 : 0), in: shape)
+            .themePlatter(hovering ? 0.08 : 0, in: shape)
             .contentShape(shape)
         }
         .buttonStyle(.plain)

@@ -51,9 +51,10 @@ struct CalendarView: View {
                 if editing == nil {
                     TextField("New event: try \u{201C}Lunch tomorrow 1pm for 1h\u{201D}", text: $draft)
                         .textFieldStyle(.plain)
+                        .themeFont(.body, .body)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 5)
-                        .background(.themeInk.opacity(0.08), in: RoundedRectangle(cornerRadius: 7))
+                        .themePlatter(0.08, in: RoundedRectangle(cornerRadius: 7))
                         .onSubmit {
                             // Text without a time stays in the field so it can be finished.
                             if calendar.addEvent(draft) { draft = "" }
@@ -320,7 +321,7 @@ private struct EventEditor: View {
         .padding(.leading, 4)  // the color bar stays where the row had it
         .padding(.trailing, 6)
         .padding(.vertical, 6)
-        .background(.themeInk.opacity(0.08), in: RoundedRectangle(cornerRadius: 9))
+        .themePlatter(0.08, in: RoundedRectangle(cornerRadius: 9))
         .onChange(of: start) { old, new in end += new.timeIntervalSince(old) }
         .onAppear { Task { @MainActor in focused = true } }
     }
@@ -339,11 +340,11 @@ private struct EventEditor: View {
         Button("Cancel", action: cancel)
             .padding(.horizontal, 9)
             .padding(.vertical, 3)
-            .background(.themeInk.opacity(0.1), in: Capsule())
+            .themePlatter(0.1, in: Capsule())
         Button("Save") { save(title, start, end) }
             .padding(.horizontal, 9)
             .padding(.vertical, 3)
-            .background(.themeInk.opacity(canSave ? 0.25 : 0.08), in: Capsule())
+            .themePlatter(canSave ? 0.25 : 0.08, in: Capsule())
             .disabled(!canSave)
     }
 }

@@ -38,7 +38,10 @@ struct TimerView: View {
         .themeFont(.body, .caption, weight: .semibold)
         .padding(.horizontal, 10)
         .padding(.vertical, 3)
-        .background(timer.mode == mode ? theme.color(.ink).opacity(0.16) : .clear, in: Capsule())
+        .themeSelectionInk(timer.mode == mode, unlit: 1)
+        .background {
+            if timer.mode == mode { SelectionMark() }
+        }
         .accessibilityLabel(lit ? "\(title), on" : title)
         .accessibilityAddTraits(timer.mode == mode ? .isSelected : [])
     }
@@ -69,7 +72,7 @@ struct TimerView: View {
                 // Redraws once a second, and only while it's on screen.
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     RollingTime(until.timeIntervalSince(context.date), countsDown: true)
-                        .themeFont(.display, size: compact ? 30 : 40, weight: .semibold, design: .rounded)
+                        .themeFont(.numbers, size: compact ? 30 : 40, weight: .semibold, design: .rounded)
                 }
                 if !compact {
                     Text("Your Mac and its display stay awake until then.")
@@ -116,7 +119,7 @@ struct TimerView: View {
             }
             .themeFont(.body, .callout, weight: .medium)
             .frame(maxWidth: .infinity, minHeight: 34)
-            .background(.themeInk.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
+            .themePlatter(0.1, in: RoundedRectangle(cornerRadius: 9))
         }
         .buttonStyle(.plain)
     }
@@ -145,7 +148,7 @@ struct TimerView: View {
     private func running(_ countdown: Countdown, left: TimeInterval, compact: Bool) -> some View {
         VStack(spacing: 8) {
             RollingTime(left, countsDown: true)
-                .themeFont(.display, size: compact ? 30 : 40, weight: .semibold, design: .rounded)
+                .themeFont(.numbers, size: compact ? 30 : 40, weight: .semibold, design: .rounded)
                 .opacity(countdown.isRunning ? 1 : 0.5)
             if !compact {
                 ProgressView(value: countdown.total - left, total: countdown.total)
@@ -171,7 +174,7 @@ struct TimerView: View {
                     Text(seconds < 3600 ? "\(Int(seconds / 60)) min" : "1 hr")
                         .themeFont(.body, .callout, weight: .medium)
                         .frame(maxWidth: .infinity, minHeight: height)
-                        .background(.themeInk.opacity(0.1), in: RoundedRectangle(cornerRadius: 9))
+                        .themePlatter(0.1, in: RoundedRectangle(cornerRadius: 9))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Start a \(formatTime(seconds)) timer")
@@ -205,7 +208,7 @@ struct TimerView: View {
         TimelineView(.periodic(from: .now, by: watch.isRunning ? 0.1 : 3600)) { context in
             VStack(spacing: 8) {
                 RollingTime(watch.elapsed(at: context.date), tenths: true)
-                    .themeFont(.display, size: compact ? 30 : 40, weight: .semibold, design: .rounded)
+                    .themeFont(.numbers, size: compact ? 30 : 40, weight: .semibold, design: .rounded)
                 HStack(spacing: 18) {
                     control(watch.isRunning ? "Pause" : "Start") { timer.toggleStopwatch() }
                     if watch.isRunning {
@@ -247,6 +250,6 @@ struct TimerView: View {
             .themeFont(.body, .callout, weight: .semibold)
             .padding(.horizontal, 12)
             .padding(.vertical, 5)
-            .background(.themeInk.opacity(0.14), in: Capsule())
+            .themePlatter(0.14, in: Capsule())
     }
 }

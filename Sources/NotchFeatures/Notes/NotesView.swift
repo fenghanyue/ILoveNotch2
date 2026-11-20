@@ -152,8 +152,8 @@ struct NotesView: View {
     }
 
     private var searchField: some View {
-        Capsule()
-            .fill(.themeInk.opacity(searchHovering && !searching ? 0.18 : 0.1))
+        Color.clear
+            .themePlatter(searchHovering && !searching ? 0.18 : 0.1, in: Capsule())
             .matchedGeometryEffect(id: "field", in: searchSpace)
     }
 
@@ -332,11 +332,11 @@ private struct NoteRow: View {
         .padding(.vertical, 4)
         .background {
             if isSelected {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(.themeInk.opacity(0.14))
+                Color.clear
+                    .themePlatter(0.14, in: RoundedRectangle(cornerRadius: 6))
                     .matchedGeometryEffect(id: "selection", in: selectionSpace)
             } else if hovering {
-                RoundedRectangle(cornerRadius: 6).fill(.themeInk.opacity(0.07))
+                Color.clear.themePlatter(0.07, in: RoundedRectangle(cornerRadius: 6))
             }
         }
         .scaleEffect(hovering && !isSelected && !reduceMotion ? 1.02 : 1, anchor: .leading)
@@ -390,7 +390,7 @@ private struct HeaderIcon: View {
             .themeFont(.body, size: Self.symbolSize, weight: .semibold)
             .foregroundStyle(.themeInk.opacity(hovering ? 1 : 0.8))
             .frame(width: Self.side, height: Self.side)
-            .background(.themeInk.opacity(hovering ? 0.18 : 0.1), in: Circle())
+            .themePlatter(hovering ? 0.18 : 0.1, in: Circle())
             .contentShape(Circle())
             .onHover { hovering = $0 }
             .animation(.easeOut(duration: 0.15), value: hovering)
