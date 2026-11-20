@@ -73,11 +73,11 @@ struct AgentsActivityTests {
         let now = Date.now
         let writes: [(String, String, String, String, TimeInterval)] = [
             ("codex-api", "working", "api-server", "", -21 * 60),
-            ("claude-site", "working", "website", "", -13 * 60),
+            ("claude-site", "working", "simplideliver-website", "", -13 * 60),
             ("codex-api", "waiting", "api-server", "Wants to use exec_command", -12 * 60),
             ("codex-api", "working", "api-server", "", -11 * 60),
             ("claude-nook", "working", "ilovenotch", "", -9 * 60),
-            ("claude-site", "done", "website", "", -2 * 60),
+            ("claude-site", "done", "simplideliver-website", "", -2 * 60),
             ("claude-nook", "waiting", "ilovenotch", "Claude needs your permission to use Bash", -10),
         ]
         for (id, state, project, detail, offset) in writes {

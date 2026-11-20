@@ -279,14 +279,16 @@ private struct FeedRow: View {
                 .lineLimit(1)
                 .frame(width: Self.timeWidth(look), alignment: .trailing)
             marker
+            // The project's whole name first, cut only when the row runs out; short ones keep a column.
             Text(event.project)
                 .themeFont(look == .log ? .mono : .display, size: projectSize, weight: .semibold)
                 .lineLimit(1)
-                .frame(width: 76, alignment: .leading)
+                .frame(minWidth: 76, alignment: .leading)
+                .layoutPriority(1)
             what
                 .themeFont(role, size: 12)
                 .lineLimit(1)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(minWidth: 90, maxWidth: .infinity, alignment: .leading)
             if !narrow, !pending {
                 Text(look == .log ? event.tool.rawValue : event.tool.shortName)
                     .themeFont(role, size: 11)
