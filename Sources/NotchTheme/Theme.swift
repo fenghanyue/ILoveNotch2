@@ -240,6 +240,9 @@ public struct Theme: Decodable, Identifiable, Sendable {
         public let cap: Cap?
         /// Symbol sets only: one color, or the system's layered shades of it.
         public let rendering: Rendering?
+        /// The icons inside the tabs come from the set too (`ThemeSymbol`). Without it they stay
+        /// SF Symbols, as Black draws them.
+        public let everywhere: Bool?
 
         public enum Cap: String, Decodable, Sendable {
             case round, square
@@ -473,7 +476,7 @@ extension Theme {
 }
 
 extension Font.TextStyle {
-    fileprivate var nsTextStyle: NSFont.TextStyle {
+    var nsTextStyle: NSFont.TextStyle {
         switch self {
         case .largeTitle: .largeTitle
         case .title: .title1

@@ -56,6 +56,22 @@ struct ThemeTests {
         }
     }
 
+    /// A set of SVGs has a file for every icon inside the tabs, so a theme that draws its set
+    /// everywhere never mixes a symbol in among its own icons.
+    @Test(arguments: iconSets)
+    func everySetDrawsTheIconsInsideTheTabs(set: String) {
+        guard !ThemeIcon.drawsSymbols(set) else { return }
+        for role in ThemeSymbol.setRoles {
+            #expect(ThemeIcon.image(.symbol(role), in: set) != nil, "no \(role).svg in Icons/\(set)")
+        }
+    }
+
+    @Test func everySymbolGivenARoleIsAnSFSymbol() {
+        for name in ThemeSymbol.roles.keys {
+            #expect(NSImage(systemSymbolName: name, accessibilityDescription: nil) != nil, "no SF Symbol \(name)")
+        }
+    }
+
     @Test func storedNamesFromBeforeThemesWereFilesStillWork() {
         #expect(Themes.theme("black").id == "black")
         #expect(Themes.theme("glass").id == "glass")

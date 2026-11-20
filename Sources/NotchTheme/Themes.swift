@@ -68,6 +68,8 @@ public enum Themes {
 extension EnvironmentValues {
     /// The notch's theme, set once at its root.
     @Entry public var theme: Theme = Themes.black
+    /// The point size `.themeFont` set around a view, which `ThemeSymbol` draws its icon at.
+    @Entry public var themeFontSize: CGFloat = 13
 }
 
 /// The theme's colors by role, for code that needs a `Color` (a tint, gradient stops); views that
@@ -132,25 +134,28 @@ extension View {
     public func themeFont(
         _ role: Theme.Fonts.Role, size: CGFloat, weight: Font.Weight = .regular, design: Font.Design? = nil
     ) -> some View {
-        modifier(ThemeFont { $0.font(role, size: size, weight: weight, design: design) })
+        modifier(ThemeFont(role: role, size: size) { $0.font(role, size: size, weight: weight, design: design) })
     }
 
     /// The theme's font for `role` in a text style, such as `.caption`.
     public func themeFont(_ role: Theme.Fonts.Role, _ style: Font.TextStyle, weight: Font.Weight? = nil) -> some View {
         modifier(
-            ThemeFont { theme in
+            ThemeFont(role: role, size: NSFont.preferredFont(forTextStyle: style.nsTextStyle).pointSize) { theme in
                 let font = theme.font(role, style)
                 return weight.map { font.weight($0) } ?? font
             })
     }
 }
 
+/// Sets the font, and its point size for the icons under it.
 private struct ThemeFont: ViewModifier {
+    let role: Theme.Fonts.Role
+    let size: CGFloat
     let font: (Theme) -> Font
     @Environment(\.theme) private var theme
 
     func body(content: Content) -> some View {
-        content.font(font(theme))
+        content.font(font(theme)).environment(\.themeFontSize, size * (theme.fonts[role].scale ?? 1))
     }
 }
 

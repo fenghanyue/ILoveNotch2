@@ -51,6 +51,7 @@ Required unless marked optional.
 | `fonts.display`, `.body`, `.mono` | `{"family": "system"}` or a family in Fonts/; optional `design` (system only: `default`, `rounded`, `serif`, `monospaced`), `weight` (overrides the view's: `ultralight` … `black`), `scale` (size multiplier) |
 | `icons.set` | a folder in Icons/ |
 | `icons.rendering` | optional, symbol sets only: `monochrome` (the default) or `hierarchical` |
+| `icons.everywhere` | optional: `true` draws the icons inside the tabs from the set too (`ThemeSymbol`, by the roles in `ThemeSymbol.roles`); without it they stay SF Symbols, as in Black |
 | `icons.stroke`, `icons.cap` | optional, line sets only: replace every stroke-width in the set's SVGs, and `square` gives square ends and mitered joins |
 | `radii.notchTop`, `.notchBottom` | the open notch's corners |
 | `seekBar` | `line` (width), `cap` (`round`, `square`), `rest` (`solid`, `dotted`, `dashed`), `head` (`bar`, `dot`, `block`), `fill` (`artwork`, `accent`, `ink`); optional `played` (`solid`, `dotted`, `dashed`) and `headFill` |
