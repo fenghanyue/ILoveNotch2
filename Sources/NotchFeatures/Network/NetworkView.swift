@@ -57,15 +57,19 @@ private struct Card: ViewModifier {
 
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: 14, style: .continuous)
-        content
-            .background(
-                shape.fill(
-                    LinearGradient(
-                        colors: [tint.opacity(0.16), theme.color(.ink).opacity(0.03)], startPoint: .topLeading,
-                        endPoint: .bottomTrailing))
-            )
-            .clipShape(shape)
-            .overlay(shape.strokeBorder(.themeInk.opacity(0.08)))
+        if theme.controls != nil {
+            content.themePlatter(0.06, in: shape)  // a theme with its own controls draws its own cards
+        } else {
+            content
+                .background(
+                    shape.fill(
+                        LinearGradient(
+                            colors: [tint.opacity(0.16), theme.color(.ink).opacity(0.03)], startPoint: .topLeading,
+                            endPoint: .bottomTrailing))
+                )
+                .clipShape(shape)
+                .overlay(shape.strokeBorder(.themeInk.opacity(0.08)))
+        }
     }
 }
 

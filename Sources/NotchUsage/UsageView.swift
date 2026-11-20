@@ -207,13 +207,21 @@ private struct ProviderTile: View {
         .padding(size.height < CardGrid.full.height ? 8 : 10)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)  // the grid's size
         .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [style.start.opacity(0.16), theme.color(.ink).opacity(0.04)], startPoint: .topLeading,
-                        endPoint: .bottomTrailing))
+            if theme.controls == nil {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [style.start.opacity(0.16), theme.color(.ink).opacity(0.04)],
+                            startPoint: .topLeading, endPoint: .bottomTrailing))
+            }
         }
-        .overlay { RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(.themeInk.opacity(0.08)) }
+        .overlay {
+            if theme.controls == nil {
+                RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(.themeInk.opacity(0.08))
+            }
+        }
+        // A theme with its own controls draws its own cards.
+        .themePlatter(theme.controls == nil ? 0 : 0.06, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityHint("Shows every limit")
