@@ -1,8 +1,9 @@
 # App Store listing
 
 **Status: 1.5.0 (build 163) live** at US$1.99 (<https://apps.apple.com/app/id6815805975>);
-**2.0.0 (build 292)** archived on 20 November 2026, to be submitted with the listing below and
-released automatically once approved. History: 1.0.0 was submitted on 24 September and
+**2.0.0 (build 292) waiting for review** since 21 November 2026, released automatically once
+approved, and in TestFlight's Public group awaiting Beta App Review. It went in through the API, on
+the version record first made for a 1.5.1 that was never submitted. History: 1.0.0 was submitted on 24 September and
 rejected on 29 September for the Sponsor link (guideline 3.1.1: no payments outside In-App
 Purchase) and for "Allow Access" buttons before permission prompts (5.1.1(iv): say Continue); the
 same version, renamed 1.3.0 (build 150) with both fixed, was resubmitted on 2 October and went live
