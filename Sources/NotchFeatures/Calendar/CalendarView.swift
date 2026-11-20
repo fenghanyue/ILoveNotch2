@@ -115,7 +115,7 @@ struct CalendarView: View {
                     calendar.complete(task)
                 }
             } label: {
-                Image(systemName: "circle")
+                ThemeSymbol("circle")
                     .themeFont(.body, size: 13)
                     .foregroundStyle(task.color?.color ?? theme.color(.ink))
                     .contentShape(Circle())
@@ -214,7 +214,7 @@ private struct EventRow: View {
     private var actions: some View {
         HStack(spacing: 8) {
             Button(action: edit) {
-                Image(systemName: "pencil").contentShape(Rectangle())
+                ThemeSymbol("pencil").contentShape(Rectangle())
             }
             .help("Edit")
             .accessibilityLabel("Edit")
@@ -235,7 +235,7 @@ private struct EventRow: View {
                         .background(Color.red.opacity(0.85), in: Capsule())
                         .transition(.opacity.combined(with: .scale(scale: 0.8, anchor: .trailing)))
                 } else {
-                    Image(systemName: "trash").contentShape(Rectangle())
+                    ThemeSymbol("trash").contentShape(Rectangle())
                 }
             }
             .help(confirming ? "Click again to delete" : "Delete")
@@ -252,7 +252,7 @@ private struct EventRow: View {
         return Button {
             calendar.join(event)
         } label: {
-            Label("Join", systemImage: "video.fill")
+            ThemeLabel("Join", symbol: "video.fill")
                 .themeFont(.body, .caption, weight: .semibold)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 4)

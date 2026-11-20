@@ -30,7 +30,7 @@ struct TimerView: View {
             timer.mode = mode
         } label: {
             HStack(spacing: 4) {
-                if lit { Image(systemName: "cup.and.saucer.fill").themeFont(.body, size: 9) }
+                if lit { ThemeSymbol("cup.and.saucer.fill").themeFont(.body, size: 9) }
                 Text(title)
             }
         }
@@ -62,7 +62,7 @@ struct TimerView: View {
     private func awake(until: Date, compact: Bool) -> some View {
         VStack(spacing: 8) {
             if until == .distantFuture {
-                Label("Awake until you turn it off", systemImage: "cup.and.saucer.fill")
+                ThemeLabel("Awake until you turn it off", symbol: "cup.and.saucer.fill")
                     .themeFont(.display, size: 17, weight: .semibold, design: .rounded)
                     .padding(.vertical, compact ? 4 : 12)
             } else {
@@ -112,7 +112,7 @@ struct TimerView: View {
     private func awakePreset(_ title: String?, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Group {
-                if let title { Text(title) } else { Image(systemName: "infinity") }
+                if let title { Text(title) } else { ThemeSymbol("infinity") }
             }
             .themeFont(.body, .callout, weight: .medium)
             .frame(maxWidth: .infinity, minHeight: 34)

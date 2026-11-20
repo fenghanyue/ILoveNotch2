@@ -49,7 +49,7 @@ struct ClipboardView: View {
         let found = clipboard.search(query)
         return VStack(spacing: 6) {
             HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass").themeFont(.body, .caption).opacity(0.6)
+                ThemeSymbol("magnifyingglass").themeFont(.body, .caption).opacity(0.6)
                 TextField("Search what you copied", text: $query)
                     .textFieldStyle(.plain)
                     .focused($searching)
@@ -173,7 +173,7 @@ struct ClipboardView: View {
         } label: {
             HStack(spacing: 8) {
                 if selecting {
-                    Image(systemName: ticked ? "checkmark.circle.fill" : "circle")
+                    ThemeSymbol(ticked ? "checkmark.circle.fill" : "circle")
                         .themeFont(.body, size: 14)
                         .foregroundStyle(ticked ? theme.color(.accent) : theme.color(.ink).opacity(0.4))
                 }
@@ -188,7 +188,7 @@ struct ClipboardView: View {
                     Button {
                         clipboard.toggleFavorite(item)
                     } label: {
-                        Image(systemName: item.favorite ? "star.fill" : "star")
+                        ThemeSymbol(item.favorite ? "star.fill" : "star")
                             .themeFont(.body, .caption)
                             .foregroundStyle(item.favorite ? .yellow : theme.color(.ink).opacity(0.4))  // a gold star
                     }
@@ -226,14 +226,14 @@ struct ClipboardView: View {
                 Image(nsImage: image).resizable().aspectRatio(contentMode: .fill)
                     .clipShape(RoundedRectangle(cornerRadius: 5))
             } else {
-                Image(systemName: "photo")
+                ThemeSymbol("photo")
             }
         case .files:
             Image(nsImage: NSWorkspace.shared.icon(forFile: item.paths.first ?? "/")).resizable()
         case .link:
-            Image(systemName: "link").themeFont(.body, size: 13).opacity(0.8)
+            ThemeSymbol("link").themeFont(.body, size: 13).opacity(0.8)
         case .text:
-            Image(systemName: "text.alignleft").themeFont(.body, size: 13).opacity(0.8)
+            ThemeSymbol("text.alignleft").themeFont(.body, size: 13).opacity(0.8)
         }
     }
 

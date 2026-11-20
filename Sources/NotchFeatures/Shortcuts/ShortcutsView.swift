@@ -43,7 +43,7 @@ struct ShortcutsView: View {
                 if running {
                     ProgressView().controlSize(.mini)
                 } else {
-                    Image(systemName: "play.fill").themeFont(.body, size: 10)
+                    ThemeSymbol("play.fill").themeFont(.body, size: 10)
                 }
                 Text(name).themeFont(.body, .caption, weight: .medium).lineLimit(2).multilineTextAlignment(.leading)
                 Spacer(minLength: 0)

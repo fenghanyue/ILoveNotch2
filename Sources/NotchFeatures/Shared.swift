@@ -67,7 +67,7 @@ public struct FeatureUnavailableView: View {
 
     private func content(symbol shown: Bool) -> some View {
         VStack(spacing: 6) {
-            if shown { Image(systemName: symbol).themeFont(.body, size: 22, weight: .semibold).opacity(0.8) }
+            if shown { ThemeSymbol(symbol).themeFont(.body, size: 22, weight: .semibold).opacity(0.8) }
             Text(title).themeFont(.body, .headline)
             Text(message)
                 .themeFont(.body, .caption)

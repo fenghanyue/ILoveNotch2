@@ -126,7 +126,7 @@ struct PrompterView: View {
             }
             .pickerStyle(.inline)
         } label: {
-            Image(systemName: prompter.mode.symbol).frame(width: 24, height: 22)
+            ThemeSymbol(prompter.mode.symbol).frame(width: 24, height: 22)
         }
         .menuStyle(.button)
         .menuIndicator(.hidden)
@@ -170,7 +170,7 @@ struct PrompterView: View {
         -> some View
     {
         Button(action: action) {
-            Image(systemName: symbol)
+            ThemeSymbol(symbol)
                 .themeFont(.body, size: 12, weight: .semibold)
                 .frame(width: 24, height: 22)
                 .background(lit ? theme.color(.ink).opacity(0.16) : .clear, in: RoundedRectangle(cornerRadius: 6))
@@ -207,7 +207,7 @@ struct PrompterView: View {
 
     private func banner(_ message: String, fix: (label: String, perform: () -> Void)?) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+            ThemeSymbol("exclamationmark.triangle.fill").foregroundStyle(.yellow)
             Text(message).lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
             if let fix { control(fix.label, fix.perform).themeFont(.body, .caption, weight: .semibold) }
         }

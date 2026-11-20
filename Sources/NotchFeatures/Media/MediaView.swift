@@ -150,7 +150,7 @@ struct MediaView: View {
                     LinearGradient(
                         colors: [tint.opacity(0.45), tint.opacity(0.12)], startPoint: .topLeading,
                         endPoint: .bottomTrailing)
-                    Image(systemName: "music.note").themeFont(.body, size: size * 0.36).opacity(0.7)
+                    ThemeSymbol("music.note").themeFont(.body, size: size * 0.36).opacity(0.7)
                 }
             }
             .frame(width: size, height: size)
@@ -291,14 +291,14 @@ struct MediaView: View {
                 backTaps += 1
                 media.send(interval ? .skipBackward : .previousTrack)
             } label: {
-                Image(systemName: interval ? "gobackward.15" : "backward.fill")
+                ThemeSymbol(interval ? "gobackward.15" : "backward.fill")
                     .symbolEffect(.bounce.down, value: backTaps)
             }
             .accessibilityLabel(interval ? "Back 15 seconds" : "Previous track")
             Button {
                 media.send(.togglePlayPause)
             } label: {
-                Image(systemName: now.isPlaying ? "pause.fill" : "play.fill")
+                ThemeSymbol(now.isPlaying ? "pause.fill" : "play.fill")
                     .themeFont(.body, size: 18, weight: .bold)
                     .contentTransition(.symbolEffect(.replace.downUp))
                     // On an ink disc, the glyph is the notch's own color; on accent or artwork, onAccent.
@@ -313,7 +313,7 @@ struct MediaView: View {
                 forwardTaps += 1
                 media.send(interval ? .skipForward : .nextTrack)
             } label: {
-                Image(systemName: interval ? "goforward.15" : "forward.fill")
+                ThemeSymbol(interval ? "goforward.15" : "forward.fill")
                     .symbolEffect(.bounce.down, value: forwardTaps)
             }
             .accessibilityLabel(interval ? "Forward 15 seconds" : "Next track")
@@ -352,7 +352,7 @@ struct MediaView: View {
         -> some View
     {
         Button(action: action) {
-            Image(systemName: symbol)
+            ThemeSymbol(symbol)
                 .themeFont(.body, size: size, weight: .semibold)
                 .foregroundStyle(lit ? tint : theme.color(.ink).opacity(0.55))
                 .frame(width: size + 9, height: size + 7)
@@ -635,17 +635,17 @@ struct MediaView: View {
             key(width: 56, label: interval ? "Back 15 seconds" : "Previous track") {
                 media.send(interval ? .skipBackward : .previousTrack)
             } face: {
-                Image(systemName: interval ? "gobackward.15" : "backward.fill")
+                ThemeSymbol(interval ? "gobackward.15" : "backward.fill")
             }
             key(width: 76, pressed: now.isPlaying, led: now.isPlaying, label: now.isPlaying ? "Pause" : "Play") {
                 media.send(.togglePlayPause)
             } face: {
-                Image(systemName: now.isPlaying ? "pause.fill" : "play.fill")
+                ThemeSymbol(now.isPlaying ? "pause.fill" : "play.fill")
             }
             key(width: 56, label: interval ? "Forward 15 seconds" : "Next track") {
                 media.send(interval ? .skipForward : .nextTrack)
             } face: {
-                Image(systemName: interval ? "goforward.15" : "forward.fill")
+                ThemeSymbol(interval ? "goforward.15" : "forward.fill")
             }
             if modes {
                 key(width: 70, led: media.shuffle == true, label: "Shuffle", action: media.toggleShuffle) {
@@ -702,7 +702,7 @@ struct MediaView: View {
                 Button {
                     show(nil)
                 } label: {
-                    Image(systemName: "chevron.left")
+                    ThemeSymbol("chevron.left")
                         .themeFont(.body, size: 11, weight: .bold)
                         .frame(width: 20, height: 20)
                         .background(.themeInk.opacity(0.1), in: Circle())
@@ -814,7 +814,7 @@ struct MediaView: View {
         VStack(spacing: 8) {
             Spacer(minLength: 0)
             if note {
-                Image(systemName: "music.note")
+                ThemeSymbol("music.note")
                     .themeFont(.body, size: 20, weight: .semibold)
                     .frame(width: 46, height: 46)
                     .background(.themeInk.opacity(0.08), in: Circle())
@@ -851,7 +851,7 @@ private struct QueueRow: View {
         let shape = RoundedRectangle(cornerRadius: 7, style: .continuous)
         Button(action: play) {
             HStack(spacing: 8) {
-                Image(systemName: "play.fill")
+                ThemeSymbol("play.fill")
                     .themeFont(.body, size: 8, weight: .bold)
                     .foregroundStyle(tint)
                     .frame(width: 10)

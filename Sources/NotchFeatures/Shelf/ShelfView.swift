@@ -91,7 +91,7 @@ private struct ShelfItemView: View {
     }
 
     private func icon(for url: URL?) -> Image {
-        guard let url else { return Image(systemName: "questionmark.folder") }
+        guard let url else { return Image(systemName: "questionmark.folder") }  // resized like a file's icon
         return Image(nsImage: NSWorkspace.shared.icon(forFile: url.path))
     }
 }

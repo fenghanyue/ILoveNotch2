@@ -87,7 +87,7 @@ private struct LiveCard: View {
             }
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 if compact {
-                    Image(systemName: "arrow.down")
+                    ThemeSymbol("arrow.down")
                         .themeFont(.body, size: 11, weight: .heavy)
                         .foregroundStyle(NetworkTint.downLight)
                 }
@@ -100,7 +100,7 @@ private struct LiveCard: View {
                     .foregroundStyle(.themeInk.opacity(0.55))
             }
             HStack(spacing: 3) {
-                Image(systemName: "arrow.up").themeFont(.body, size: compact ? 8 : 9, weight: .heavy)
+                ThemeSymbol("arrow.up").themeFont(.body, size: compact ? 8 : 9, weight: .heavy)
                 Text("\(up.value) \(up.unit)")
             }
             .themeFont(.display, size: compact ? 10.5 : 13, weight: .semibold, design: .rounded)

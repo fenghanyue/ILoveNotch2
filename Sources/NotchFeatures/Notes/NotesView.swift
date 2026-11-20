@@ -87,7 +87,7 @@ struct NotesView: View {
                         .focused($searchFocused)
                         .takesKeyboard(searching)
                     Button(action: closeSearch) {
-                        Image(systemName: "xmark.circle.fill").themeFont(.body, size: 10).opacity(0.5)
+                        ThemeSymbol("xmark.circle.fill").themeFont(.body, size: 10).opacity(0.5)
                     }
                     .buttonStyle(.plain)
                     .help("Close search")
@@ -145,7 +145,7 @@ struct NotesView: View {
 
     /// The icon and the field's backdrop are shared, so the icon's circle stretches into the field.
     private var searchGlass: some View {
-        Image(systemName: "magnifyingglass")
+        ThemeSymbol("magnifyingglass")
             .themeFont(.body, size: HeaderIcon.symbolSize, weight: .semibold)
             .foregroundStyle(.themeInk.opacity(0.8))
             .matchedGeometryEffect(id: "glass", in: searchSpace)
@@ -227,7 +227,7 @@ struct NotesView: View {
                         .transition(.opacity)
                     }
                     ShareLink(item: note.text, subject: Text(note.title)) {
-                        Image(systemName: "square.and.arrow.up")
+                        ThemeSymbol("square.and.arrow.up")
                     }
                     .help("Share to Notes, Mail, Messages, and more")
                     .accessibilityLabel("Share")
@@ -310,13 +310,13 @@ private struct NoteRow: View {
                     Button {
                         notes.togglePin(note.id)
                     } label: {
-                        Image(systemName: note.isPinned ? "pin.slash" : "pin")
+                        ThemeSymbol(note.isPinned ? "pin.slash" : "pin")
                     }
                     .accessibilityLabel(note.isPinned ? "Unpin" : "Pin")
                     Button {
                         withAnimation(reduceMotion ? nil : .easeOut(duration: 0.2)) { notes.delete(note.id) }
                     } label: {
-                        Image(systemName: "trash")
+                        ThemeSymbol("trash")
                     }
                     .accessibilityLabel("Move to Trash")
                 }
@@ -325,7 +325,7 @@ private struct NoteRow: View {
                 .foregroundStyle(.themeInk.opacity(0.7))
                 .transition(.opacity.combined(with: .move(edge: .trailing)))
             } else if note.isPinned {
-                Image(systemName: "pin.fill").themeFont(.body, size: 8).foregroundStyle(.themeInk.opacity(0.5))
+                ThemeSymbol("pin.fill").themeFont(.body, size: 8).foregroundStyle(.themeInk.opacity(0.5))
             }
         }
         .padding(.horizontal, 6)
@@ -386,7 +386,7 @@ private struct HeaderIcon: View {
     @State private var hovering = false
 
     var body: some View {
-        Image(systemName: symbol)
+        ThemeSymbol(symbol)
             .themeFont(.body, size: Self.symbolSize, weight: .semibold)
             .foregroundStyle(.themeInk.opacity(hovering ? 1 : 0.8))
             .frame(width: Self.side, height: Self.side)
@@ -407,7 +407,7 @@ private struct ToolbarButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: symbol)
+            ThemeSymbol(symbol)
                 .opacity(hovering || isOn ? 1 : 0.7)
                 .scaleEffect(hovering ? 1.12 : 1)
                 .contentShape(Rectangle())
@@ -473,7 +473,7 @@ private struct ColorPalette: View {
                         Circle().strokeBorder(.themeInk.opacity(isSelected ? 0.9 : 0.3), lineWidth: isSelected ? 2 : 1)
                     )
                     .overlay {
-                        if color == nil { Image(systemName: "slash.circle").themeFont(.body, size: 8).opacity(0.6) }
+                        if color == nil { ThemeSymbol("slash.circle").themeFont(.body, size: 8).opacity(0.6) }
                     }
                     .frame(width: 11, height: 11)
                     .scaleEffect(hovering ? 1.3 : 1)

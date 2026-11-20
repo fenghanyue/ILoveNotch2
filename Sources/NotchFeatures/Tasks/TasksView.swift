@@ -30,7 +30,7 @@ struct TasksView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 1) {
                         if tasks.tasks.isEmpty {
-                            Label("All done", systemImage: "checkmark.circle")
+                            ThemeLabel("All done", symbol: "checkmark.circle")
                                 .themeFont(.body, .callout)
                                 .foregroundStyle(.themeInk.opacity(0.6))
                                 .padding(.vertical, 6)
@@ -81,7 +81,7 @@ struct TasksView: View {
     private var header: some View {
         HStack(spacing: 8) {
             if let notice = tasks.notice {
-                Label(notice, systemImage: "checkmark.circle")
+                ThemeLabel(notice, symbol: "checkmark.circle")
                     .foregroundStyle(.themeInk.opacity(0.8))
                     .transition(.opacity)
             } else {
@@ -93,9 +93,9 @@ struct TasksView: View {
                     tasks.groupsByList.toggle()
                 }
             } label: {
-                Label(
+                ThemeLabel(
                     tasks.groupsByList ? "By List" : "By Date",
-                    systemImage: tasks.groupsByList ? "list.bullet" : "calendar")
+                    symbol: tasks.groupsByList ? "list.bullet" : "calendar")
             }
             .buttonStyle(.plain)
             .foregroundStyle(.themeInk.opacity(0.7))
@@ -138,7 +138,7 @@ struct TasksView: View {
 
     private func alertBanner(_ task: TaskItem) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: "bell.fill")
+            ThemeSymbol("bell.fill")
                 .foregroundStyle(.yellow)
                 .symbolEffect(.bounce, value: task.id)
             VStack(alignment: .leading, spacing: 0) {
@@ -157,7 +157,7 @@ struct TasksView: View {
             Button {
                 tasks.dismissAlert()
             } label: {
-                Image(systemName: "xmark").themeFont(.body, size: 9, weight: .bold)
+                ThemeSymbol("xmark").themeFont(.body, size: 9, weight: .bold)
             }
             .accessibilityLabel("Dismiss")
         }
@@ -203,7 +203,7 @@ struct TasksView: View {
                 }
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "chevron.right")
+                    ThemeSymbol("chevron.right")
                         .themeFont(.body, size: 10, weight: .bold)
                         .rotationEffect(.degrees(tasks.showsCompleted ? 90 : 0))
                     Text("Completed")
@@ -231,7 +231,7 @@ struct TasksView: View {
             Button {
                 withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.8)) { tasks.reopen(task) }
             } label: {
-                Image(systemName: "checkmark.circle.fill")
+                ThemeSymbol("checkmark.circle.fill")
                     .themeFont(.body, size: 15)
                     .foregroundStyle((task.color?.color ?? theme.color(.ink)).opacity(0.6))
                     .contentShape(Circle())
@@ -323,7 +323,7 @@ private struct TaskRow: View {
     var body: some View {
         HStack(spacing: 8) {
             Button(action: tick) {
-                Image(systemName: ticked ? "checkmark.circle.fill" : "circle")
+                ThemeSymbol(ticked ? "checkmark.circle.fill" : "circle")
                     .themeFont(.body, size: 15)
                     .foregroundStyle(task.color?.color ?? theme.color(.ink))
                     .symbolEffect(.bounce, value: ticked)
@@ -382,8 +382,8 @@ private struct TaskRow: View {
                     Text(DueLabel.text(for: due, hasTime: task.hasTime))
                         .foregroundStyle(task.isOverdue() ? Color.red : theme.color(.ink).opacity(0.55))
                 }
-                if task.repeats { Image(systemName: "repeat") }
-                if task.hasAlert, task.hasTime { Image(systemName: "bell") }
+                if task.repeats { ThemeSymbol("repeat") }
+                if task.hasAlert, task.hasTime { ThemeSymbol("bell") }
                 if let list { Text(list).foregroundStyle((task.color?.color ?? theme.color(.ink)).opacity(0.8)) }
             }
             .themeFont(.body, .caption)
@@ -397,14 +397,14 @@ private struct TaskRow: View {
             Button {
                 tasks.blockTime(for: task)
             } label: {
-                Image(systemName: "calendar.badge.plus")
+                ThemeSymbol("calendar.badge.plus")
             }
             .help("Block \(tasks.blockMinutes) min in Calendar")
             .accessibilityLabel("Block time in Calendar")
             Menu {
                 menuItems
             } label: {
-                Image(systemName: "ellipsis.circle")
+                ThemeSymbol("ellipsis.circle")
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
@@ -480,7 +480,7 @@ private struct DraftChips: View {
     }
 
     private func chip(_ text: String, symbol: String) -> some View {
-        Label(text, systemImage: symbol)
+        ThemeLabel(text, symbol: symbol)
             .lineLimit(1)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
