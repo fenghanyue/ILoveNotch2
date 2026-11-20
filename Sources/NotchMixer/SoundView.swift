@@ -91,7 +91,7 @@ public struct SoundView: View {
                     .themeFont(.body, size: 12, weight: .semibold)
                     .contentTransition(.symbolEffect(.replace))
                     .frame(width: 24, height: 24)
-                    .background(.themeInk.opacity(0.14), in: RoundedRectangle(cornerRadius: 6.5, style: .continuous))
+                    .themePlatter(0.14, in: RoundedRectangle(cornerRadius: 6.5, style: .continuous))
             })
     }
 
@@ -183,7 +183,7 @@ private struct DeviceList: View {
                 segment(.input, symbol: "mic.fill", title: "Input")
             }
             .padding(2)
-            .background(.themeInk.opacity(0.07), in: Capsule())
+            .themePlatter(0.07, in: Capsule())
             ScrollView(.vertical) {
                 VStack(spacing: 2) {
                     ForEach(devices) { device in
@@ -209,12 +209,12 @@ private struct DeviceList: View {
                 ThemeSymbol(symbol).themeFont(.body, size: 8.5, weight: .semibold)
                 Text(title).themeFont(.body, size: 10, weight: .semibold)
             }
-            .foregroundStyle(.themeInk.opacity(chosen ? 1 : 0.5))
+            .themeSelectionInk(chosen, unlit: 0.5)
             .frame(maxWidth: .infinity)
             .frame(height: 18)
             .background {
                 if chosen {
-                    Capsule().fill(.themeInk.opacity(0.16)).matchedGeometryEffect(id: "segment", in: selection)
+                    SelectionMark().matchedGeometryEffect(id: "segment", in: selection)
                 }
             }
             .contentShape(Capsule())
@@ -254,9 +254,9 @@ private struct DeviceRow: View {
             .frame(height: 24)
             .background {
                 if current {
-                    shape.fill(.themeInk.opacity(0.14)).matchedGeometryEffect(id: "device", in: selection)
+                    Color.clear.themePlatter(0.14, in: shape).matchedGeometryEffect(id: "device", in: selection)
                 } else if hovering {
-                    shape.fill(.themeInk.opacity(0.06))
+                    Color.clear.themePlatter(0.06, in: shape)
                 }
             }
             .contentShape(shape)
@@ -501,13 +501,13 @@ private struct Fader<Icon: View>: View {
             let shape = RoundedRectangle(cornerRadius: 11, style: .continuous)
             let shown = risen ? min(max(level, 0), 1) : 0
             ZStack(alignment: .bottom) {
-                shape.fill(.themeInk.opacity(hovering || dragging ? 0.13 : 0.08))
+                Color.clear.themePlatter(hovering || dragging ? 0.13 : 0.08, in: shape)
                 fill
                     .frame(height: proxy.size.height * shown)
                     .animation(dragging ? nil : .easeOut(duration: 0.18), value: level)
                 if hovering || dragging {
                     Text("\(percent)")
-                        .themeFont(.display, size: 10, weight: .bold, design: .rounded)
+                        .themeFont(.numbers, size: 10, weight: .bold, design: .rounded)
                         .monospacedDigit()
                         .foregroundStyle(
                             shown > 0.8 && !muted ? theme.color(.onAccent).opacity(0.7) : theme.color(.ink)
