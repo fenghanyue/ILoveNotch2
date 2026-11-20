@@ -194,7 +194,6 @@ struct FeatureSnapshotTests {
                 TaskItem(id: "4", title: "Ship Phase 4", completed: now - 600),
                 TaskItem(id: "5", title: "Renew passport", completed: now - 90_000),
             ])
-        tasks.showsCompleted = true
         try render(tasks.view, name: "tasks")
         tasks.show(
             tasks: [TaskItem(id: "6", title: "Stand-up", due: now, hasTime: true, priority: .high)], completed: [],

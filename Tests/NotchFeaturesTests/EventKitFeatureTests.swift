@@ -40,12 +40,6 @@ struct EventKitFeatureTests {
         #expect(titles == ["just now", "yesterday", "last week"])
     }
 
-    @Test func theCompletedSectionRemembersWhetherItIsOpen() {
-        let store = EventStore()
-        TasksFeature(eventStore: store, defaults: defaults).showsCompleted = true
-        #expect(TasksFeature(eventStore: store, defaults: defaults).showsCompleted)
-    }
-
     @Test func withoutAccessNothingIsReadOrWatched() {
         // Test runners never grant EventKit access, so this is the not-yet-allowed path.
         let store = EventStore()

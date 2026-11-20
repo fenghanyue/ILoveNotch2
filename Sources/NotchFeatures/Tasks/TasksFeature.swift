@@ -97,6 +97,42 @@ public struct TaskSection: Identifiable, Hashable, Sendable {
     public var tasks: [TaskItem]
 }
 
+/// A run of cards on the board, and where a dragged card can land.
+public enum TaskSpot: Hashable, Sendable {
+    /// Today's column: overdue, then due today.
+    case today
+    /// A day in Upcoming, by its start; nil is No date.
+    case day(Date?)
+    /// A Reminders list's column, while the board shows lists.
+    case list(String)
+    /// Finished today.
+    case done
+}
+
+/// Cards under one heading: Today's, a day's in Upcoming, a list's, or Done's.
+public struct TaskRun: Identifiable, Hashable, Sendable {
+    public var spot: TaskSpot
+    public var tasks: [TaskItem]
+    public var id: TaskSpot { spot }
+}
+
+/// A column of the board: Today, Upcoming (by day, No date last), or a list, and then Done.
+public struct TaskColumn: Identifiable, Hashable, Sendable {
+    public enum Kind: Hashable, Sendable {
+        case today
+        case upcoming
+        case list(String)
+        case done
+    }
+
+    public var kind: Kind
+    public var title: String
+    public var color: RGB?
+    public var runs: [TaskRun]
+    public var id: Kind { kind }
+    public var tasks: [TaskItem] { runs.flatMap(\.tasks) }
+}
+
 /// Quick picks for a task's due date.
 public enum DueChoice: String, CaseIterable, Identifiable, Sendable {
     case today
@@ -142,7 +178,7 @@ public enum DueChoice: String, CaseIterable, Identifiable, Sendable {
 }
 
 /// Reminders from Apple Reminders, so tasks sync to the iPhone over iCloud with no server: the open
-/// ones grouped by date or list, plus a collapsible section of recently completed ones. Access is
+/// ones on a board by day or by list, beside what was finished today. Access is
 /// asked for only on tap. Reads happen only while the tab is on screen and refresh on EventKit's
 /// change notification; in the background it only waits for the next task due at a set time, so it
 /// can show it on the notch.
@@ -172,10 +208,6 @@ public final class TasksFeature: NotchFeature {
             reload()
             scheduleNextAlert()
         }
-    }
-    /// Whether the completed section is expanded.
-    public var showsCompleted: Bool {
-        didSet { defaults.set(showsCompleted, forKey: Self.showsCompletedKey) }
     }
     /// Group open tasks by Reminders list instead of by when they're due.
     public var groupsByList: Bool {
@@ -210,7 +242,6 @@ public final class TasksFeature: NotchFeature {
     nonisolated static let completedLimit = 50
     static let snoozeMinutes = 10
     private static let listKey = "tasks.listID"
-    private static let showsCompletedKey = "tasks.showsCompleted"
     private static let groupsByListKey = "tasks.groupsByList"
     private static let manualOrderKey = "tasks.manualOrder"
     private static let alertsInNotchKey = "tasks.alertsInNotch"
@@ -226,7 +257,6 @@ public final class TasksFeature: NotchFeature {
         self.eventStore = eventStore
         self.defaults = defaults
         listID = defaults.string(forKey: Self.listKey)
-        showsCompleted = defaults.bool(forKey: Self.showsCompletedKey)
         groupsByList = defaults.bool(forKey: Self.groupsByListKey)
         manualOrder = defaults.stringArray(forKey: Self.manualOrderKey) ?? []
         alertsInNotch = defaults.object(forKey: Self.alertsInNotchKey) as? Bool ?? true
@@ -270,14 +300,165 @@ public final class TasksFeature: NotchFeature {
     /// that order from then on, and a task added later joins at its end, as in Reminders. Tasks in
     /// different sections stay put.
     public func move(_ task: TaskItem, to target: TaskItem, now: Date = .now) {
-        guard
-            var order = sections(now: now).first(where: { $0.tasks.contains { $0.id == target.id } })?.tasks.map(\.id),
-            let from = order.firstIndex(of: task.id), let to = order.firstIndex(of: target.id), from != to
+        guard task.id != target.id,
+            let run = sections(now: now).first(where: { $0.tasks.contains { $0.id == target.id } })?.tasks.map(\.id),
+            run.contains(task.id)
         else { return }
-        order.move(fromOffsets: [from], toOffset: to > from ? to + 1 : to)
-        let placed = Set(order)
-        let open = Set(tasks.map(\.id))
-        manualOrder = manualOrder.filter { open.contains($0) && !placed.contains($0) } + order
+        manualOrder = Self.arranged(manualOrder, run: run, moving: task.id, before: target.id, open: openIDs)
+    }
+
+    /// The board: Today (overdue first), Upcoming by day with No date last, and what was finished
+    /// today; or, grouped by list, a column per list before Done. Each run keeps the order its cards
+    /// were dragged into, then soonest due first.
+    public func columns(now: Date = .now, calendar: Calendar = .current) -> [TaskColumn] {
+        let finished = completed.filter { $0.completed.map { calendar.isDate($0, inSameDayAs: now) } ?? false }
+        let done = TaskColumn(kind: .done, title: "Done", runs: [TaskRun(spot: .done, tasks: finished)])
+        if groupsByList {
+            // Every shown list gets a column, so an empty one can still be added to.
+            let sections = sections(now: now)
+            let empty = lists.filter { list in
+                (listID == nil || list.id == listID) && !sections.contains { $0.id == "list-\(list.id)" }
+            }
+            let unused = empty.map { TaskSection(id: "list-\($0.id)", title: $0.title, color: $0.color, tasks: []) }
+            return (sections + unused).map { section in
+                let id = String(section.id.dropFirst("list-".count))
+                return TaskColumn(
+                    kind: .list(id), title: section.title, color: section.color,
+                    runs: [TaskRun(spot: .list(id), tasks: section.tasks)])
+            } + [done]
+        }
+        let rank = Dictionary(manualOrder.enumerated().map { ($1, $0) }, uniquingKeysWith: min)
+        // The sort is stable, so cards never dragged keep their date order after the ones that were.
+        let placed = { (run: [TaskItem]) in run.sorted { rank[$0.id, default: .max] < rank[$1.id, default: .max] } }
+        let open = tasks.sorted(by: TaskItem.order)
+        let group = { (task: TaskItem) in
+            TaskGroup(due: task.due, hasTime: task.hasTime, now: now, calendar: calendar)
+        }
+        let today = open.filter { group($0) == .overdue } + open.filter { group($0) == .today }
+        let later = Dictionary(grouping: open.filter { group($0) > .today && group($0) != .someday }) {
+            calendar.startOfDay(for: $0.due ?? now)
+        }
+        var days = later.keys.sorted().map { TaskRun(spot: .day($0), tasks: placed(later[$0] ?? [])) }
+        let undated = open.filter { $0.due == nil }
+        if !undated.isEmpty { days.append(TaskRun(spot: .day(nil), tasks: placed(undated))) }
+        return [
+            TaskColumn(kind: .today, title: "Today", runs: [TaskRun(spot: .today, tasks: placed(today))]),
+            TaskColumn(kind: .upcoming, title: "Upcoming", runs: days), done,
+        ]
+    }
+
+    /// Finished today, of what today held: those and what's still open, overdue or due today.
+    public func progress(now: Date = .now) -> (done: Int, of: Int) {
+        let done = completed.filter { $0.completed.map { Calendar.current.isDate($0, inSameDayAs: now) } ?? false }
+        return (done.count, done.count + tasks.filter { $0.group(now: now) <= .today }.count)
+    }
+
+    /// The task due this minute, which the board draws larger with Done and Snooze: the one whose
+    /// alert just fired, or one whose time came in the last few minutes.
+    public func dueNow(now: Date = .now) -> TaskItem.ID? {
+        if let alerting, tasks.contains(where: { $0.id == alerting.id }) { return alerting.id }
+        let window = TimeInterval(Self.snoozeMinutes * 60)
+        return tasks.filter { task in
+            task.hasTime && task.due.map { $0 <= now && now.timeIntervalSince($0) < window } == true
+        }
+        .min { ($0.due ?? now) < ($1.due ?? now) }?.id
+    }
+
+    /// Where a card goes in Upcoming: its own day if that's still ahead, No date without one, or
+    /// tomorrow.
+    public func upcomingSpot(for task: TaskItem, now: Date = .now, calendar: Calendar = .current) -> TaskSpot {
+        guard let due = task.due else { return .day(nil) }
+        let today = calendar.startOfDay(for: now)
+        let day = calendar.startOfDay(for: due)
+        return .day(day > today ? day : calendar.date(byAdding: .day, value: 1, to: today))
+    }
+
+    /// Drops a task in `spot`, before `target` there when given: Done finishes it; Today or a day
+    /// moves it there, keeping its time; a list moves it to that list. Out of Done, it opens again.
+    /// Within its own run only its place changes.
+    public func move(_ task: TaskItem, to spot: TaskSpot, before target: TaskItem? = nil, now: Date = .now) {
+        let from = columns(now: now).flatMap(\.runs).first { $0.tasks.contains { $0.id == task.id } }?.spot
+        if spot == .done {
+            if from != .done { complete(task) }
+            return
+        }
+        if from != spot {
+            guard relocate(task, to: spot, now: now) else { return }
+        }
+        guard let run = columns(now: now).flatMap(\.runs).first(where: { $0.spot == spot })?.tasks.map(\.id),
+            run.contains(task.id)
+        else { return }
+        manualOrder = Self.arranged(manualOrder, run: run, moving: task.id, before: target?.id, open: openIDs)
+    }
+
+    /// `run`'s IDs with `moving` before `target` (after it when it comes from above, as a drag down
+    /// lands below what it's dropped on) or last, as the manual order: the run keeps this order, and
+    /// other runs keep theirs.
+    static func arranged(_ order: [String], run: [String], moving: String, before target: String?, open: Set<String>)
+        -> [String]
+    {
+        var ids = run.filter { $0 != moving }
+        var index = ids.endIndex
+        if let target, let at = ids.firstIndex(of: target) {
+            let from = run.firstIndex(of: moving) ?? .max
+            index = from < (run.firstIndex(of: target) ?? 0) ? at + 1 : at
+        }
+        ids.insert(moving, at: index)
+        let placed = Set(ids)
+        return order.filter { open.contains($0) && !placed.contains($0) } + ids
+    }
+
+    /// When a task moved to `day` is due: on that day at its own time, or the day itself, as a task
+    /// due on a day is. A time already gone today is dropped, so the task isn't overdue the moment
+    /// it lands. Nil takes the date away.
+    static func due(for task: TaskItem, on day: Date?, now: Date, calendar: Calendar = .current)
+        -> (due: Date?, hasTime: Bool)
+    {
+        guard let day = day.map(calendar.startOfDay(for:)) else { return (nil, false) }
+        guard task.hasTime, let current = task.due else { return (day, false) }
+        let time = calendar.dateComponents([.hour, .minute], from: current)
+        let moved = calendar.date(bySettingHour: time.hour ?? 9, minute: time.minute ?? 0, second: 0, of: day)
+        guard let moved, moved > now else { return (day, false) }
+        return (moved, true)
+    }
+
+    private var openIDs: Set<String> { Set(tasks.map(\.id)) }
+
+    /// Moves a task to the day or list `spot` stands for, opening it again if it was done, and puts
+    /// it there at once, ahead of the reload. Returns whether it was saved.
+    private func relocate(_ task: TaskItem, to spot: TaskSpot, now: Date) -> Bool {
+        var moved = task
+        moved.completed = nil
+        let apply: (EKReminder) -> Void
+        switch spot {
+        case .today, .day:
+            var day: Date? = now
+            if case .day(let chosen) = spot { day = chosen }
+            (moved.due, moved.hasTime) = Self.due(for: task, on: day, now: now)
+            let alert = task.hasAlert || alertsAtDueTime
+            apply = { [moved] in
+                $0.isCompleted = false
+                Self.setDue(moved.due, hasTime: moved.hasTime, alert: alert, on: $0)
+            }
+        case .list(let id):
+            guard let list = eventStore.store.calendar(withIdentifier: id) else { return false }
+            moved.listID = id
+            moved.listTitle = list.title
+            moved.color = RGB(list.cgColor)
+            apply = {
+                $0.isCompleted = false
+                $0.calendar = list
+            }
+        case .done:
+            return false
+        }
+        guard edit(task, apply) else { return false }
+        if alerting?.id == task.id { alerting = nil }
+        completed.removeAll { $0.id == task.id }
+        tasks = (tasks.filter { $0.id != task.id } + [moved]).sorted(by: TaskItem.order)
+        reload()
+        scheduleNextAlert()
+        return true
     }
 
     public func requestAccess() {
@@ -309,13 +490,15 @@ public final class TasksFeature: NotchFeature {
         tasks = (tasks + [open]).sorted(by: TaskItem.order)
     }
 
-    /// Adds a task from a quick-add line such as "Call Sam tomorrow 5pm !! #Work". Returns whether
-    /// it was saved.
+    /// Adds a task from a quick-add line such as "Call Sam tomorrow 5pm !! #Work". A board column
+    /// adds on its `day` or to its `list`, unless the line names its own. Returns whether it was
+    /// saved.
     @discardableResult
-    public func add(_ text: String) -> Bool {
+    public func add(_ text: String, day: Date? = nil, list: String? = nil) -> Bool {
         let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, EventAccess(.reminder) == .granted else { return false }
-        let draft = TaskDraft.parse(text)
+        var draft = TaskDraft.parse(text)
+        if draft.due == nil, let day { draft.due = Calendar.current.startOfDay(for: day) }
         let store = eventStore.store
         let reminder = EKReminder(eventStore: store)
         reminder.title = draft.title
@@ -324,7 +507,7 @@ public final class TasksFeature: NotchFeature {
         }
         if named == nil, let list = draft.list { reminder.title = "\(draft.title) #\(list)" }
         reminder.calendar =
-            named ?? listID.flatMap(store.calendar(withIdentifier:)) ?? store.defaultCalendarForNewReminders()
+            named ?? (list ?? listID).flatMap(store.calendar(withIdentifier:)) ?? store.defaultCalendarForNewReminders()
         reminder.priority = draft.priority.eventKitValue
         Self.setDue(draft.due, hasTime: draft.hasTime, alert: alertsAtDueTime, on: reminder)
         if let repeats = draft.repeats {
