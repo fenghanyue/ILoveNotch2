@@ -376,10 +376,10 @@ limitations under the License.
 https://phosphoricons.com (https://github.com/phosphor-icons/core)
 Copyright (c) 2023 Phosphor Icons
 
-The icons in `Sources/NotchTheme/Icons/phosphor-duotone` are Phosphor 2.1.1's
-duotone SVGs (fill for `apps-on` and `pin-on`), from npm
-`@phosphor-icons/core@2.1.1`, unchanged but renamed by role; `set.json` maps
-each role to its Phosphor name.
+The icons in `Sources/NotchTheme/Icons/phosphor-duotone` and `phosphor-bold`
+are Phosphor 2.1.1's duotone and bold SVGs (fill for `apps-on` and `pin-on`),
+from npm `@phosphor-icons/core@2.1.1`, unchanged but renamed by role;
+`set.json` maps each role to its Phosphor name.
 
 ```text
 MIT License
@@ -444,6 +444,9 @@ The themes' fonts sit in `Sources/NotchTheme/Fonts/<Family>`, unchanged from
 upstream, each with its own `OFL.txt`. Each family's copyright notice, then the
 license they share:
 
+- **VT323**, https://github.com/phoikoi/VT323, Version 2.000, from google/fonts `ofl/vt323`
+  (commit cc5661d43cd4f9aad5567033a8e15ca28dc35c86): `VT323-Regular.ttf`. Copyright 2011, The VT323
+  Project Authors (peter.hull@oikoi.com).
 - **IBM Plex Mono**, https://github.com/IBM/plex, Version 2.005, from IBM's release
   `@ibm/plex-mono@2.5.0` (commit 2f9ba1b2), `ibm-plex-mono/fonts/complete/otf/`:
   `IBMPlexMono-Regular.otf`, `-Medium.otf`, `-SemiBold.otf`, `-Bold.otf`. Copyright © 2017 IBM Corp.

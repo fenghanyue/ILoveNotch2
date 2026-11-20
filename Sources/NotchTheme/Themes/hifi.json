@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "id": "hifi",
+  "name": "Hi-Fi",
+  "order": 90,
+  "appearance": "dark",
+  "surface": {
+    "kind": "solid",
+    "color": "#131314"
+  },
+  "colors": {
+    "ink": "#D6D9DD",
+    "secondary": "#8A8F96",
+    "tertiary": "#6E7277",
+    "fill": "#D6D9DD1F",
+    "accent": "#FFB000",
+    "onAccent": "#000000",
+    "highlight": "#FFB000",
+    "onHighlight": "#000000"
+  },
+  "accentChoices": ["#FFB000", "#39FFB0", "#FF5A36", "#7FD4FF"],
+  "fonts": {
+    "display": {
+      "family": "Inter"
+    },
+    "body": {
+      "family": "Inter"
+    },
+    "mono": {
+      "family": "VT323"
+    }
+  },
+  "icons": {
+    "set": "phosphor-bold"
+  },
+  "radii": {
+    "notchTop": 16,
+    "notchBottom": 28
+  },
+  "tabs": "text",
+  "seekBar": {
+    "line": 2.5,
+    "cap": "round",
+    "rest": "solid",
+    "head": "bar",
+    "fill": "accent"
+  },
+  "waveform": {
+    "bar": 3,
+    "gap": 2,
+    "shape": "led",
+    "fill": "accent"
+  },
+  "skins": {
+    "musicPlayer": "hifi"
+  }
+}

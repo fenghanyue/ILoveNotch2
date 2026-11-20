@@ -1,0 +1,31 @@
+{
+  "name": "Phosphor Icons (Bold)",
+  "version": "2.1.1",
+  "license": "MIT",
+  "url": "https://phosphoricons.com",
+  "kind": "fill",
+  "source": {
+    "home": "house-bold",
+    "media": "music-notes-bold",
+    "sound": "speaker-high-bold",
+    "shelf": "tray-bold",
+    "clipboard": "clipboard-text-bold",
+    "calendar": "calendar-dot-bold",
+    "tasks": "list-checks-bold",
+    "notes": "notepad-bold",
+    "shortcuts": "stack-bold",
+    "timer": "alarm-bold",
+    "network": "flying-saucer-bold",
+    "mirror": "webcam-bold",
+    "prompter": "scroll-bold",
+    "usage": "chart-donut-bold",
+    "agents": "terminal-window-bold",
+    "apps": "squares-four-bold",
+    "apps-on": "squares-four-fill",
+    "pin": "push-pin-bold",
+    "pin-on": "push-pin-fill",
+    "settings": "gear-bold",
+    "edit": "pencil-simple-bold",
+    "done": "check-bold"
+  }
+}
