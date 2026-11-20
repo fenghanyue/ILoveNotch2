@@ -157,6 +157,20 @@ struct ClipboardTests {
         #expect(try self.clipboard().isRecording, "recording stays on across launches")
     }
 
+    /// Three columns at 460 pt; each card goes where its columns end highest, a wide one across two.
+    @Test func cardsPackLikeABentoBox() {
+        let heights: [CGFloat] = [100, 40, 60, 50, 30]
+        let frames = BentoLayout.frames(
+            width: 460, spacing: 8, minimumColumn: 140, spans: [1, 1, 1, 2, 1], height: { index, _ in heights[index] })
+        let column = (460 - 16) / CGFloat(3)
+        #expect(frames.map(\.minX) == [0, column + 8, 2 * (column + 8), column + 8, 0])
+        #expect(frames[3].width == 2 * column + 8, "the wide card spans the two columns that end highest")
+        #expect(frames[3].minY == 68, "under the taller of the two it covers")
+        #expect(frames[4].minY == 108, "the short card under the first column's tall one")
+        #expect(
+            BentoLayout.frames(width: 200, spacing: 8, minimumColumn: 140, spans: [2]) { _, _ in 10 }[0].width == 200)
+    }
+
     @Test func aCardKeepsItsColorAndHistoriesFromBeforeColorsStillLoad() throws {
         let clipboard = try clipboard()
         clipboard.phase = .background

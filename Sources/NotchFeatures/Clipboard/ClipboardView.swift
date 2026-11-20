@@ -4,9 +4,10 @@ import NotchTheme
 import SwiftUI
 
 /// The clipboard tab: search, then click a card (or press Return for the first match) to put it
-/// back on the clipboard. What you copied runs across the tab as cards of one size, each filled by
-/// what it holds and colored if you gave it a color. Favorites come first and stay. Select mode ticks
-/// cards to delete together, and Clear deletes all but favorites.
+/// back on the clipboard. What you copied fills the tab as a bento of cards, newest first, each as
+/// tall as what it holds (a wide image or long text spans two columns), colored if you gave it a
+/// color. Favorites come first and stay. Select mode ticks cards to delete together, and Clear
+/// deletes all but favorites.
 struct ClipboardView: View {
     let clipboard: ClipboardFeature
     @Environment(\.theme) private var theme
@@ -17,6 +18,10 @@ struct ClipboardView: View {
     @State private var selected: Set<ClipItem.ID> = []
     /// Clear asks once more, until the pointer leaves it.
     @State private var confirmingClear = false
+    /// How many cards the grid lays out; Show more adds a page.
+    // ponytail: the bento grid isn't lazy, so it lays out a page at a time rather than all 200.
+    @State private var shown = Self.page
+    static let page = 60
 
     var body: some View {
         if !clipboard.isRecording {
@@ -67,15 +72,20 @@ struct ClipboardView: View {
                     symbol: "doc.on.clipboard", title: clipboard.items.isEmpty ? "Nothing copied yet" : "No matches",
                     message: clipboard.items.isEmpty ? "Copy something and it shows up here." : "Try other words.")
             } else {
-                ScrollView(.horizontal) {
-                    LazyHStack(spacing: 10) {
-                        ForEach(found) { card($0) }
+                ScrollView(.vertical) {
+                    BentoLayout(spacing: 8) {
+                        ForEach(found.prefix(shown)) { item in
+                            card(item).layoutValue(key: BentoSpan.self, value: span(item))
+                        }
                     }
-                    .padding(.vertical, 2)
-                    .padding(.horizontal, 2)
+                    .padding(2)
+                    if found.count > shown {
+                        footerButton("Show \(min(found.count - shown, Self.page)) more") { shown += Self.page }
+                            .padding(.vertical, 4)
+                    }
                 }
                 .scrollIndicators(.never)
-                .fadingEdges(.horizontal, length: 12)
+                .fadingEdges(.vertical, length: 8)
             }
             if !clipboard.items.isEmpty { footer(found) }
         }
@@ -166,11 +176,24 @@ struct ClipboardView: View {
         searching = true
     }
 
-    static let cardWidth: CGFloat = 150
+    /// A thumbnail's longest side in pixels: a two-column card's width at 2×.
+    private static let thumbnailSize = 600
 
-    /// One thing copied as a card: its kind and favorite star at the top, then what it holds filling
-    /// the card (an image at the card's width with the text that fits under it, text wrapping to the
-    /// card's foot), and where it came from. Cards are all one size; a color given to a card fills it.
+    /// Two columns for a wide image or long text, one otherwise.
+    private func span(_ item: ClipItem) -> Int {
+        switch item.kind {
+        case .image:
+            guard let size = clipboard.thumbnail(for: item, size: Self.thumbnailSize)?.size, size.height > 0
+            else { return 1 }
+            return size.width / size.height >= 1.6 ? 2 : 1
+        case .text: return item.text.count > 140 ? 2 : 1
+        case .link, .files: return 1
+        }
+    }
+
+    /// One thing copied as a card: its kind and favorite star at the top, then what it holds (an
+    /// image at the card's width, text wrapping down), and where it came from. A card is as tall as
+    /// what it holds, up to a limit; a color given to a card fills it.
     private func card(_ item: ClipItem) -> some View {
         let ticked = selected.contains(item.id)
         let shape = RoundedRectangle(
@@ -188,16 +211,14 @@ struct ClipboardView: View {
             VStack(alignment: .leading, spacing: 6) {
                 cardHeader(item, ticked: ticked)
                 content(item)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .clipped()
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 Text(detail(item))
                     .themeFont(.body, .caption2)
                     .foregroundStyle(.themeInk.opacity(0.55))
                     .lineLimit(1)
             }
             .padding(9)
-            .frame(width: Self.cardWidth)
-            .frame(maxHeight: .infinity)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
             .background {
                 if let tint { shape.fill(tint) }
             }
@@ -264,14 +285,14 @@ struct ClipboardView: View {
         selected.remove(item.id)
     }
 
-    /// What a card holds, filling it: an image at the card's width, its whole height if it's tall; a
-    /// color's swatch; a link's site over its address; files' icon and names; text wrapping down.
+    /// What a card holds: an image at the card's width (up to 180 pt tall); a color's swatch; a
+    /// link's site over its address; files' icon and names; text wrapping down, up to eight lines.
     @ViewBuilder private func content(_ item: ClipItem) -> some View {
         switch item.kind {
         case .image:
-            if let image = clipboard.thumbnail(for: item, size: Int(Self.cardWidth * 2)) {
+            if let image = clipboard.thumbnail(for: item, size: Self.thumbnailSize) {
                 Image(nsImage: image).resizable().aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: .infinity)
+                    .frame(maxWidth: .infinity, maxHeight: 180)
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             } else {
                 ThemeSymbol("photo").themeFont(.body, size: 22).opacity(0.5)
@@ -282,6 +303,7 @@ struct ClipboardView: View {
                     .frame(width: 34, height: 34)
                 Text(item.paths.map { URL(filePath: $0).lastPathComponent }.joined(separator: "\n"))
                     .themeFont(.body, .callout)
+                    .lineLimit(4)
             }
         case .link:
             VStack(alignment: .leading, spacing: 4) {
@@ -291,6 +313,7 @@ struct ClipboardView: View {
                 Text(item.text)
                     .themeFont(.body, .caption2)
                     .foregroundStyle(.themeInk.opacity(0.6))
+                    .lineLimit(3)
             }
         case .text:
             if let swatch = Self.hexColor(item.text) {
@@ -300,7 +323,7 @@ struct ClipboardView: View {
                         .themeFont(.mono, .callout)
                 }
             } else {
-                Text(item.text).themeFont(.body, .callout)
+                Text(item.text).themeFont(.body, .callout).lineLimit(8)
             }
         }
     }
@@ -369,4 +392,65 @@ enum ClipColor: Int, CaseIterable {
     private static let deep = [
         0x7A2433, 0x6E3321, 0x7A5314, 0x2D5242, 0x175F5A, 0x2B5E73, 0x2E4559, 0x4B3561, 0x6B3C51, 0x4E473E,
     ]
+}
+
+/// How many columns a card spans in a `BentoLayout`.
+struct BentoSpan: LayoutValueKey {
+    static let defaultValue = 1
+}
+
+/// Cards in as many columns as fit, each as tall as it asks to be at its width, placed in turn where
+/// the columns it spans end highest, so they pack like a bento box.
+struct BentoLayout: Layout {
+    var spacing: CGFloat
+    var minimumColumn: CGFloat = 140
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width ?? minimumColumn * 3
+        let frames = Self.frames(width: width, spacing: spacing, minimumColumn: minimumColumn, subviews: subviews)
+        return CGSize(width: width, height: frames.map(\.maxY).max() ?? 0)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let frames = Self.frames(
+            width: bounds.width, spacing: spacing, minimumColumn: minimumColumn, subviews: subviews)
+        for (subview, frame) in zip(subviews, frames) {
+            subview.place(
+                at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY),
+                proposal: ProposedViewSize(frame.size))
+        }
+    }
+
+    private static func frames(width: CGFloat, spacing: CGFloat, minimumColumn: CGFloat, subviews: Subviews)
+        -> [CGRect]
+    {
+        frames(width: width, spacing: spacing, minimumColumn: minimumColumn, spans: subviews.map { $0[BentoSpan.self] })
+        {
+            index, cardWidth in subviews[index].sizeThatFits(ProposedViewSize(width: cardWidth, height: nil)).height
+        }
+    }
+
+    /// Where each card goes: `height` says how tall card `index` is at a width. A card spanning more
+    /// columns than fit takes them all.
+    static func frames(
+        width: CGFloat, spacing: CGFloat, minimumColumn: CGFloat, spans: [Int],
+        height: (_ index: Int, _ width: CGFloat) -> CGFloat
+    ) -> [CGRect] {
+        let columns = max(1, Int((width + spacing) / (minimumColumn + spacing)))
+        let column = (width - spacing * CGFloat(columns - 1)) / CGFloat(columns)
+        var bottoms = [CGFloat](repeating: 0, count: columns)
+        return spans.enumerated().map { index, span in
+            let span = min(max(span, 1), columns)
+            let start =
+                (0...(columns - span)).min { a, b in
+                    bottoms[a..<a + span].max()! < bottoms[b..<b + span].max()!
+                } ?? 0
+            let top = bottoms[start..<start + span].max() ?? 0
+            let cardWidth = column * CGFloat(span) + spacing * CGFloat(span - 1)
+            let frame = CGRect(
+                x: CGFloat(start) * (column + spacing), y: top, width: cardWidth, height: height(index, cardWidth))
+            for filled in start..<start + span { bottoms[filled] = frame.maxY + spacing }
+            return frame
+        }
+    }
 }
