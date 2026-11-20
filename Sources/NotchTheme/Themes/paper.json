@@ -24,6 +24,7 @@
     "tertiary": "#6F685C",
     "fill": "#1F1D1A33",
     "accent": "#2C4A9A",
+    "series": ["#2C4A9A", "#B4532A"],
     "onAccent": "#F6F1E7",
     "highlight": "#F7E07A"
   },
@@ -32,6 +33,9 @@
     "ink": "#F6F1E7"
   },
   "fonts": {
+    "numbers": {
+      "family": "Inter"
+    },
     "display": {
       "family": "Newsreader",
       "weight": "semibold"
@@ -43,7 +47,14 @@
       "family": "Inter"
     }
   },
+  "controls": {
+    "style": "outline",
+    "radius": 8,
+    "lineColor": "#1F1D1A40",
+    "selection": "underline"
+  },
   "icons": {
+    "everywhere": true,
     "set": "iconoir"
   },
   "radii": {
