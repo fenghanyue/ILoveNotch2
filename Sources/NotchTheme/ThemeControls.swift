@@ -51,6 +51,7 @@ public struct SelectionMark: View {
             Circle().fill(.themeAccent).frame(width: 4, height: 4)
                 .shadow(color: theme.color(.accent), radius: 3)
                 .frame(maxHeight: .infinity, alignment: .bottom)
+                .offset(y: 4)  // under the label, clear of its letters
         }
     }
 }
