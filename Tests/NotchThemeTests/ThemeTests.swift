@@ -86,6 +86,8 @@ struct ThemeTests {
         #expect(paper.onBlack.appearance == .dark)
         #expect(paper.onBlack.colors.ink.text == "#F6F1E7")
         #expect(Themes.black.onBlack.colors.ink.text == "#FFFFFF")
+        // A control's backing on black is black, not the white sheet, or its light icons vanish.
+        #expect(Themes.theme("brutal").onBlack.surface.color.color == .black)
         #expect(paper.withAccent("#D2462F").colors.accent.text == "#D2462F")
         #expect(paper.withAccent("#123456").colors.accent.text == "#2C4A9A", "not one of Paper's")
         #expect(Themes.black.withAccent("#D2462F").colors.accent.text == "system", "Black offers none")

@@ -108,7 +108,7 @@ public struct Theme: Decodable, Identifiable, Sendable {
     public struct Surface: Decodable, Sendable {
         public let kind: Kind
         /// The fill, and what glass falls back to before macOS 26 and with Reduce Transparency.
-        public let color: ThemeColor
+        public internal(set) var color: ThemeColor
         /// A band across the top, behind the camera and the header, with the sheet below it.
         public let band: ThemeColor?
         /// A frame around the sheet, `width` thick, drawn inside the notch's edge.
@@ -195,8 +195,11 @@ public struct Theme: Decodable, Identifiable, Sendable {
     /// The theme for what's drawn on black: the closed notch, and the header on a band. A light
     /// theme's ink gives way to its closed ink there; a dark theme draws as it is.
     public var onBlack: Theme {
-        guard let ink = closed?.ink else { return self }
         var theme = self
+        // What's under it is black, for anything drawn on the surface's color (a hard shadow's
+        // backing, a glyph cut out of an ink disc), not the sheet the theme draws when open.
+        theme.surface.color = .black
+        guard let ink = closed?.ink else { return theme }
         theme.appearance = .dark
         theme.colors.ink = ink
         theme.colors.secondary = ink.opacity(0.7)
@@ -438,6 +441,8 @@ public struct ThemeColor: Decodable, Sendable {
     }
 
     func opacity(_ opacity: Double) -> ThemeColor { ThemeColor(color.opacity(opacity)) }
+
+    static let black = ThemeColor(.black)
 
     static func parse(_ text: String) -> Color? {
         if text == "system" { return .accentColor }
