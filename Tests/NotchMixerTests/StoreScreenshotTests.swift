@@ -53,6 +53,7 @@ struct StoreTabShots {
         _ view: some View, shot: String, tab: FeatureID, theme id: String, wait: Duration = .seconds(1)
     ) async throws {
         guard let directory = shotsDirectory else { return }
+        let id = ProcessInfo.processInfo.environment["STORE_SHOTS_THEME"] ?? id  // as NotchFeaturesTests' draw
         let theme = Themes.theme(id)
         let side = theme.radii.notchTop + 22
         let top: CGFloat = 32 + 10 + 26 + 8  // the camera housing, the gap, the tab row, and the gap under it

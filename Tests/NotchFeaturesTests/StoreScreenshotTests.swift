@@ -70,8 +70,8 @@ struct StoreTabShots {
         try await Self.draw(try playing().view, shot: "music", tab: .media, theme: "black", notch: Self.player)
     }
 
-    /// The same player in four looks, side by side in one screenshot.
-    @Test(arguments: ["paper", "terminal", "brutal", "hifi"])
+    /// The same player in every look: the screenshots show four side by side, the launch video all ten.
+    @Test(arguments: ["paper", "terminal", "brutal", "hifi", "bento", "island", "aurora", "cozy", "matrix", "glass"])
     func themes(theme: String) async throws {
         try await Self.draw(try playing().view, shot: "themes-\(theme)", tab: .media, theme: theme, notch: Self.player)
     }
@@ -211,6 +211,27 @@ struct StoreTabShots {
         prompter.jump(to: 5)
         prompter.mode = .voice
         try await Self.draw(prompter.view, shot: "prompter", tab: .prompter, theme: "terminal")
+        prompter.phase = .stopped
+    }
+
+    /// The same script read word by word, for the launch video: `prompter-NN`, word NN lit next.
+    @Test func prompterReading() async throws {
+        let prompter = PrompterFeature(defaults: Self.defaults())
+        prompter.phase = .foreground
+        prompter.script =
+            "Good morning, everyone. Thanks for joining so early. This quarter we shipped the three things you "
+            + "asked for most, and I want to show you each one before we take questions. First, the new home "
+            + "screen: everything you need at a glance."
+        prompter.mode = .scroll
+        prompter.start()
+        prompter.pause()
+        prompter.mode = .voice
+        for word in 0...28 {
+            prompter.jump(to: word)
+            try await Self.draw(
+                prompter.view, shot: String(format: "prompter-%02d", word), tab: .prompter, theme: "terminal",
+                wait: .milliseconds(150))
+        }
         prompter.phase = .stopped
     }
 
@@ -419,6 +440,8 @@ struct StoreTabShots {
         wait: Duration = .seconds(1)
     ) async throws {
         guard let directory = shotsDirectory else { return }
+        // STORE_SHOTS_THEME draws every tab but the themes' own shots in that one look.
+        let id = shot.hasPrefix("themes-") ? id : ProcessInfo.processInfo.environment["STORE_SHOTS_THEME"] ?? id
         let theme = Themes.theme(id)
         let side = theme.radii.notchTop + 22
         let top: CGFloat = 32 + 10 + 26 + 8  // the camera housing, the gap, the tab row, and the gap under it

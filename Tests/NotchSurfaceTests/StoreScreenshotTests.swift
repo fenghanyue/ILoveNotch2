@@ -135,6 +135,49 @@ struct StorePageShots {
         }
     }
 
+    /// For the launch video: each drawn tab in its notch alone, on nothing, at 2×, under each
+    /// edition's tab row (`notch/<shot>~store.png`, `notch/<shot>~github.png`), and the closed
+    /// notch in Black, as it is, hovered, and with an activity (`notch/closed-<state>.png`).
+    @Test func notchesAlone() throws {
+        Themes.registerFonts()
+        let directory = URL(filePath: try #require(shotsDirectory))
+        let folder = directory.appending(path: "notch")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        func write(_ image: NSImage, _ name: String) throws {
+            let rep = try #require(image.representations.first as? NSBitmapImageRep)
+            try #require(rep.representation(using: .png, properties: [:])).write(to: folder.appending(path: name))
+        }
+        for (shot, tab) in try Self.tabs(in: directory.appending(path: "tabs")) {
+            try write(try notch(tab, gitHub: true), "\(shot)~github.png")
+            if ![.usage, .agents, .sound].contains(tab.feature) {
+                try write(try notch(tab, gitHub: false), "\(shot)~store.png")
+            }
+        }
+        let song = Activity(feature: .media, symbol: "music.note", title: "Slow Light", duration: .seconds(3))
+        let waiting = Activity(feature: .agents, symbol: "hand.raised.fill", title: "garden-blog", duration: .zero)
+        let meeting = Activity(
+            feature: .calendar, symbol: "video.fill", title: "Design review", duration: .zero,
+            countdown: Date(timeIntervalSinceNow: 4 * 60 + 30))
+        let states: [(String, [NotchEvent])] = [
+            ("closed", [.show]), ("hover", [.show, .pointerEntered]), ("song", [.show, .activity(song)]),
+            ("waiting", [.show, .setOngoing(waiting)]), ("meeting", [.show, .setOngoing(meeting)]),
+        ]
+        let size = Self.metrics.panelFrame.size
+        for (name, events) in states {
+            let engine = NotchEngine()
+            events.forEach(engine.send)
+            let content = NotchContent(tab: { _ in AnyView(Color.clear) }, dropFiles: { _ in false }, openSettings: {})
+            let preferences = NotchPreferences(defaults: UserDefaults(suiteName: "StoreScreenshots.\(UUID())")!)
+            let view = NotchView(engine: engine, metrics: Self.metrics, preferences: preferences, content: content)
+                .frame(width: size.width, height: size.height)
+                .transaction { $0.animation = nil }
+            let rep = try #require(NotchSnapshotTests.render(view, size: size, name: "closed", settle: true))
+            let image = NSImage(size: size)
+            image.addRepresentation(rep)
+            try write(image, "closed-\(name).png")
+        }
+    }
+
     // MARK: The notch
 
     /// A tab StoreTabShots drew: the open notch's size, the tab where it goes, and the rest clear.
