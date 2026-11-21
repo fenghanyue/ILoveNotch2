@@ -1,4 +1,6 @@
-
+<p align="center">
+  <img src="docs/media/gifs/themes.gif" width="100%" alt="The same song in the notch in ten themes: Paper, Terminal, Brutal, Hi-Fi, Bento, Island, Aurora, Cozy, Matrix and Glass">
+</p>
 
 https://github.com/user-attachments/assets/9d0c486c-5169-4297-b8b9-8fedbb9eadda
 
