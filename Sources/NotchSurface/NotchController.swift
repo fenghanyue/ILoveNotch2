@@ -103,10 +103,9 @@ final class NotchController {
         }
     }
 
-    /// Where the pointer counts as over the notch as it's drawn right now, in screen coordinates.
+    /// Where a hover opens or keeps open the notch, in screen coordinates.
     private func notchFrame() -> CGRect {
-        let size = metrics.size(for: engine.state, expanded: preferences.expandedSize)
-        return metrics.hoverFrame(for: size, in: panel.frame).offsetBy(dx: metrics.offset(for: engine.state), dy: 0)
+        metrics.openHoverFrame(for: engine.state, expanded: preferences.expandedSize, in: panel.frame)
     }
 
     private func handleScroll(_ event: NSEvent) {

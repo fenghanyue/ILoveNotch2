@@ -100,6 +100,28 @@ struct NotchMetricsTests {
         #expect(metrics.offset(for: state) == 0, "and centered again")
     }
 
+    @Test(arguments: displays)
+    func compactMediaStaysCenteredWhenPausedOrHovered(metrics: NotchMetrics) {
+        var track = song
+        var state = NotchState()
+        _ = state.handle(.show)
+        let width = metrics.housing.width + (metrics.notch == nil ? 0 : 2 * NotchMetrics.mediaWing)
+        for playing in [true, false] {
+            track.mediaIsPlaying = playing
+            _ = state.handle(.setOngoing(track))
+            for event in [NotchEvent.pointerEntered, .pointerExited] {
+                _ = state.handle(event)
+                #expect(metrics.size(for: state) == CGSize(width: width, height: metrics.housing.height))
+                #expect(metrics.offset(for: state) == 0)
+                let frame = metrics.openHoverFrame(for: state, expanded: .zero, in: metrics.panelFrame)
+                let side = (width - NotchMetrics.mediaWing) / 2
+                let top = metrics.screen.maxY
+                #expect(frame.contains(CGPoint(x: metrics.centerX - side, y: top)), "the cover opens Media")
+                #expect(!frame.contains(CGPoint(x: metrics.centerX + side, y: top)), "the control never opens Media")
+            }
+        }
+    }
+
     @Test(arguments: ["2 waiting", "OpenNotch", "Awake"])
     func anOngoingActivitysWordsFitUncut(title: String) {
         let activity = Activity(feature: nil, symbol: "hand.raised.fill", title: title, duration: .zero)

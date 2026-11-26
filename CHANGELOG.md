@@ -11,6 +11,10 @@ as they land, written for the people who use the app
 
 ## [Unreleased]
 
+### Changed
+
+- The closed notch shows the cover to the left of the camera and moving bars to the right. Hover over the bars to reveal the pause button. While paused, click the play button to resume. Track changes still show their brief announcement first.
+
 ## [2.0.0] - 2026-11-20
 
 ILoveNotch 2.0 redraws every tab and adds ten themes that reach into each one, a teleprompter, and a Home tab you arrange yourself.

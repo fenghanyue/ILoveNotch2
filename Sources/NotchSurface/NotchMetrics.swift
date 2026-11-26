@@ -22,6 +22,7 @@ struct NotchMetrics: Equatable {
     static let ongoingTab: CGFloat = 120  // the most an ongoing activity reaches beside the notch, over the menu bar
     static let wingInset: CGFloat = 10  // between an ongoing activity's symbol and the notch
     static let wingOutset: CGFloat = 12  // between its text and the tab's outer end
+    static let mediaWing: CGFloat = 38  // one compact target on either side of the camera
     static let meterDepth: CGFloat = 26  // room under the notch for a live activity's row
     static let rowPadding: CGFloat = 16  // at either end of that row
     static let labelSpacing: CGFloat = 6  // between a live activity's symbol and its text
@@ -116,6 +117,10 @@ struct NotchMetrics: Equatable {
     /// little more.
     func size(for state: NotchState, expanded: CGSize = NotchPreferences.defaultExpandedSize) -> CGSize {
         guard let resting = state.restingActivity else { return size(for: state.presentation, expanded: expanded) }
+        if resting.mediaIsPlaying != nil {
+            let width = notch == nil ? housing.width : housing.width + Self.mediaWing * 2
+            return CGSize(width: width, height: housing.height)
+        }
         let growth = state.presentation == .hoverArmed ? Self.hoverGrowth : .zero
         let width =
             notch == nil
@@ -127,7 +132,7 @@ struct NotchMetrics: Equatable {
     /// How far the shape sits right of center: half an ongoing activity's tab, so the tab reaches out
     /// on the right while the rest stays over the camera. Zero otherwise.
     func offset(for state: NotchState) -> CGFloat {
-        guard notch != nil, let resting = state.restingActivity else { return 0 }
+        guard notch != nil, let resting = state.restingActivity, resting.mediaIsPlaying == nil else { return 0 }
         return Self.tab(for: resting) / 2
     }
 
@@ -169,6 +174,14 @@ struct NotchMetrics: Equatable {
         CGRect(
             x: panel.midX - size.width / 2, y: panel.maxY - topInset - size.height,
             width: size.width, height: size.height + topInset + 1)
+    }
+
+    /// The playback button receives the pointer itself, including when it is held at the screen edge.
+    func openHoverFrame(for state: NotchState, expanded: CGSize, in panel: CGRect) -> CGRect {
+        let size = size(for: state, expanded: expanded)
+        var frame = hoverFrame(for: size, in: panel).offsetBy(dx: offset(for: state), dy: 0)
+        if state.restingActivity?.mediaIsPlaying != nil { frame.size.width -= Self.mediaWing }
+        return frame
     }
 
     /// The fixed panel: big enough for every state at the largest size the notch can be resized to,

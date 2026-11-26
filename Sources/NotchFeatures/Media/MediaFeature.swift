@@ -57,8 +57,7 @@ public final class MediaFeature: NotchFeature {
             updateAudio()
         }
     }
-    /// Per-feature setting: what's playing stays beside the camera while the notch is closed, and
-    /// for a minute after it pauses.
+    /// Show the current track beside the camera, including while the player is paused.
     public var showsInClosedNotch: Bool {
         didSet {
             defaults.set(showsInClosedNotch, forKey: Self.closedNotchKey)
@@ -84,8 +83,6 @@ public final class MediaFeature: NotchFeature {
     private static let announceKey = "media.announcesTracks"
     private static let followsAudioKey = "media.waveformFollowsAudio"
     private static let closedNotchKey = "media.showsInClosedNotch"
-    /// How long a paused track stays in the closed notch.
-    nonisolated static let linger: TimeInterval = 60
     /// What macOS answered when asked whether ILoveNotch may script each player.
     private var permissions: [ScriptedPlayer: ScriptedPlayer.Permission] = [:]
     @ObservationIgnored private let defaults: UserDefaults
@@ -93,13 +90,7 @@ public final class MediaFeature: NotchFeature {
     @ObservationIgnored private var stream: Process?
     @ObservationIgnored private var startedAt = Date.distantPast
     @ObservationIgnored private var notificationTokens: [NSObjectProtocol] = []
-    /// When the track last paused, for how long it lingers in the closed notch.
-    @ObservationIgnored private var pausedAt: Date?
-    @ObservationIgnored private var lingering: Task<Void, Never>?
     @ObservationIgnored private var shownOngoing: Activity?
-    /// The closed notch's tab that already had its 10 seconds, hidden until what's playing changes.
-    @ObservationIgnored private var tuckedOngoing: Activity?
-    @ObservationIgnored private var tucking: Task<Void, Never>?
     /// The cover, small enough for the closed notch.
     @ObservationIgnored private var tinyArtwork: Data?
     /// Spotify tracks that played, newest first, to play again from the list.
@@ -452,11 +443,6 @@ public final class MediaFeature: NotchFeature {
         let previous = nowPlaying
         nowPlaying = now
         if now?.isPlaying != previous?.isPlaying { updateAudio() }
-        if now?.isPlaying == true {
-            pausedAt = nil
-        } else if previous?.isPlaying == true {
-            pausedAt = .now
-        }
         let newTrack = now?.isDifferentTrack(from: previous) == true
         if now?.artwork != previous?.artwork || newTrack {
             artwork = now.flatMap(thumbnail(for:))
@@ -484,49 +470,17 @@ public final class MediaFeature: NotchFeature {
         return now.isDifferentTrack(from: previous)
     }
 
-    /// Whether the closed notch shows `now`: while it plays, and for `linger` after it pauses.
-    nonisolated static func showsOngoing(_ now: NowPlaying?, pausedAt: Date?, at date: Date, enabled: Bool) -> Bool {
-        guard enabled, let now else { return false }
-        return now.isPlaying || pausedAt.map { date.timeIntervalSince($0) < linger } ?? false
-    }
-
-    /// Keeps the closed notch's tab in step with what's playing. It changes with the track, the cover,
-    /// and play or pause, never with the position, so it costs nothing while a song plays.
+    /// Only publish changes visible in the compact player. Elapsed-time updates leave it alone.
     private func updateOngoing() {
-        lingering?.cancel()
-        lingering = nil
-        let shows = Self.showsOngoing(
-            nowPlaying, pausedAt: pausedAt, at: .now, enabled: showsInClosedNotch && phase != .stopped)
-        var activity =
-            shows
-            ? nowPlaying.map {
-                Activity(
-                    feature: .media, symbol: $0.isPlaying ? "music.note" : "pause.fill", title: $0.title,
-                    duration: .seconds(3), artwork: tinyArtwork)
-            } : nil
-        // ponytail: the tab hides 10 s after it appears, and comes back when the track, cover, or play/pause changes.
-        if activity == tuckedOngoing { activity = nil }
-        if activity != shownOngoing {
-            shownOngoing = activity
-            onOngoing?(activity)
-            tucking?.cancel()
-            if let activity {
-                tucking = Task { [weak self] in
-                    try? await Task.sleep(for: .seconds(10))
-                    guard !Task.isCancelled else { return }
-                    self?.tuckedOngoing = activity
-                    self?.updateOngoing()
-                }
-            }
+        var activity: Activity?
+        if phase != .stopped, showsInClosedNotch, let now = nowPlaying {
+            activity = Activity(
+                feature: .media, symbol: "music.note", title: now.title, duration: .zero,
+                artwork: tinyArtwork, mediaIsPlaying: now.isPlaying)
         }
-        if shows, let pausedAt {
-            let left = Self.linger - Date.now.timeIntervalSince(pausedAt)
-            lingering = Task { [weak self] in
-                try? await Task.sleep(for: .seconds(max(0, left)))
-                guard !Task.isCancelled else { return }
-                self?.updateOngoing()
-            }
-        }
+        guard activity != shownOngoing else { return }
+        shownOngoing = activity
+        onOngoing?(activity)
     }
 
     private func thumbnail(for now: NowPlaying) -> NSImage? {

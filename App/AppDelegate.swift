@@ -190,6 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let content = NotchContent(
             tab: { [unowned self] in self.tabView(for: $0) },
             dropFiles: { [preferences, shelf] urls in preferences.isEnabled(.shelf) && shelf.add(urls) },
+            togglePlayback: { [media] in media.send(.togglePlayPause) },
             openSettings: { [weak self] in self?.settings.show() })
         let coordinator = PanelCoordinator(preferences: preferences, content: content)
         coordinator.onPresentationsChange = { [weak self] presentations in
