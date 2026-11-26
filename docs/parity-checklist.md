@@ -162,7 +162,7 @@ that delivers it.
 - [x] Music's up next, from the playlist it plays from; click a track to play it
 - [x] Spotify's recently played, to play again (its queue isn't readable: no AppleScript, and the Web API is capped at 5 users in development mode since February 2026)
 - [x] Music's own lyrics, when saved with the track (no outside lyrics service)
-- [x] The cover and title in the closed notch while playing and for a minute after a pause, under timers and meetings
+- [x] Compact playback with the cover on the left, animated bars on the right, a pause button on hover, and a persistent play button while paused. Track-change announcements, timers, and meetings keep their place
 - [x] Output and volume panel from the Sound tab's devices and faders (GitHub build, Sound tab on)
 - [x] Two-finger swipe across the player skips tracks
 - [x] App Store edition: controls for Music and Spotify through scripting access groups, and Music's cover

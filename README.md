@@ -113,7 +113,8 @@ trial. If you're looking around, here's what ILoveNotch offers:
 - **Media.** What's playing in any app, led by the cover, with controls,
   shuffle and repeat, a seek bar, and a waveform that moves with the music.
   Music's up next and lyrics, Spotify's recently played, output and volume,
-  swipe to skip, and the cover in the closed notch while it plays.
+  and swipe to skip. In the closed notch, the cover sits on the left and moving bars
+  on the right. Hover over the bars and click to pause. The play button stays there until you resume.
 - **Sound.** A mixer desk: every app playing sound on a fader of its own, with
   its icon, to turn it down or mute it; your output's and microphone's volume;
   and a switch between your speakers, headphones, AirPods and other Bluetooth

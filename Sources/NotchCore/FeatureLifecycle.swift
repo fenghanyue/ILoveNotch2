@@ -32,6 +32,9 @@ extension NotchPresentationState {
     public func phase(for feature: FeatureID) -> FeaturePhase {
         switch self {
         case .hidden, .suspended: .stopped
+        // A track announcement displays its own title. Keep listening for the next track while it
+        // animates, just as when the compact playback controls are visible.
+        case .transient where feature == .media: .background
         default:
             visibleFeature == feature || (visibleFeature == .home && FeatureID.onHome.contains(feature))
                 ? .foreground : .background

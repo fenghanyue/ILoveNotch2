@@ -10,7 +10,7 @@ extension MediaFeature {
             Toggle("Show track changes as a live activity", isOn: $media.announcesTracks)
             Toggle(isOn: $media.showsInClosedNotch) {
                 Text("Show what's playing in the closed notch")
-                Text("The cover and title stay beside the camera while music plays, and for a minute after it pauses.")
+                Text("Hover over the bars and click to pause. The play button stays beside the camera while paused.")
             }
             Toggle(isOn: $media.waveformFollowsAudio) {
                 Text("Waveform follows the music")

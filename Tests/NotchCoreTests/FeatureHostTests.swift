@@ -52,6 +52,16 @@ struct FeatureHostTests {
         #expect(shelf.phase == .foreground)
     }
 
+    @Test func aTrackAnnouncementKeepsMediaListeningForTheNextTrack() {
+        let media = RecordingFeature(.media)
+        let host = FeatureHost([media])
+        let song = Activity(feature: .media, symbol: "music.note", title: "Song", duration: .seconds(3))
+        host.update(presentations: [.transient(song)], enabled: all)
+        #expect(media.phase == .background)
+        host.update(presentations: [.transient(song), .expanded(tab: .media)], enabled: all)
+        #expect(media.phase == .foreground)
+    }
+
     @Test func disabledFeaturesStayStopped() {
         let media = RecordingFeature(.media)
         let host = FeatureHost([media])

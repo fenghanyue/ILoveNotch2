@@ -242,29 +242,30 @@ struct MediaFeatureTests {
         #expect(!MediaFeature.shouldAnnounce(nil, after: song, settled: true, phase: .background))
     }
 
-    @Test func theClosedNotchKeepsATrackWhilePlayingAndAMinuteAfter() {
-        let start = Date(timeIntervalSince1970: 1_000)
-        var paused = song
-        paused.isPlaying = false
-        #expect(MediaFeature.showsOngoing(song, pausedAt: nil, at: start, enabled: true))
-        #expect(MediaFeature.showsOngoing(paused, pausedAt: start, at: start.addingTimeInterval(59), enabled: true))
-        #expect(!MediaFeature.showsOngoing(paused, pausedAt: start, at: start.addingTimeInterval(61), enabled: true))
-        #expect(!MediaFeature.showsOngoing(paused, pausedAt: nil, at: start, enabled: true), "found paused at launch")
-        #expect(!MediaFeature.showsOngoing(song, pausedAt: nil, at: start, enabled: false), "setting off")
-        #expect(!MediaFeature.showsOngoing(nil, pausedAt: nil, at: start, enabled: true))
-    }
-
-    @Test func playingRaisesTheClosedNotchTabAndStoppingClearsIt() {
+    @Test func compactControlsFollowThePlayerUntilItClearsItsTrack() {
         let media = MediaFeature(bundle: Bundle(for: BundleMarker.self), defaults: UserDefaults(suiteName: #function)!)
         var shown: [Activity?] = []
         media.onOngoing = { shown.append($0) }
         media.phase = .background
         media.receive(song)
-        #expect(shown.last??.title == "Song" && shown.last??.feature == .media)
+        #expect(shown.last??.title == "Song" && shown.last??.mediaIsPlaying == true)
+        var paused = song
+        paused.isPlaying = false
+        media.receive(paused)
+        paused.elapsed = 123
+        media.receive(paused)
+        #expect(shown.count == 2 && shown.last??.mediaIsPlaying == false)
+        media.showsInClosedNotch = false
+        #expect(shown.last == .some(nil))
+        media.showsInClosedNotch = true
+        #expect(shown.last??.mediaIsPlaying == false, "can resume a track already paused")
         media.receive(song)
-        #expect(shown.count == 1, "an unchanged track raises nothing")
+        #expect(shown.last??.mediaIsPlaying == true)
+        media.receive(nil)
+        #expect(shown.last == .some(nil))
+        media.receive(next)
         media.phase = .stopped
-        #expect(shown.last! == nil)
+        #expect(shown.last == .some(nil))
     }
 
     @Test func aHelperThatDiedAfterRunningIsRestarted() {

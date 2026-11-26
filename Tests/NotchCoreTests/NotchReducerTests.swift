@@ -46,6 +46,27 @@ struct NotchReducerTests {
         #expect(state.presentation == .expanded(tab: .media))
     }
 
+    @Test func trackAnnouncementsHandBackToTheLatestCompactPlayer() {
+        var playing = song
+        playing.mediaIsPlaying = true
+        var state = after(.show, .setOngoing(playing))
+        var next = song
+        next.title = "Next"
+        _ = state.handle(.activity(next))
+        playing.title = next.title
+        _ = state.handle(.setOngoing(playing))
+        #expect(state.presentation == .transient(next) && state.restingActivity == nil)
+
+        next.title = "Third"
+        #expect(state.handle(.activity(next)) == [.schedule(.activityEnd, after: next.duration)])
+        playing.title = next.title
+        playing.mediaIsPlaying = false
+        _ = state.handle(.setOngoing(playing))
+        #expect(state.presentation == .transient(next) && state.restingActivity == nil)
+        _ = state.handle(.deadline(.activityEnd))
+        #expect(state.restingActivity == playing)
+    }
+
     @Test func aQuickPassDoesNotExpand() {
         var state = after(.show, .pointerEntered)
         #expect(state.handle(.pointerExited) == [.cancel(.hoverDwell)])

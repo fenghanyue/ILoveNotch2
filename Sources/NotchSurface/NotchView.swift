@@ -11,15 +11,18 @@ public struct NotchContent {
     public var tab: (FeatureID) -> AnyView
     /// Files dropped on the notch; returns whether they were accepted.
     public var dropFiles: ([URL]) -> Bool
+    public var togglePlayback: () -> Void
     public var openSettings: () -> Void
 
     public init(
         tab: @escaping (FeatureID) -> AnyView,
         dropFiles: @escaping ([URL]) -> Bool,
+        togglePlayback: @escaping () -> Void = {},
         openSettings: @escaping () -> Void
     ) {
         self.tab = tab
         self.dropFiles = dropFiles
+        self.togglePlayback = togglePlayback
         self.openSettings = openSettings
     }
 }
@@ -79,6 +82,9 @@ struct NotchView: View {
             } else if case .transient(let activity) = presentation {
                 live(activity)
                     .transition(.opacity)
+            } else if let resting, let playing = resting.mediaIsPlaying {
+                compactMedia(resting, playing: playing)
+                    .transition(.identity)
             } else if let resting {
                 live(resting, ongoing: true)
                     .transition(.opacity)
@@ -104,8 +110,14 @@ struct NotchView: View {
         .environment(\.theme, open ? theme : theme.onBlack)
         .gradientSymbols()
         .contentShape(outline)
-        .onHover { engine.send($0 ? .pointerEntered : .pointerExited) }
-        .onTapGesture { engine.send(.clicked) }
+        // Compact playback has separate hit areas for opening the notch and controlling the player.
+        .onHover { inside in
+            if resting?.mediaIsPlaying == nil { engine.send(inside ? .pointerEntered : .pointerExited) }
+        }
+        .gesture(
+            TapGesture().onEnded { engine.send(.clicked) },
+            including: resting?.mediaIsPlaying == nil ? .all : .subviews
+        )
         .dropDestination(for: URL.self) { urls, _ in
             justDropped = true
             engine.send(.dropped)
@@ -663,6 +675,44 @@ struct NotchView: View {
             }
     }
 
+    /// The cover and camera retain their normal hover and click behavior. The trailing wing is a
+    /// sibling with its own hit target, so resting the pointer on pause never arms the open timer.
+    private func compactMedia(_ activity: Activity, playing: Bool) -> some View {
+        HStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Group {
+                    if let cover = activity.artwork.flatMap(NSImage.init(data:)) {
+                        Image(nsImage: cover)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Image(systemName: "music.note")
+                    }
+                }
+                .frame(width: NotchMetrics.artworkSide, height: NotchMetrics.artworkSide)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .frame(width: NotchMetrics.mediaWing)
+                Spacer(minLength: 0)
+            }
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onHover { inside in
+                guard engine.state.restingActivity?.mediaIsPlaying != nil else { return }
+                engine.send(inside ? .pointerEntered : .pointerExited)
+            }
+            .onTapGesture { engine.send(.clicked) }
+            .accessibilityLabel(Text(activity.title))
+
+            CompactPlaybackButton(playing: playing) {
+                guard engine.state.restingActivity?.mediaIsPlaying != nil else { return }
+                content.togglePlayback()
+            }
+        }
+        .foregroundStyle(.white)
+        .frame(height: metrics.housing.height)
+        .environment(\.layoutDirection, .leftToRight)  // these sit on physical sides of the camera
+    }
+
     /// A live activity, its symbol and title together: a one-shot activity in a row just under the
     /// camera housing, like a level such as the volume or the battery's charge; an ongoing one in a
     /// tab beside the housing, over the menu bar, where it can stay without covering windows. On a
@@ -750,6 +800,51 @@ struct NotchView: View {
         .padding(.horizontal, 16)
         .frame(height: metrics.notch == nil ? metrics.housing.height : NotchMetrics.meterDepth)
         .padding(.top, metrics.notch == nil ? 0 : metrics.housing.height)
+    }
+}
+
+/// Only the indicator animates. Pausing, hovering, or leaving the compact presentation removes it.
+private struct CompactPlaybackButton: View {
+    let playing: Bool
+    let toggle: () -> Void
+    @State private var hovered = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Button(action: toggle) {
+            Group {
+                if playing && !hovered {
+                    if reduceMotion {
+                        bars(raised: false)
+                    } else {
+                        PhaseAnimator([false, true]) { raised in
+                            bars(raised: raised)
+                        } animation: { _ in
+                            .easeInOut(duration: 0.42)
+                        }
+                    }
+                } else {
+                    Image(systemName: playing ? "pause.fill" : "play.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                }
+            }
+            .frame(width: NotchMetrics.mediaWing)
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovered = $0 }
+        .accessibilityLabel(playing ? "Pause" : "Play")
+    }
+
+    private func bars(raised: Bool) -> some View {
+        HStack(spacing: 2) {
+            Capsule().frame(width: 3, height: raised ? 12 : 5)
+            Capsule().frame(width: 3, height: raised ? 6 : 15)
+            Capsule().frame(width: 3, height: raised ? 15 : 8)
+            Capsule().frame(width: 3, height: raised ? 5 : 11)
+        }
+        .frame(height: 16)
     }
 }
 
