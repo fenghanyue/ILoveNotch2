@@ -34,7 +34,7 @@ jobs:
             'ARCHS=arm64 x86_64' ONLY_ACTIVE_ARCH=NO OPENNOTCH_SOURCE= \
             OPENNOTCH_COMMIT="${GITHUB_SHA:0:7}+player" -quiet build
           app="$RUNNER_TEMP/DerivedData/Build/Products/Release/ILoveNotch.app"
-          lipo -verify_arch arm64 x86_64 "$app/Contents/MacOS/ILoveNotch"
+          lipo "$app/Contents/MacOS/ILoveNotch" -verify_arch arm64 x86_64
           codesign --verify --deep --strict "$app"
 
       - name: Package the disk image
