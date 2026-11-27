@@ -1,0 +1,11 @@
+# The ad-hoc release has no Apple Team ID to share with Sparkle under hardened library validation.
+include: [project.yml]
+packages:REPLACE:
+  OpenNotchKit:
+    path: .
+targets:
+  OpenNotch:
+    templates:REPLACE: []
+    settings:
+      base:
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) COMPACT_PLAYER

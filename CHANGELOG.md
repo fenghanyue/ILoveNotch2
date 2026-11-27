@@ -11,6 +11,10 @@ as they land, written for the people who use the app
 
 ## [Unreleased]
 
+### Fixed
+
+- The compact player can start on macOS Sonoma with ad-hoc signing. Its update button opens the fork’s GitHub releases.
+
 ### Changed
 
 - The closed notch shows the cover to the left of the camera and moving bars to the right. Hover over the bars to reveal the pause button. While paused, click the play button to resume. Track changes still show their brief announcement first.
