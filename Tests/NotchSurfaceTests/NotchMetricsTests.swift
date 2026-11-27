@@ -56,10 +56,10 @@ struct NotchMetricsTests {
     /// Its symbol and title side by side, like a level's row: under the camera, or inside the pill.
     @Test(arguments: displays)
     func aLiveActivityKeepsItsSymbolAndTitleTogether(metrics: NotchMetrics) {
-        let title = String(repeating: "A very long video title ", count: 4)
-        let short = metrics.size(for: .transient(song))
-        let long = metrics.size(
-            for: .transient(Activity(feature: .media, symbol: "play.fill", title: title, duration: .zero)))
+        var reminder = Activity(feature: .calendar, symbol: "calendar", title: "Lunch", duration: .seconds(2))
+        let short = metrics.size(for: .transient(reminder))
+        reminder.title = String(repeating: "A very long meeting title ", count: 4)
+        let long = metrics.size(for: .transient(reminder))
         #expect(short == metrics.size(for: .transient(volume)), "a short title keeps to the notch, like a level")
         #expect(short.width < long.width, "a long one widens the row")
         #expect(long.width == metrics.housing.width + NotchMetrics.activityWing * 2, "up to a ceiling")
@@ -105,7 +105,7 @@ struct NotchMetricsTests {
         var track = song
         var state = NotchState()
         _ = state.handle(.show)
-        let width = metrics.housing.width + (metrics.notch == nil ? 0 : 2 * metrics.mediaWing)
+        let width = metrics.playerWidth
         for playing in [true, false] {
             track.mediaIsPlaying = playing
             _ = state.handle(.setOngoing(track))
@@ -114,7 +114,7 @@ struct NotchMetricsTests {
                 #expect(metrics.size(for: state) == CGSize(width: width, height: metrics.housing.height))
                 #expect(metrics.offset(for: state) == 0)
                 let frame = metrics.openHoverFrame(for: state, expanded: .zero, in: metrics.panelFrame)
-                let side = (width - metrics.mediaWing) / 2
+                let side = (width - metrics.mediaWing) / 2 - metrics.mediaFlare
                 if let notch = metrics.notch {
                     let iconInset = side - NotchMetrics.artworkSide / 2 - notch.width / 2
                     #expect(iconInset == 4, "the icons sit immediately outside the camera")
@@ -123,6 +123,26 @@ struct NotchMetricsTests {
                 #expect(frame.contains(CGPoint(x: metrics.centerX - side, y: top)), "the cover opens Media")
                 #expect(!frame.contains(CGPoint(x: metrics.centerX + side, y: top)), "the control never opens Media")
             }
+        }
+    }
+
+    @Test(arguments: displays)
+    func trackAnnouncementsUnfoldAtThePlayerWidth(metrics: NotchMetrics) {
+        var state = NotchState()
+        var track = song
+        track.mediaIsPlaying = true
+        _ = state.handle(.show)
+        _ = state.handle(.setOngoing(track))
+        let resting = metrics.size(for: state)
+        for title in ["Song", String(repeating: "A long track title ", count: 8)] {
+            var announcement = song
+            announcement.title = title
+            _ = state.handle(.activity(announcement))
+            let popup = metrics.size(for: state)
+            #expect(popup.width == resting.width && metrics.offset(for: state) == 0)
+            #expect(popup.height == resting.height + (metrics.notch == nil ? 0 : NotchMetrics.meterDepth))
+            _ = state.handle(.deadline(.activityEnd))
+            #expect(metrics.size(for: state) == resting)
         }
     }
 

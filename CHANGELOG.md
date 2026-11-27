@@ -21,7 +21,7 @@ as they land, written for the people who use the app
 
 ### Changed
 
-- The closed player keeps its black background within the camera housing. The cover and moving bars sit just outside it. Hover over the bars to see Pause and move away to bring the bars back. While paused, Play stays visible. Track changes still show their brief announcement first.
+- The closed player wraps its black background around the cover and playback control. When the track changes, its title unfolds below at the same width. Hover over the bars to see Pause and move away to bring the bars back. While paused, Play stays visible.
 
 ## [2.0.0] - 2026-11-20
 

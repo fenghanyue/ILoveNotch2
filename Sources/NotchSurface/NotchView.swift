@@ -72,13 +72,8 @@ struct NotchView: View {
         let presentation = engine.state.presentation
         let resting = engine.state.restingActivity
         let size = metrics.size(for: engine.state, expanded: preferences.expandedSize)
-        let outsideCamera = metrics.notch != nil && resting?.mediaIsPlaying != nil
-        let surfaceSize = outsideCamera ? metrics.compactSize : size
         let open = presentation.openTab != nil
-        let outline = Self.shape(
-            for: outsideCamera ? .compact : presentation, resting: resting != nil && !outsideCamera,
-            on: metrics, radii: theme.radii)
-        let hitShape = outsideCamera ? NotchShape(topRadius: 0, bottomRadius: 0) : outline
+        let outline = Self.shape(for: presentation, resting: resting != nil, on: metrics, radii: theme.radii)
         ZStack(alignment: .top) {
             fill(outline, glass: showsGlass(presentation), open: open)
             if let tab = presentation.openTab {
@@ -87,12 +82,15 @@ struct NotchView: View {
             } else if case .transient(let activity) = presentation {
                 live(activity)
                     .transition(.opacity)
-            } else if let resting, resting.mediaIsPlaying == nil {
+            } else if let resting, let playing = resting.mediaIsPlaying {
+                compactMedia(resting, playing: playing)
+                    .transition(.identity)
+            } else if let resting {
                 live(resting, ongoing: true)
                     .transition(.opacity)
             }
         }
-        .frame(width: surfaceSize.width, height: surfaceSize.height, alignment: .top)
+        .frame(width: size.width, height: size.height, alignment: .top)
         .clipShape(outline)  // content sliding between tabs never shows outside the notch
         .overlay {
             if contrast == .increased {
@@ -100,14 +98,6 @@ struct NotchView: View {
             }
             if dropTargeted {
                 outline.stroke(.themeAccent, lineWidth: 2).shadow(color: theme.color(.accent), radius: 6)
-            }
-        }
-        .frame(width: size.width, height: size.height, alignment: .top)
-        .overlay(alignment: .top) {
-            if let resting, let playing = resting.mediaIsPlaying {
-                compactMedia(resting, playing: playing)
-                    .clipShape(hitShape)
-                    .transition(.identity)
             }
         }
         .keyframeAnimator(initialValue: Squash(), trigger: presentation.openTab != nil) { notch, squash in
@@ -119,7 +109,7 @@ struct NotchView: View {
         .environment(\.colorScheme, open ? theme.appearance.colorScheme : .dark)
         .environment(\.theme, open ? theme : theme.onBlack)
         .gradientSymbols()
-        .contentShape(hitShape)
+        .contentShape(outline)
         // Compact playback has separate hit areas for opening the notch and controlling the player.
         .onHover { inside in
             if resting?.mediaIsPlaying == nil { engine.send(inside ? .pointerEntered : .pointerExited) }
@@ -701,15 +691,10 @@ struct NotchView: View {
                 }
                 .frame(width: NotchMetrics.artworkSide, height: NotchMetrics.artworkSide)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
-                .shadow(color: .black.opacity(0.7), radius: 1)
                 .frame(width: metrics.mediaWing)
                 Spacer(minLength: 0)
             }
             .frame(maxHeight: .infinity)
-            // Give the window server pixels to hit in the gaps around the cover.
-            .background(alignment: .leading) {
-                if metrics.notch != nil { Color.black.opacity(0.01).frame(width: metrics.mediaWing) }
-            }
             .contentShape(Rectangle())
             .onHover { inside in
                 guard engine.state.restingActivity?.mediaIsPlaying != nil else { return }
@@ -723,6 +708,7 @@ struct NotchView: View {
                 content.togglePlayback()
             }
         }
+        .padding(.horizontal, metrics.mediaFlare)
         .foregroundStyle(.white)
         .frame(height: metrics.housing.height)
         .environment(\.layoutDirection, .leftToRight)  // these sit on physical sides of the camera
@@ -832,7 +818,7 @@ private struct CompactPlaybackButton: View {
             Rectangle()
                 .fill(.black.opacity(0.01))
                 .frame(width: width)
-                .overlay { indicator.shadow(color: .black.opacity(0.8), radius: 1).allowsHitTesting(false) }
+                .overlay { indicator.allowsHitTesting(false) }
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

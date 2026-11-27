@@ -25,7 +25,7 @@ jobs:
           xcodegen generate --spec project-compact-player.yml --quiet
 
       - name: Test compact playback
-        run: swift test --no-parallel --filter 'MediaFeatureTests|NotchReducerTests|NotchMetricsTests|FeatureHostTests|compactPlaybackShowsBothIconsOverTheMenuBar'
+        run: swift test --no-parallel --filter 'MediaFeatureTests|NotchReducerTests|NotchMetricsTests|FeatureHostTests|compactPlaybackWrapsBothIcons'
 
       - name: Build and verify the universal app
         run: |
@@ -115,7 +115,7 @@ jobs:
         run: |
           sha256sum --check SHA256SUMS
           cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
-          收起时，黑底与物理刘海同宽，封面在左侧，音柱在右侧。鼠标移到音柱上显示暂停键，直接移走就恢复音柱。暂停时播放键常驻，点击继续播放。自然切歌时会先显示曲名提示。
+          黑底刚好包住左侧封面和右侧播放键。自然切歌时，歌名提示沿同一宽度向下展开。播放时移入音柱可见暂停键，移走恢复音柱；暂停时播放键常驻。
 
           修复了 macOS 14.6.1 上因 Sparkle 与主应用签名团队不同导致的启动闪退。此定制版的更新入口打开本仓库的 Releases 页面。
 

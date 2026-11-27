@@ -65,7 +65,7 @@ struct NotchSnapshotTests {
     }
 
     @Test(arguments: [true, false])
-    func compactPlaybackShowsBothIconsOverTheMenuBar(playing: Bool) throws {
+    func compactPlaybackWrapsBothIcons(playing: Bool) throws {
         var track = song
         track.mediaIsPlaying = playing
         let size = CGSize(width: 300, height: notched.housing.height)
@@ -82,10 +82,12 @@ struct NotchSnapshotTests {
         #expect(housing < 0.1)
         for side: CGFloat in [-1, 1] {
             let edge = center + side * notched.housing.width / 2
-            // Just outside the camera, above each glyph, the gray desktop must show through.
+            // Both controls sit on black, with the desktop visible just beyond the outline.
             let iconCenter = edge + side * notched.mediaWing / 2
-            let menuBar = try brightness(at: iconCenter, y: 3)
-            #expect(menuBar > 0.65)
+            let backing = try brightness(at: iconCenter, y: 3)
+            let desktop = try brightness(at: center + side * (notched.playerWidth / 2 + 1), y: 3)
+            #expect(backing < 0.1)
+            #expect(desktop > 0.65)
             // Both the fallback cover and the transport control have white ink within 4–22 pt of the edge.
             var brightest: CGFloat = 0
             for x in 4..<22 {

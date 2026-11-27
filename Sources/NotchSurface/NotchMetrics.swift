@@ -79,6 +79,11 @@ struct NotchMetrics: Equatable {
     /// Center an 18 pt icon 4 pt outside the camera. The floating pill keeps its inset controls.
     var mediaWing: CGFloat { notch == nil ? 38 : Self.artworkSide + 8 }
 
+    /// The flared top is wider than the solid backing at the height of the buttons.
+    var mediaFlare: CGFloat { notch == nil ? 0 : Self.flare }
+
+    var playerWidth: CGFloat { notch == nil ? housing.width : housing.width + 2 * (mediaWing + mediaFlare) }
+
     /// The open notch at the user's chosen size: never narrower than the notch plus room for the
     /// tabs, never larger than the display allows.
     func expandedSize(_ chosen: CGSize) -> CGSize {
@@ -101,6 +106,9 @@ struct NotchMetrics: Equatable {
             notch == nil
                 ? housing
                 : CGSize(width: housing.width + Self.hoverGrowth.width, height: housing.height + Self.meterDepth)
+        case .transient(let activity) where activity.feature == .media:
+            // The title unfolds below the player. Even a long title leaves the side edges in place.
+            CGSize(width: playerWidth, height: housing.height + (notch == nil ? 0 : Self.meterDepth))
         case .transient(let activity):
             // Its symbol and title side by side, in a row under the camera housing or inside the pill:
             // as wide as the notch, wider for a long title, up to a ceiling.
@@ -120,8 +128,7 @@ struct NotchMetrics: Equatable {
     func size(for state: NotchState, expanded: CGSize = NotchPreferences.defaultExpandedSize) -> CGSize {
         guard let resting = state.restingActivity else { return size(for: state.presentation, expanded: expanded) }
         if resting.mediaIsPlaying != nil {
-            let width = notch == nil ? housing.width : housing.width + mediaWing * 2
-            return CGSize(width: width, height: housing.height)
+            return CGSize(width: playerWidth, height: housing.height)
         }
         let growth = state.presentation == .hoverArmed ? Self.hoverGrowth : .zero
         let width =
@@ -182,7 +189,10 @@ struct NotchMetrics: Equatable {
     func openHoverFrame(for state: NotchState, expanded: CGSize, in panel: CGRect) -> CGRect {
         let size = size(for: state, expanded: expanded)
         var frame = hoverFrame(for: size, in: panel).offsetBy(dx: offset(for: state), dy: 0)
-        if state.restingActivity?.mediaIsPlaying != nil { frame.size.width -= mediaWing }
+        if state.restingActivity?.mediaIsPlaying != nil {
+            frame = frame.insetBy(dx: mediaFlare, dy: 0)
+            frame.size.width -= mediaWing
+        }
         return frame
     }
 
