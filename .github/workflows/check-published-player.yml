@@ -1,0 +1,66 @@
+name: Check published player startup
+on:
+  push:
+    branches: [diagnostics/compact-player-startup]
+
+permissions:
+  contents: read
+
+jobs:
+  launch:
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-26]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Inspect and open the published disk image
+        run: |
+          sw_vers
+          dmg="$RUNNER_TEMP/player.dmg"
+          curl --fail --silent --show-error --location --retry 2 \
+            https://github.com/fenghanyue/ILoveNotch2/releases/download/v2.0.0-player.2/ILoveNotch-Compact-Player.dmg -o "$dmg"
+          echo "fa6041d962f3a5529cabddb3b4837549ad75e72c78ed19d6d98d793fdf6c4c61  $dmg" | shasum -a 256 -c -
+          mount="$RUNNER_TEMP/mounted-player"
+          mkdir "$mount"
+          hdiutil attach -readonly -nobrowse -mountpoint "$mount" "$dmg"
+          app="$RUNNER_TEMP/Installed/ILoveNotch.app"
+          mkdir -p "$(dirname "$app")"
+          ditto "$mount/ILoveNotch.app" "$app"
+          hdiutil detach "$mount"
+          codesign --verify --strict --deep "$app"
+          /usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist"
+          binary="$app/Contents/MacOS/ILoveNotch"
+          otool -L "$binary"
+          otool -l "$binary" | grep -A3 LC_RPATH || true
+          codesign -dvvv "$app" 2>&1 | grep -E 'Identifier|Signature|TeamIdentifier|flags'
+          ls -l "$app/Contents/Frameworks"
+          open -g "$app" || echo "LaunchServices open exited $?"
+          sleep 8
+          if pgrep -x ILoveNotch; then
+            open -g 'ilovenotch://show?title=Startup%20test'
+            sleep 3
+            pgrep -x ILoveNotch && exit 0
+          fi
+          echo 'LaunchServices did not keep the app running. Capturing a direct launch on the test machine.'
+          "$binary" > "$RUNNER_TEMP/player-launch.log" 2>&1 &
+          pid=$!
+          sleep 5
+          cat "$RUNNER_TEMP/player-launch.log"
+          if kill -0 "$pid" 2>/dev/null; then kill "$pid"; fi
+          log_dir="$HOME/Library/Logs/DiagnosticReports"
+          for report in "$log_dir"/ILoveNotch*.ips; do
+            if [[ -f "$report" ]]; then
+              python3 - "$report" <<'PY'
+          import json, sys
+          text = open(sys.argv[1]).read().split('\n', 1)[1]
+          report = json.loads(text)
+          for key in ("exception", "termination", "asi"):
+              print(key, report.get(key))
+          for thread in report.get("threads", []):
+              if thread.get("triggered"): print(thread.get("frames", [])[:10])
+          PY
+            fi
+          done
+          exit 1
