@@ -20,7 +20,88 @@ final class AntigravityProviderTests: XCTestCase {
         return resetsAt
     }
 
-    // OpenNotch: the Google token refresh test is left out with the refresh itself.
+    func testGoogleRefreshFormEncodesReservedCharactersInRequestBody() async throws {
+        let http = FakeHTTPClient(response: HTTPResponse(
+            statusCode: 200,
+            headers: [:],
+            body: Data(#"{"access_token":"new-token","expires_in":3600}"#.utf8)
+        ))
+        let creds = AntigravityOAuthCredentials(clientID: "test-client-id", clientSecret: "test-client-secret")
+        let client = AntigravityUsageClient(lsHTTP: http, http: http, oauthCredentials: { [creds] })
+
+        _ = await client.refreshGoogleToken("refresh token&=+/?%")
+
+        let request = try XCTUnwrap(http.requests.first)
+        XCTAssertEqual(request.method, "POST")
+        XCTAssertEqual(request.headers["Content-Type"], "application/x-www-form-urlencoded")
+        XCTAssertEqual(
+            String(data: try XCTUnwrap(request.body), encoding: .utf8),
+            "client_id=test-client-id" +
+                "&client_secret=test-client-secret" +
+                "&refresh_token=refresh%20token%26%3D%2B%2F%3F%25" +
+                "&grant_type=refresh_token"
+        )
+    }
+
+    func testExtractCredentialsFromConcatenatedGoRodata() {
+        let secretPrefix = "GOC" + "SPX-"
+        let secretA = secretPrefix + String(repeating: "A", count: 28)
+        let secretB = secretPrefix + String(repeating: "B", count: 28)
+        let clientIDA = "111111111111-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" + ".apps.googleusercontent.com"
+        let clientIDB = "2222222222222-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" + ".apps.googleusercontent.com"
+        // Mimic Go `.rodata`: strings packed back-to-back with no NUL separators and trailing ASCII.
+        let blob = Data(("prefix/" + clientIDA + "nextLiteral" + clientIDB + "padding" + secretA + "TrailingGoLiteral" + secretB + "MoreASCII").utf8)
+
+        let pairs = AntigravityAppOAuthExtractor.extractCredentials(from: blob)
+        XCTAssertEqual(pairs.count, 4)
+        XCTAssertEqual(pairs[0], AntigravityOAuthCredentials(clientID: clientIDA, clientSecret: secretA))
+        XCTAssertTrue(pairs.contains(AntigravityOAuthCredentials(clientID: clientIDB, clientSecret: secretB)))
+        XCTAssertTrue(pairs.allSatisfy { $0.clientSecret.count == 35 })
+    }
+
+    func testRefreshFallsBackPastInvalidClientToWorkingPair() async {
+        let attempts = Counter()
+        let routing = RoutingHTTPClient { request in
+            XCTAssertEqual(request.url.host, "oauth2.googleapis.com")
+            if attempts.next() == 0 {
+                return HTTPResponse(statusCode: 401, headers: [:], body: Data(#"{"error":"invalid_client"}"#.utf8))
+            }
+            return HTTPResponse(statusCode: 200, headers: [:], body: Data(#"{"access_token":"ya29.ok","expires_in":3600}"#.utf8))
+        }
+        let client = AntigravityUsageClient(
+            lsHTTP: routing,
+            http: routing,
+            oauthCredentials: {
+                [
+                    AntigravityOAuthCredentials(clientID: "cid-1", clientSecret: "sec-wrong"),
+                    AntigravityOAuthCredentials(clientID: "cid-1", clientSecret: "sec-right")
+                ]
+            }
+        )
+
+        let outcome = await client.refreshGoogleToken("1//refresh")
+        guard case .refreshed(let token, let expiresIn) = outcome else {
+            return XCTFail("expected refreshed outcome, got \(outcome)")
+        }
+        XCTAssertEqual(token, "ya29.ok")
+        XCTAssertEqual(expiresIn, 3600)
+        XCTAssertEqual(routing.requests.count, 2)
+    }
+
+    func testRefreshReturnsAuthFailedWhenNoAppCredentialsAvailable() async {
+        let routing = RoutingHTTPClient { _ in
+            XCTFail("must not hit Google OAuth without client credentials")
+            return HTTPResponse(statusCode: 500, headers: [:], body: Data())
+        }
+        let client = AntigravityUsageClient(lsHTTP: routing, http: routing, oauthCredentials: { [] })
+
+        let outcome = await client.refreshGoogleToken("1//refresh")
+        if case .authFailed = outcome {
+            XCTAssertTrue(routing.requests.isEmpty)
+        } else {
+            XCTFail("expected authFailed when credentials are missing, got \(outcome)")
+        }
+    }
 
     // MARK: - Mapper: pooling
 
@@ -288,7 +369,13 @@ final class AntigravityProviderTests: XCTestCase {
         }
         return AntigravityProvider(
             authStore: AntigravityAuthStore(keychain: FakeKeychain(wrapped), files: FakeFiles()),
-            usageClient: AntigravityUsageClient(lsHTTP: routing, http: routing),
+            usageClient: AntigravityUsageClient(
+                lsHTTP: routing,
+                http: routing,
+                oauthCredentials: {
+                    [AntigravityOAuthCredentials(clientID: "test-client-id", clientSecret: "test-client-secret")]
+                }
+            ),
             discovery: LanguageServerDiscovery(processRunner: EmptyProcessRunner()),
             dbUsageScanner: AntigravityDbUsageScanner(conversationsDirectories: { ["/nonexistent-antigravity-tests"] })
         )
@@ -366,16 +453,54 @@ final class AntigravityProviderTests: XCTestCase {
     }
 
     @MainActor
-    func testRejectedTokenAsksForAntigravityWithoutAnOAuthRefresh() async {
-        // OpenNotch: the Google OAuth refresh is left out, so a usable token that 401s is expired auth
-        // (opening Antigravity renews it) and Google's token endpoint is never called.
+    func testAuthFailureThenThrottledRefreshReportsUnavailable() async {
+        // A usable token 401s (sawAuthFailure), then the OAuth refresh hits 503. An expired access token
+        // is normal and the refresh token may be fine, so this is a transient outage (.network), not
+        // authExpired.
         let routing = RoutingHTTPClient { request in
-            XCTAssertNotEqual(request.url.host, "oauth2.googleapis.com")
+            if request.url.host == "oauth2.googleapis.com" {
+                return HTTPResponse(statusCode: 503, headers: [:], body: Data())
+            }
             return HTTPResponse(statusCode: 401, headers: [:], body: Data())
         }
         let provider = makeCloudCodeProvider(routing: routing)
         let snapshot = await provider.refresh()
-        XCTAssertEqual(snapshot.errorCategory, .authExpired)
+        XCTAssertEqual(snapshot.errorCategory, .network)
+    }
+
+    @MainActor
+    func testRateLimitedRefreshReportsUnavailable() async {
+        // Access token expired; refresh hits 429 (rate limited). Transient, not a revoked token — so
+        // .network, not .authExpired.
+        let routing = RoutingHTTPClient { request in
+            if request.url.host == "oauth2.googleapis.com" {
+                return HTTPResponse(statusCode: 429, headers: [:], body: Data())
+            }
+            return HTTPResponse(statusCode: 503, headers: [:], body: Data())
+        }
+        let provider = makeCloudCodeProvider(routing: routing, keychainExpiry: "2000-01-01T00:00:00Z")
+        let snapshot = await provider.refresh()
+        XCTAssertEqual(snapshot.errorCategory, .network)
+    }
+
+    @MainActor
+    func testRefreshAfterSuccessfulRefreshTreatsOutageAsUnavailable() async {
+        // First fetch 401 -> OAuth refresh succeeds -> retry fetch 503. The refreshed token is valid, so
+        // this is a transient outage (.network), not authExpired.
+        let fetchCount = Counter()
+        let routing = RoutingHTTPClient { request in
+            if request.url.host == "oauth2.googleapis.com" {
+                return HTTPResponse(statusCode: 200, headers: [:],
+                                    body: Data(#"{"access_token":"ya29.new","expires_in":3600}"#.utf8))
+            }
+            if request.url.path.contains("fetchAvailableModels") {
+                return HTTPResponse(statusCode: fetchCount.next() == 0 ? 401 : 503, headers: [:], body: Data())
+            }
+            return HTTPResponse(statusCode: 503, headers: [:], body: Data())
+        }
+        let provider = makeCloudCodeProvider(routing: routing)
+        let snapshot = await provider.refresh()
+        XCTAssertEqual(snapshot.errorCategory, .network)
     }
 }
 

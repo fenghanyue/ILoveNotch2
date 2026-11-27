@@ -247,11 +247,35 @@ final class AntigravityProvider: ProviderRuntime {
             }
         }
 
-        // OpenNotch: no Google OAuth refresh (see AntigravityUsageClient). An expired token that only a
-        // refresh could replace is renewed by opening Antigravity, which the expired-auth message says.
-        if tokens.isEmpty, keychainToken.refreshToken?.isEmpty == false { throw AntigravityError.authExpired }
+        // Only refresh on evidence of an auth failure (or no token to try) — a transient Cloud Code
+        // outage must not trigger a Google OAuth refresh every cycle.
+        if sawAuthFailure || tokens.isEmpty, let refreshToken = keychainToken.refreshToken {
+            switch await usageClient.refreshGoogleToken(refreshToken) {
+            case .refreshed(let accessToken, let expiresIn):
+                await loadOffMainActor {
+                    authStore.cacheToken(
+                        accessToken,
+                        expiresIn: expiresIn,
+                        sourceRefreshToken: refreshToken
+                    )
+                }
+                switch await fetchCloudCode(token: accessToken) {
+                case .success(let result): return result
+                case .authFailed: throw AntigravityError.authExpired
+                // The refreshed token is valid, so a non-2xx here is a transient outage, not bad auth.
+                case .unavailable: throw AntigravityError.unavailable
+                }
+            // The refresh token itself is dead (revoked / expired) — that's expired auth, not an outage.
+            case .authFailed: throw AntigravityError.authExpired
+            // Refresh was only transiently unavailable (throttled / 5xx / network). The refresh token may
+            // still be valid, so report a transient outage — even if a token 401'd, an expired access
+            // token is normal and isn't evidence the sign-in is dead.
+            case .unavailable: throw AntigravityError.unavailable
+            }
+        }
 
-        // A rejected token, with no way to refresh it here, is expired auth.
+        // Reached only when no refresh was attempted (no refresh token): a rejected token with no way to
+        // refresh is genuinely expired auth.
         if sawAuthFailure { throw AntigravityError.authExpired }
         // Signed in but every endpoint was unreachable — report a transient failure, not "not signed in".
         if hasCredentials { throw AntigravityError.unavailable }

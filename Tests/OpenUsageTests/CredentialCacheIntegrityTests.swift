@@ -170,12 +170,10 @@ final class AntigravityCredentialCacheIntegrityTests: XCTestCase {
 
         let snapshot = await provider.refresh()
 
-        // OpenNotch: without the Google OAuth refresh, the expired login asks for Antigravity instead,
-        // and the previous account's cached token is still never sent.
-        XCTAssertEqual(snapshot.errorCategory, .authExpired)
+        XCTAssertNil(snapshot.errorCategory)
         let authorizations = http.requests.compactMap { $0.headers["Authorization"] }
+        XCTAssertTrue(authorizations.contains("Bearer new-access"))
         XCTAssertFalse(authorizations.contains("Bearer old-access"))
-        XCTAssertFalse(http.requests.contains { $0.url.host == "oauth2.googleapis.com" })
     }
 
     func testMatchingCacheAvoidsAnotherOAuthRefresh() async {
@@ -234,7 +232,13 @@ final class AntigravityCredentialCacheIntegrityTests: XCTestCase {
         let fixedNow = now
         return AntigravityProvider(
             authStore: AntigravityAuthStore(keychain: keychain, files: files, now: { fixedNow }),
-            usageClient: AntigravityUsageClient(lsHTTP: http, http: http),
+            usageClient: AntigravityUsageClient(
+                lsHTTP: http,
+                http: http,
+                oauthCredentials: {
+                    [AntigravityOAuthCredentials(clientID: "test-client-id", clientSecret: "test-client-secret")]
+                }
+            ),
             discovery: LanguageServerDiscovery(processRunner: CredentialEmptyProcessRunner()),
             dbUsageScanner: AntigravityDbUsageScanner(conversationsDirectories: { ["/nonexistent-antigravity-tests"] }),
             now: { fixedNow }
