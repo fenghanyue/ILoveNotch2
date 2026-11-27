@@ -11,6 +11,10 @@ as they land, written for the people who use the app
 
 ## [Unreleased]
 
+### Added
+
+- Calendar settings now include a Chinese guide to generating a Feishu CalDAV account and adding it to your Mac to see Feishu events in the notch.
+
 ### Fixed
 
 - The compact player can start on macOS Sonoma with ad-hoc signing. Its update button opens the fork’s GitHub releases.

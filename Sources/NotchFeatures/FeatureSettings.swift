@@ -27,6 +27,18 @@ extension CalendarFeature {
         @Bindable var calendar = self
         return Group {
             AccessRow(access: calendar.access, pane: "Privacy_Calendars", request: calendar.requestAccess)
+            DisclosureGroup("如何同步飞书日历（CalDAV）") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("**1. 在飞书生成账户**")
+                    Text("在飞书桌面端点头像 → 设置 → 日历 → CalDAV 同步配置。选择 Mac，点击「生成」。保持页面打开，下一步会用到用户名、密码和服务器地址。")
+                    Text("**2. 在 Mac 添加账户**")
+                    Text("打开系统设置 → 互联网账户 → 添加账户，选择「CalDAV 账户」。如果列表里没有，先点「添加其他账户」。将账户类型设为「手动」，填入飞书生成的用户名、密码和服务器地址，然后点「登录」。")
+                    Text("**3. 确认日程已同步**")
+                    Text("打开 Mac 自带的「日历」，找一场已知的飞书会议。确认能看到后，检查本页的 Access 是否显示 Allowed。授权后即可在 ILoveNotch 的 Calendar 中查看同一场会议。")
+                }
+                .padding(.vertical, 4)
+                .fixedSize(horizontal: false, vertical: true)
+            }
             Toggle("Show all-day events", isOn: $calendar.showsAllDay)
             Toggle(isOn: $calendar.showsTasks) {
                 Text("Show tasks due today")
