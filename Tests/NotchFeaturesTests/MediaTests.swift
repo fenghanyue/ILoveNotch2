@@ -366,3 +366,68 @@ struct SpectrumAnalyzerTests {
     #expect(lines.first?.allSatisfy { $0 == "@" } == true, "the top line is the white half")
     #expect(lines.last?.allSatisfy { $0 == " " } == true, "the bottom line is the black half")
 }
+
+struct MediaPlayerLayoutTests {
+    @Test(arguments: [
+        CGSize(width: 350, height: 96),
+        CGSize(width: 350, height: 102),
+        CGSize(width: 350, height: 124),
+        CGSize(width: 350, height: 138),
+        CGSize(width: 380, height: 158),
+        CGSize(width: 396, height: 187),
+        CGSize(width: 428, height: 200),
+        CGSize(width: 536, height: 276),
+        CGSize(width: 656, height: 376),
+    ])
+    func fillsContentHeightAcrossExpandedSizes(size: CGSize) {
+        let layout = MediaPlayerLayout(fitting: size)
+        #expect(abs(layout.contentHeight - size.height) < 0.01)
+    }
+
+    @Test func compactMinimumGrowsCoverInsteadOfLeavingABottomGap() {
+        let layout = MediaPlayerLayout(fitting: CGSize(width: 350, height: 96))
+        #expect(layout.inline)
+        #expect(layout.artwork >= 64)
+        #expect(layout.waveformHeight == 0)
+        #expect(abs(layout.contentHeight - 96) < 0.01)
+    }
+
+    @Test func tallerInlineAddsACompactWaveformRow() {
+        let layout = MediaPlayerLayout(fitting: CGSize(width: 350, height: 124))
+        #expect(layout.inline)
+        #expect(layout.waveformHeight >= 12)
+        #expect(abs(layout.contentHeight - 124) < 0.01)
+    }
+
+    @Test func defaultNotchShowsStackedControlsAndWaveform() {
+        let layout = MediaPlayerLayout(fitting: CGSize(width: 396, height: 187))
+        #expect(!layout.inline)
+        #expect(layout.largeDetails)
+        #expect(layout.artwork >= 80)
+        #expect(layout.waveformHeight >= 18)
+        #expect(abs(layout.contentHeight - 187) < 0.01)
+    }
+
+    @Test func largeNotchScalesArtworkTypographyAndControlsProportionally() {
+        let standard = MediaPlayerLayout(fitting: CGSize(width: 396, height: 214))
+        let large = MediaPlayerLayout(fitting: CGSize(width: 656, height: 376))
+        #expect(large.artwork > standard.artwork)
+        #expect(large.titleSize > standard.titleSize)
+        #expect(large.playButtonSize > standard.playButtonSize)
+        #expect(large.waveformHeight > standard.waveformHeight)
+        #expect(abs(large.contentHeight - 376) < 0.01)
+    }
+
+    @Test func narrowTallNotchCapsArtworkWidthForTrackDetails() {
+        let layout = MediaPlayerLayout(fitting: CGSize(width: 350, height: 376))
+        #expect(!layout.inline)
+        #expect(layout.artwork <= 104)
+        #expect(abs(layout.contentHeight - 376) < 0.01)
+    }
+
+    @Test func permissionHintLeavesRoomInsideTheSmallestNotch() {
+        let layout = MediaPlayerLayout(fitting: CGSize(width: 350, height: 102), hasPermissionHint: true)
+        #expect(layout.inline)
+        #expect(layout.contentHeight <= 80.01)
+    }
+}
