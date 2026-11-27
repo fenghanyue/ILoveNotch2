@@ -2,7 +2,7 @@
 import AppKit
 import Observation
 
-#if !APP_STORE
+#if !APP_STORE && !COMPACT_PLAYER
     import Sparkle
 #endif
 
@@ -24,8 +24,8 @@ final class Updater {
     /// The checkout this build came from, when it's still on this Mac.
     let sourceDirectory: URL?
 
-    #if APP_STORE
-        // The App Store updates this edition.
+    #if APP_STORE || COMPACT_PLAYER
+        // The store handles its own updates. The ad-hoc player links to its releases.
         init() { sourceDirectory = nil }
     #else
         /// Sparkle, for builds that don't come from a checkout on this Mac.
@@ -89,7 +89,7 @@ final class Updater {
 
     /// Checks the appcast now and shows what Sparkle finds.
     func checkForUpdates() {
-        #if !APP_STORE
+        #if !APP_STORE && !COMPACT_PLAYER
             if let sparkle {
                 sparkle.checkForUpdates(nil)
                 return

@@ -22,7 +22,7 @@ jobs:
         run: |
           xcodebuild -version
           brew install xcodegen
-          xcodegen generate --quiet
+          xcodegen generate --spec project-compact-player.yml --quiet
 
       - name: Test compact playback
         run: swift test --no-parallel --filter 'MediaFeatureTests|NotchReducerTests|NotchMetricsTests|FeatureHostTests'
@@ -57,8 +57,46 @@ jobs:
           if-no-files-found: error
           overwrite: true
 
-  publish:
+  startup:
     needs: build
+    strategy:
+      matrix:
+        os: [macos-15, macos-26]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: compact-player-dmg
+          path: dist
+      - name: Install and launch the packaged app
+        run: |
+          cd dist
+          shasum -a 256 -c SHA256SUMS
+          mount="$RUNNER_TEMP/mounted-dmg"
+          mkdir "$mount"
+          hdiutil attach -readonly -nobrowse -mountpoint "$mount" ILoveNotch-Compact-Player.dmg
+          app="$RUNNER_TEMP/Installed/ILoveNotch.app"
+          mkdir -p "$(dirname "$app")"
+          ditto "$mount/ILoveNotch.app" "$app"
+          hdiutil detach "$mount"
+          codesign --verify --deep --strict "$app"
+          binary="$app/Contents/MacOS/ILoveNotch"
+          # Sonoma refuses to load a third-party framework with a different Team ID at launch.
+          dependencies="$(otool -arch all -L "$binary")"
+          if [[ "$dependencies" == *Sparkle.framework* || -e "$app/Contents/Frameworks/Sparkle.framework" ]]; then
+            echo 'The ad-hoc player must not embed or link Sparkle.'
+            exit 1
+          fi
+          open -g "$app"
+          sleep 5
+          pid="$(pgrep -x ILoveNotch)"
+          open -g -a "$app" 'ilovenotch://show?title=Startup%20test'
+          sleep 3
+          kill -0 "$pid"
+
+  publish:
+    needs: startup
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -78,6 +116,8 @@ jobs:
           sha256sum --check SHA256SUMS
           cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
           收起刘海时，左侧显示专辑封面，右侧显示播放音柱。鼠标移到音柱上可暂停，暂停后播放键常驻。自然切歌仍显示原有的曲名提示。
+
+          修复了 macOS 14.6.1 上因 Sparkle 与主应用签名团队不同导致的启动闪退。此定制版的更新入口打开本仓库的 Releases 页面。
 
           适用于 macOS 14.6 或更高版本，支持 Apple 芯片和 Intel Mac。下载 **ILoveNotch-Compact-Player.dmg**，退出正在运行的 ILoveNotch，打开 DMG 并将应用拖到 Applications 替换原版。
 

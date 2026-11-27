@@ -48,9 +48,16 @@ settingGroups:
     CODE_SIGN_IDENTITY: "-"
     DEVELOPMENT_TEAM: ""
 
+# Developer ID releases embed Sparkle. The ad-hoc compact player gets updates from its GitHub release page.
+targetTemplates:
+  SparkleUpdates:
+    dependencies:
+      - package: Sparkle
+
 targets:
   # The full app, for GitHub Releases and local builds.
   OpenNotch:
+    templates: [SparkleUpdates]
     type: application
     platform: macOS
     sources:
@@ -77,7 +84,6 @@ targets:
         product: NotchTransfer
       - package: OpenNotchKit
         product: NotchMixer
-      - package: Sparkle
       # Embedded, never linked: the framework is loaded by the perl helper process, not by OpenNotch.
       - target: MediaRemoteAdapter
         embed: true

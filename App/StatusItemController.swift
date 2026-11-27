@@ -81,7 +81,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
 enum Links {
     static let repository = URL(string: "https://github.com/niyamvora/ILoveNotch")!
-    static let releases = URL(string: "https://github.com/niyamvora/ILoveNotch/releases")!
+    #if COMPACT_PLAYER
+        static let releases = URL(string: "https://github.com/fenghanyue/ILoveNotch2/releases")!
+    #else
+        static let releases = repository.appending(path: "releases")
+    #endif
     static let sponsor = URL(string: "https://github.com/sponsors/niyamvora")!
     static let contributing = URL(string: "https://github.com/niyamvora/ILoveNotch/blob/main/CONTRIBUTING.md")!
     static let newIssue = URL(string: "https://github.com/niyamvora/ILoveNotch/issues/new/choose")!
@@ -91,5 +95,11 @@ enum Links {
         string: "https://github.com/niyamvora/ILoveNotch/blob/main/THIRD_PARTY_NOTICES.md")!
 
     /// A release's page, with its notes and download.
-    static func releaseNotes(_ version: String) -> URL { releases.appending(path: "tag/v\(version)") }
+    static func releaseNotes(_ version: String) -> URL {
+        #if COMPACT_PLAYER
+            releases  // compact releases have their own prerelease tags
+        #else
+            releases.appending(path: "tag/v\(version)")
+        #endif
+    }
 }
