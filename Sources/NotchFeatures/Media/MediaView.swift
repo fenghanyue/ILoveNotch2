@@ -860,6 +860,15 @@ struct MediaView: View {
         .fadingEdges(.vertical, length: 8)
     }
 
+    /// Distance from the bottom edge of the physical notch to the tab content:
+    /// top content margin (10) + header row (26) + header-to-content spacing (8).
+    private static let headerBleed: CGFloat = 44
+    private static let headerFadeStops: [Gradient.Stop] = [
+        .init(color: .clear, location: 0), .init(color: .black.opacity(0.15), location: 0.25),
+        .init(color: .black.opacity(0.5), location: 0.55), .init(color: .black.opacity(0.85), location: 0.82),
+        .init(color: .black, location: 1),
+    ]
+
     /// The area around the cover lit in its color, fading out across the notch. Not on a light
     /// sheet, where it reads as a stain rather than light, nor behind a skin's own player.
     @ViewBuilder private var glow: some View {
@@ -870,7 +879,14 @@ struct MediaView: View {
                 colors: [color.opacity(0.34), color.opacity(0.08), .clear], center: UnitPoint(x: 0.1, y: 0.3),
                 startRadius: 0, endRadius: 300
             )
-            .padding(-60)
+            .mask {
+                VStack(spacing: 0) {
+                    LinearGradient(stops: Self.headerFadeStops, startPoint: .top, endPoint: .bottom)
+                        .frame(height: Self.headerBleed)
+                    Color.black
+                }
+            }
+            .padding(EdgeInsets(top: -Self.headerBleed, leading: -60, bottom: -60, trailing: -60))
             .allowsHitTesting(false)
             .transition(.opacity)
             .animation(.easeInOut(duration: 0.3), value: media.accent)

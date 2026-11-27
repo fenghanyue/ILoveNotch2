@@ -26,6 +26,54 @@ struct FeatureSnapshotTests {
         try render(media.view, name: "media-playing")
     }
 
+    @Test func mediaGlowStopsSmoothlyAtNotchBottom() throws {
+        let media = MediaFeature(bundle: Bundle(for: SnapshotMarker.self))
+        media.receive(
+            NowPlaying(
+                title: "Midnight City", artist: "M83", album: "Hurry Up, We're Dreaming", isPlaying: true,
+                duration: 243, elapsed: 61, timestamp: Date(), artwork: Self.sampleArtwork(),
+                appBundleID: "com.apple.Music", shuffle: true, repeatMode: .all))
+        let notchHeight: CGFloat = 37
+        let headerBleed: CGFloat = 44
+        let side: CGFloat = 32
+        let bottom: CGFloat = 22
+        let panel = CGSize(
+            width: Self.smallest.width + side * 2, height: notchHeight + headerBleed + Self.smallest.height + bottom)
+        let theme = Themes.theme("black")
+        let view = media.view
+            .frame(width: Self.smallest.width, height: Self.smallest.height)
+            .padding(EdgeInsets(top: notchHeight + headerBleed, leading: side, bottom: bottom, trailing: side))
+            .background(theme.surface.color.color)
+            .clipped()
+            .foregroundStyle(.themeInk)
+            .environment(\.colorScheme, theme.appearance.colorScheme)
+            .environment(\.theme, theme)
+            .transaction { $0.animation = nil }
+        let host = NSHostingView(rootView: view)
+        let window = NSWindow(
+            contentRect: CGRect(origin: .zero, size: panel), styleMask: .borderless, backing: .buffered, defer: false)
+        window.contentView = host
+        host.layoutSubtreeIfNeeded()
+        let bitmap = try #require(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+        host.cacheDisplay(in: host.bounds, to: bitmap)
+        let scale = CGFloat(bitmap.pixelsWide) / panel.width
+        func brightness(at y: Int) throws -> CGFloat {
+            let color = try #require(
+                bitmap.colorAt(x: Int(50 * scale), y: Int(CGFloat(y) * scale))?.usingColorSpace(.sRGB))
+            return max(color.redComponent, color.greenComponent, color.blueComponent)
+        }
+        for y in 0..<Int(notchHeight) {
+            #expect(try brightness(at: y) < 0.01)
+        }
+        var previous = try brightness(at: Int(notchHeight) - 1)
+        for y in Int(notchHeight)..<Int(notchHeight + headerBleed) {
+            let current = try brightness(at: y)
+            #expect(abs(current - previous) < 0.03)
+            previous = current
+        }
+        #expect(try brightness(at: Int(notchHeight + headerBleed) - 2) > 0.05)
+    }
+
     @Test func mediaWithNothingPlaying() throws {
         try render(MediaFeature(bundle: Bundle(for: SnapshotMarker.self)).view, name: "media-idle")
     }
