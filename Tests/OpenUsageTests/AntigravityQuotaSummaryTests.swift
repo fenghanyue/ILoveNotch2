@@ -230,6 +230,105 @@ final class AntigravityQuotaSummaryTests: XCTestCase {
         XCTAssertFalse(routing.requests.contains { $0.url.path == AntigravityUsageClient.retrieveQuotaPath })
     }
 
+    @MainActor
+    func testCloudCodeMergesPartialDailyWithProductionAndForwardsProjectAndMetadata() async throws {
+        let dailyOnlyClaude = """
+        {"groups":[{"displayName":"Claude and GPT models","buckets":[
+          {"bucketId":"3p-5h","remainingFraction":1.0},
+          {"bucketId":"3p-weekly","remainingFraction":0.79,"resetTime":"2026-12-03T00:00:00Z"}
+        ]}]}
+        """
+        let prodAllBuckets = """
+        {"groups":[
+          {"displayName":"Gemini Models","buckets":[
+            {"bucketId":"gemini-5h","remainingFraction":0.73,"resetTime":"2026-11-27T01:00:00Z"},
+            {"bucketId":"gemini-weekly","remainingFraction":0.86,"resetTime":"2026-12-03T00:00:00Z"}
+          ]},
+          {"displayName":"Claude and GPT models","buckets":[
+            {"bucketId":"3p-5h","remainingFraction":0.5},
+            {"bucketId":"3p-weekly","remainingFraction":0.5}
+          ]}
+        ]}
+        """
+        let routing = RoutingHTTPClient { request in
+            let path = request.url.path
+            if path.contains("loadCodeAssist") {
+                return HTTPResponse(
+                    statusCode: 200,
+                    headers: [:],
+                    body: Data(#"{"paidTier":{"id":"g1-pro-tier"},"cloudaicompanionProject":"proj-123"}"#.utf8)
+                )
+            }
+            if path.contains("retrieveUserQuotaSummary") {
+                if request.url.host == "daily-cloudcode-pa.googleapis.com" {
+                    return HTTPResponse(statusCode: 200, headers: [:], body: Data(dailyOnlyClaude.utf8))
+                }
+                return HTTPResponse(statusCode: 200, headers: [:], body: Data(prodAllBuckets.utf8))
+            }
+            return HTTPResponse(statusCode: 404, headers: [:], body: Data())
+        }
+        let provider = makeCloudCodeProvider(routing: routing)
+
+        let snapshot = await provider.refresh()
+        XCTAssertEqual(snapshot.plan, "Pro")
+        XCTAssertEqual(snapshot.lines.map(\.label), ["Session", "Weekly", "Claude", "Claude Weekly"])
+        // Gemini buckets filled from production; Claude buckets keep daily's first-wins values.
+        XCTAssertEqual(snapshot.lines.map { used($0) }, [27, 14, 0, 21])
+
+        let loadReq = try XCTUnwrap(routing.requests.first { $0.url.path.contains("loadCodeAssist") })
+        XCTAssertEqual(loadReq.url.host, "cloudcode-pa.googleapis.com")
+        let loadBody = try XCTUnwrap(loadReq.body.flatMap { String(data: $0, encoding: .utf8) })
+        XCTAssertTrue(loadBody.contains(#""ideType":"ANTIGRAVITY""#))
+
+        let summaryReqs = routing.requests.filter { $0.url.path.contains("retrieveUserQuotaSummary") }
+        XCTAssertEqual(summaryReqs.map(\.url.host), ["daily-cloudcode-pa.googleapis.com", "cloudcode-pa.googleapis.com"])
+        for req in summaryReqs {
+            let body = try XCTUnwrap(req.body.flatMap { String(data: $0, encoding: .utf8) })
+            XCTAssertTrue(body.contains(#""project":"proj-123""#))
+        }
+    }
+
+    @MainActor
+    func testCompleteDailySummarySkipsProductionHost() async {
+        let groupsJSON = fullGroupsJSON
+        let routing = RoutingHTTPClient { request in
+            if request.url.path.contains("retrieveUserQuotaSummary") {
+                return HTTPResponse(statusCode: 200, headers: [:], body: Data("{\(groupsJSON)}".utf8))
+            }
+            if request.url.path.contains("loadCodeAssist") {
+                return HTTPResponse(statusCode: 200, headers: [:], body: Data(#"{"paidTier":{"id":"g1-ultra-tier"}}"#.utf8))
+            }
+            return HTTPResponse(statusCode: 404, headers: [:], body: Data())
+        }
+        let provider = makeCloudCodeProvider(routing: routing)
+
+        let snapshot = await provider.refresh()
+        XCTAssertEqual(snapshot.plan, "Ultra")
+        let summaryHosts = routing.requests
+            .filter { $0.url.path.contains("retrieveUserQuotaSummary") }
+            .map(\.url.host)
+        XCTAssertEqual(summaryHosts, ["daily-cloudcode-pa.googleapis.com"])
+    }
+
+    @MainActor
+    func testOneHost403StillUsesOtherHost200Summary() async {
+        let groupsJSON = fullGroupsJSON
+        let routing = RoutingHTTPClient { request in
+            if request.url.path.contains("retrieveUserQuotaSummary") {
+                if request.url.host == "daily-cloudcode-pa.googleapis.com" {
+                    return HTTPResponse(statusCode: 403, headers: [:], body: Data())
+                }
+                return HTTPResponse(statusCode: 200, headers: [:], body: Data("{\(groupsJSON)}".utf8))
+            }
+            return HTTPResponse(statusCode: 404, headers: [:], body: Data())
+        }
+        let provider = makeCloudCodeProvider(routing: routing)
+
+        let snapshot = await provider.refresh()
+        XCTAssertNil(snapshot.errorCategory)
+        XCTAssertEqual(snapshot.lines.map(\.label), ["Session", "Weekly", "Claude", "Claude Weekly"])
+    }
+
     // MARK: - Provider integration: language-server transport
 
     @MainActor

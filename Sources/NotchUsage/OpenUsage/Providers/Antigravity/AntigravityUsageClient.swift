@@ -273,13 +273,26 @@ enum AntigravityAppOAuthExtractor {
     }
 }
 
+/// Outcome of querying a Cloud Code endpoint across all configured hosts in priority order.
+enum CloudCodeAllHostsOutcome: Sendable {
+    case ok([Data])
+    case authFailed
+    case unavailable
+}
+
 /// All network I/O for Antigravity: the local language-server RPC (loopback HTTPS, self-signed), the
 /// Google Cloud Code endpoints, and the Google OAuth token refresh.
 struct AntigravityUsageClient: Sendable {
     static let lsService = "exa.language_server_pb.LanguageServerService"
+    // Daily first for quota reads so active Gemini counters win; production fills missing buckets.
     static let cloudCodeURLs = [
         "https://daily-cloudcode-pa.googleapis.com",
         "https://cloudcode-pa.googleapis.com"
+    ]
+    // Plan and project lookups prefer production.
+    static let loadCodeAssistURLs = [
+        "https://cloudcode-pa.googleapis.com",
+        "https://daily-cloudcode-pa.googleapis.com"
     ]
     static let fetchModelsPath = "/v1internal:fetchAvailableModels"
     static let loadCodeAssistPath = "/v1internal:loadCodeAssist"
@@ -287,6 +300,17 @@ struct AntigravityUsageClient: Sendable {
     static let quotaSummaryPath = "/v1internal:retrieveUserQuotaSummary"
     static let googleOAuthURL = "https://oauth2.googleapis.com/token"
     static let lsMetadata = ["ideName": "antigravity", "extensionName": "antigravity", "ideVersion": "unknown", "locale": "en"]
+    static let clientUserAgent: String = {
+        #if arch(arm64)
+        let arch = "arm64"
+        #else
+        let arch = "amd64"
+        #endif
+        return "antigravity/2.24.0 (aidev_client; os_type=darwin; arch=\(arch))"
+    }()
+    static let loadCodeAssistPayload = Data(
+        #"{"metadata":{"ideType":"ANTIGRAVITY","platform":"PLATFORM_UNSPECIFIED","pluginType":"GEMINI"}}"#.utf8
+    )
 
     /// Loopback session that trusts the LS's self-signed cert; remote calls use full validation.
     var lsHTTP: HTTPClient
@@ -322,30 +346,82 @@ struct AntigravityUsageClient: Sendable {
         return try? await lsHTTP.send(request)
     }
 
+    /// `loadCodeAssist` with Antigravity's client metadata so Google returns `currentTier`/`paidTier`
+    /// and `cloudaicompanionProject` instead of only `allowedTiers`.
+    func loadCodeAssist(token: String) async -> CloudCodeOutcome {
+        await cloudCode(
+            path: Self.loadCodeAssistPath,
+            urls: Self.loadCodeAssistURLs,
+            token: token,
+            userAgent: Self.clientUserAgent,
+            payload: Self.loadCodeAssistPayload
+        )
+    }
+
     /// POST a Cloud Code endpoint, trying each base URL in turn. A 401/403 short-circuits to `.authFailed`
     /// (same token would fail on the other base); other non-2xx / transport errors fall through to the
     /// next base and finally `.unavailable`.
     func cloudCode(path: String, token: String, userAgent: String, body: [String: String]) async -> CloudCodeOutcome {
         let payload = (try? JSONSerialization.data(withJSONObject: body)) ?? Data("{}".utf8)
-        for base in Self.cloudCodeURLs {
+        return await cloudCode(path: path, urls: Self.cloudCodeURLs, token: token, userAgent: userAgent, payload: payload)
+    }
+
+    /// POST a Cloud Code endpoint on each base URL in order and return every 2xx body in host order.
+    /// `daily-cloudcode-pa` can omit the Gemini group while `cloudcode-pa` includes it; stopping early
+    /// only when the first host already returned a complete summary merges missing buckets without
+    /// extra round-trips when the first host is complete.
+    func cloudCodeAllHosts(
+        path: String,
+        token: String,
+        userAgent: String,
+        body: [String: String],
+        isComplete: (Data) -> Bool = { _ in false }
+    ) async -> CloudCodeAllHostsOutcome {
+        let payload = (try? JSONSerialization.data(withJSONObject: body)) ?? Data("{}".utf8)
+        var responses: [HTTPResponse] = []
+        for (index, base) in Self.cloudCodeURLs.enumerated() {
             guard let url = URL(string: base + path) else { continue }
-            let request = HTTPRequest(
-                method: "POST",
-                url: url,
-                headers: [
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                    "Authorization": "Bearer \(token)",
-                    "User-Agent": userAgent
-                ],
-                body: payload,
-                timeout: 15
-            )
+            let request = Self.cloudCodeRequest(url: url, token: token, userAgent: userAgent, payload: payload)
+            guard let response = try? await http.send(request) else { continue }
+            responses.append(response)
+            if index == 0, (200..<300).contains(response.statusCode), isComplete(response.body) { break }
+        }
+        let bodies = responses.filter { (200..<300).contains($0.statusCode) }.map(\.body)
+        if !bodies.isEmpty { return .ok(bodies) }
+        if responses.contains(where: { $0.statusCode == 401 || $0.statusCode == 403 }) { return .authFailed }
+        return .unavailable
+    }
+
+    private func cloudCode(
+        path: String,
+        urls: [String],
+        token: String,
+        userAgent: String,
+        payload: Data
+    ) async -> CloudCodeOutcome {
+        for base in urls {
+            guard let url = URL(string: base + path) else { continue }
+            let request = Self.cloudCodeRequest(url: url, token: token, userAgent: userAgent, payload: payload)
             guard let response = try? await http.send(request) else { continue }
             if response.statusCode == 401 || response.statusCode == 403 { return .authFailed }
             if (200..<300).contains(response.statusCode) { return .ok(response.body) }
         }
         return .unavailable
+    }
+
+    private static func cloudCodeRequest(url: URL, token: String, userAgent: String, payload: Data) -> HTTPRequest {
+        HTTPRequest(
+            method: "POST",
+            url: url,
+            headers: [
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "Authorization": "Bearer \(token)",
+                "User-Agent": userAgent
+            ],
+            body: payload,
+            timeout: 15
+        )
     }
 
     /// Exchange a Google refresh token for a fresh access token using installed-app credentials read
