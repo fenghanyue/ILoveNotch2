@@ -17,6 +17,7 @@ as they land, written for the people who use the app
 
 ### Fixed
 
+- Antigravity quota refresh tries the remaining sign-in clients when a token belongs to a different client, preventing a valid login from appearing expired.
 - The compact player can start on macOS Sonoma with ad-hoc signing. Its update button opens the fork’s GitHub releases.
 
 ### Changed

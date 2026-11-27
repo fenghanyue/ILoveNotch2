@@ -425,9 +425,9 @@ struct AntigravityUsageClient: Sendable {
     }
 
     /// Exchange a Google refresh token for a fresh access token using installed-app credentials read
-    /// from the local `Antigravity.app`. Distinguishes a dead refresh token (`invalid_grant`) from a
-    /// client-pair mismatch (`invalid_client` / `unauthorized_client`) and transient failures (5xx /
-    /// network / 429) so the caller reports "sign-in expired" vs "temporarily unavailable" accurately.
+    /// from the local `Antigravity.app`. `invalid_grant` can mean the token belongs to another client,
+    /// so try the remaining client pairs before reporting expired auth. Transient failures (5xx /
+    /// network / 429) remain "temporarily unavailable" even after an earlier candidate was rejected.
     func refreshGoogleToken(_ refreshToken: String) async -> TokenRefreshOutcome {
         guard let url = URL(string: Self.googleOAuthURL) else { return .unavailable }
         let credentialsList = await loadOffMainActor(oauthCredentials)
@@ -464,10 +464,11 @@ struct AntigravityUsageClient: Sendable {
                 return .unavailable // request timeout / rate limited — transient, not a revoked token
             case 400..<500:
                 if let oauthError = try? JSONDecoder().decode(GoogleOAuthErrorResponse.self, from: response.body),
-                   oauthError.error == "invalid_client" || oauthError.error == "unauthorized_client" {
-                    continue // mismatched client pair from binary; try next candidate
+                   oauthError.error == "invalid_client" || oauthError.error == "unauthorized_client"
+                    || oauthError.error == "invalid_grant" {
+                    continue // the client pair or token/client binding may differ; try next candidate
                 }
-                return .authFailed // invalid_grant — refresh token revoked or expired
+                return .authFailed
             default:
                 return .unavailable // 5xx and anything else — transient
             }

@@ -88,6 +88,95 @@ final class AntigravityProviderTests: XCTestCase {
         XCTAssertEqual(routing.requests.count, 2)
     }
 
+    func testRefreshFallsBackPastInvalidGrantToMatchingClient() async {
+        let routing = RoutingHTTPClient { request in
+            XCTAssertEqual(request.url.host, "oauth2.googleapis.com")
+            let body = String(decoding: request.body ?? Data(), as: UTF8.self)
+            if body.hasPrefix("client_id=cid-unrelated&") {
+                return HTTPResponse(statusCode: 400, headers: [:], body: Data(#"{"error":"invalid_grant"}"#.utf8))
+            }
+            if body.hasPrefix("client_id=cid-matching&") {
+                return HTTPResponse(statusCode: 200, headers: [:], body: Data(#"{"access_token":"ya29.matched","expires_in":7200}"#.utf8))
+            }
+            XCTFail("must stop trying clients after a successful refresh")
+            return HTTPResponse(statusCode: 500, headers: [:], body: Data())
+        }
+        let client = AntigravityUsageClient(
+            lsHTTP: routing,
+            http: routing,
+            oauthCredentials: {
+                [
+                    AntigravityOAuthCredentials(clientID: "cid-unrelated", clientSecret: "sec-unrelated"),
+                    AntigravityOAuthCredentials(clientID: "cid-matching", clientSecret: "sec-matching"),
+                    AntigravityOAuthCredentials(clientID: "cid-unused", clientSecret: "sec-unused")
+                ]
+            }
+        )
+
+        let outcome = await client.refreshGoogleToken("1//refresh")
+        guard case .refreshed(let token, let expiresIn) = outcome else {
+            return XCTFail("expected refreshed outcome, got \(outcome)")
+        }
+        XCTAssertEqual(token, "ya29.matched")
+        XCTAssertEqual(expiresIn, 7200)
+        let submittedClients = routing.requests.map {
+            String(decoding: $0.body ?? Data(), as: UTF8.self).components(separatedBy: "&").first ?? ""
+        }
+        XCTAssertEqual(submittedClients, ["client_id=cid-unrelated", "client_id=cid-matching"])
+    }
+
+    func testRefreshReturnsAuthFailedAfterAllClientsRejectInvalidGrant() async {
+        let routing = RoutingHTTPClient { _ in
+            HTTPResponse(statusCode: 400, headers: [:], body: Data(#"{"error":"invalid_grant"}"#.utf8))
+        }
+        let client = AntigravityUsageClient(
+            lsHTTP: routing,
+            http: routing,
+            oauthCredentials: {
+                [
+                    AntigravityOAuthCredentials(clientID: "cid-1", clientSecret: "sec-1"),
+                    AntigravityOAuthCredentials(clientID: "cid-2", clientSecret: "sec-2")
+                ]
+            }
+        )
+
+        let outcome = await client.refreshGoogleToken("1//revoked")
+        guard case .authFailed = outcome else {
+            return XCTFail("expected authFailed after exhausting clients, got \(outcome)")
+        }
+        XCTAssertEqual(routing.requests.count, 2)
+    }
+
+    func testRefreshReportsUnavailableAfterInvalidGrantThenTransientFailure() async {
+        for statusCode in [408, 429, 503] {
+            let attempts = Counter()
+            let routing = RoutingHTTPClient { _ in
+                if attempts.next() == 0 {
+                    return HTTPResponse(statusCode: 400, headers: [:], body: Data(#"{"error":"invalid_grant"}"#.utf8))
+                }
+                return HTTPResponse(statusCode: statusCode, headers: [:], body: Data())
+            }
+            let client = AntigravityUsageClient(
+                lsHTTP: routing,
+                http: routing,
+                oauthCredentials: {
+                    [
+                        AntigravityOAuthCredentials(clientID: "cid-1", clientSecret: "sec-1"),
+                        AntigravityOAuthCredentials(clientID: "cid-2", clientSecret: "sec-2"),
+                        AntigravityOAuthCredentials(clientID: "cid-3", clientSecret: "sec-3")
+                    ]
+                }
+            )
+
+            let outcome = await client.refreshGoogleToken("1//refresh")
+            guard case .unavailable = outcome else {
+                XCTFail("expected unavailable for HTTP \(statusCode), got \(outcome)")
+                continue
+            }
+            XCTAssertEqual(routing.requests.count, 2, "must stop on transient HTTP \(statusCode)")
+        }
+    }
+
     func testRefreshReturnsAuthFailedWhenNoAppCredentialsAvailable() async {
         let routing = RoutingHTTPClient { _ in
             XCTFail("must not hit Google OAuth without client credentials")
