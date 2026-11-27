@@ -691,7 +691,7 @@ struct NotchView: View {
                 }
                 .frame(width: NotchMetrics.artworkSide, height: NotchMetrics.artworkSide)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
-                .frame(width: NotchMetrics.mediaWing)
+                .frame(width: metrics.mediaWing)
                 Spacer(minLength: 0)
             }
             .frame(maxHeight: .infinity)
@@ -703,11 +703,12 @@ struct NotchView: View {
             .onTapGesture { engine.send(.clicked) }
             .accessibilityLabel(Text(activity.title))
 
-            CompactPlaybackButton(playing: playing) {
+            CompactPlaybackButton(playing: playing, width: metrics.mediaWing) {
                 guard engine.state.restingActivity?.mediaIsPlaying != nil else { return }
                 content.togglePlayback()
             }
         }
+        .padding(.horizontal, metrics.mediaFlare)
         .foregroundStyle(.white)
         .frame(height: metrics.housing.height)
         .environment(\.layoutDirection, .leftToRight)  // these sit on physical sides of the camera
@@ -806,35 +807,44 @@ struct NotchView: View {
 /// Only the indicator animates. Pausing, hovering, or leaving the compact presentation removes it.
 private struct CompactPlaybackButton: View {
     let playing: Bool
+    let width: CGFloat
     let toggle: () -> Void
     @State private var hovered = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button(action: toggle) {
-            Group {
-                if playing && !hovered {
-                    if reduceMotion {
-                        bars(raised: false)
-                    } else {
-                        PhaseAnimator([false, true]) { raised in
-                            bars(raised: raised)
-                        } animation: { _ in
-                            .easeInOut(duration: 0.42)
-                        }
-                    }
-                } else {
-                    Image(systemName: playing ? "pause.fill" : "play.fill")
-                        .font(.system(size: 13, weight: .semibold))
-                }
-            }
-            .frame(width: NotchMetrics.mediaWing)
-            .frame(maxHeight: .infinity)
-            .contentShape(Rectangle())
+            // Keep a single tracking surface under every glyph, even between the moving bars.
+            Rectangle()
+                .fill(.black.opacity(0.01))
+                .frame(width: width)
+                .overlay { indicator.allowsHitTesting(false) }
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .onHover { hovered = $0 }
+        .onContinuousHover { phase in
+            switch phase {
+            case .active: hovered = true
+            case .ended: hovered = false
+            @unknown default: hovered = false
+            }
+        }
         .accessibilityLabel(playing ? "Pause" : "Play")
+    }
+
+    @ViewBuilder private var indicator: some View {
+        if !playing || hovered {
+            Image(systemName: playing ? "pause.fill" : "play.fill")
+                .font(.system(size: 13, weight: .semibold))
+        } else if reduceMotion {
+            bars(raised: false)
+        } else {
+            PhaseAnimator([false, true]) { raised in
+                bars(raised: raised)
+            } animation: { _ in
+                .easeInOut(duration: 0.42)
+            }
+        }
     }
 
     private func bars(raised: Bool) -> some View {

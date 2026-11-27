@@ -64,6 +64,41 @@ struct NotchSnapshotTests {
         try draw(name, metrics: metrics, events: events, preferences: Self.preferences())
     }
 
+    @Test(arguments: [true, false])
+    func compactPlaybackWrapsBothIcons(playing: Bool) throws {
+        var track = song
+        track.mediaIsPlaying = playing
+        let size = CGSize(width: 300, height: notched.housing.height)
+        let image = try draw(
+            playing ? "compact-playing" : "compact-paused", metrics: notched, events: [.show, .setOngoing(track)],
+            preferences: Self.preferences(), size: size)
+        let scale = CGFloat(image.pixelsWide) / size.width
+        let center = size.width / 2
+        func brightness(at x: CGFloat, y: CGFloat) throws -> CGFloat {
+            let color = try #require(image.colorAt(x: Int(x * scale), y: Int(y * scale))?.usingColorSpace(.sRGB))
+            return max(color.redComponent, color.greenComponent, color.blueComponent)
+        }
+        let housing = try brightness(at: center, y: size.height / 2)
+        #expect(housing < 0.1)
+        for side: CGFloat in [-1, 1] {
+            let edge = center + side * notched.housing.width / 2
+            // Both controls sit on black, with the desktop visible just beyond the outline.
+            let iconCenter = edge + side * notched.mediaWing / 2
+            let backing = try brightness(at: iconCenter, y: 3)
+            let desktop = try brightness(at: center + side * (notched.playerWidth / 2 + 1), y: 3)
+            #expect(backing < 0.1)
+            #expect(desktop > 0.65)
+            // Both the fallback cover and the transport control have white ink within 4–22 pt of the edge.
+            var brightest: CGFloat = 0
+            for x in 4..<22 {
+                for y in 8..<24 {
+                    brightest = max(brightest, try brightness(at: edge + side * CGFloat(x), y: CGFloat(y)))
+                }
+            }
+            #expect(brightest > 0.9)
+        }
+    }
+
     @Test func draggingTheCornerGrowsTheNotchFromItsCenter() {
         let start = CGSize(width: 460, height: 290)
         #expect(NotchView.resized(start, by: CGSize(width: 10, height: 5)) == CGSize(width: 480, height: 295))
@@ -141,10 +176,10 @@ struct NotchSnapshotTests {
         NotchPreferences(defaults: UserDefaults(suiteName: "Snapshots.\(UUID().uuidString)")!)
     }
 
-    private func draw(
+    @discardableResult private func draw(
         _ name: String, metrics: NotchMetrics, events: [NotchEvent], preferences: NotchPreferences,
-        editing: Bool = false, drawer: Bool = false
-    ) throws {
+        editing: Bool = false, drawer: Bool = false, size: CGSize? = nil
+    ) throws -> NSBitmapImageRep {
         let engine = NotchEngine()
         events.forEach(engine.send)
         let content = NotchContent(
@@ -153,7 +188,7 @@ struct NotchSnapshotTests {
             },
             dropFiles: { _ in false },
             openSettings: {})
-        let panel = metrics.panelFrame.size
+        let panel = size ?? metrics.panelFrame.size
         // Editing happens in the drawer. The room is about what the header leaves the tabs.
         let view = NotchView(
             engine: engine, metrics: metrics, preferences: preferences, content: content,
@@ -165,6 +200,7 @@ struct NotchSnapshotTests {
         .transaction { if drawer || editing { $0.animation = nil } }
         let image = try #require(Self.render(view, size: panel, name: name, settle: drawer || editing))
         #expect(image.pixelsWide > 0 && image.pixelsHigh > 0)
+        return image
     }
 
     @Test func aDraggedTabShowsWhereItWouldLand() {
