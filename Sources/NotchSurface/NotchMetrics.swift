@@ -22,7 +22,6 @@ struct NotchMetrics: Equatable {
     static let ongoingTab: CGFloat = 120  // the most an ongoing activity reaches beside the notch, over the menu bar
     static let wingInset: CGFloat = 10  // between an ongoing activity's symbol and the notch
     static let wingOutset: CGFloat = 12  // between its text and the tab's outer end
-    static let mediaWing: CGFloat = 38  // one compact target on either side of the camera
     static let meterDepth: CGFloat = 26  // room under the notch for a live activity's row
     static let rowPadding: CGFloat = 16  // at either end of that row
     static let labelSpacing: CGFloat = 6  // between a live activity's symbol and its text
@@ -77,6 +76,9 @@ struct NotchMetrics: Equatable {
         return CGSize(width: notch.width, height: notch.height - 1)
     }
 
+    /// Center an 18 pt icon 4 pt outside the camera. The floating pill keeps its inset controls.
+    var mediaWing: CGFloat { notch == nil ? 38 : Self.artworkSide + 8 }
+
     /// The open notch at the user's chosen size: never narrower than the notch plus room for the
     /// tabs, never larger than the display allows.
     func expandedSize(_ chosen: CGSize) -> CGSize {
@@ -118,7 +120,7 @@ struct NotchMetrics: Equatable {
     func size(for state: NotchState, expanded: CGSize = NotchPreferences.defaultExpandedSize) -> CGSize {
         guard let resting = state.restingActivity else { return size(for: state.presentation, expanded: expanded) }
         if resting.mediaIsPlaying != nil {
-            let width = notch == nil ? housing.width : housing.width + Self.mediaWing * 2
+            let width = notch == nil ? housing.width : housing.width + mediaWing * 2
             return CGSize(width: width, height: housing.height)
         }
         let growth = state.presentation == .hoverArmed ? Self.hoverGrowth : .zero
@@ -180,7 +182,7 @@ struct NotchMetrics: Equatable {
     func openHoverFrame(for state: NotchState, expanded: CGSize, in panel: CGRect) -> CGRect {
         let size = size(for: state, expanded: expanded)
         var frame = hoverFrame(for: size, in: panel).offsetBy(dx: offset(for: state), dy: 0)
-        if state.restingActivity?.mediaIsPlaying != nil { frame.size.width -= Self.mediaWing }
+        if state.restingActivity?.mediaIsPlaying != nil { frame.size.width -= mediaWing }
         return frame
     }
 

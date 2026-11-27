@@ -105,7 +105,7 @@ struct NotchMetricsTests {
         var track = song
         var state = NotchState()
         _ = state.handle(.show)
-        let width = metrics.housing.width + (metrics.notch == nil ? 0 : 2 * NotchMetrics.mediaWing)
+        let width = metrics.housing.width + (metrics.notch == nil ? 0 : 2 * metrics.mediaWing)
         for playing in [true, false] {
             track.mediaIsPlaying = playing
             _ = state.handle(.setOngoing(track))
@@ -114,7 +114,11 @@ struct NotchMetricsTests {
                 #expect(metrics.size(for: state) == CGSize(width: width, height: metrics.housing.height))
                 #expect(metrics.offset(for: state) == 0)
                 let frame = metrics.openHoverFrame(for: state, expanded: .zero, in: metrics.panelFrame)
-                let side = (width - NotchMetrics.mediaWing) / 2
+                let side = (width - metrics.mediaWing) / 2
+                if let notch = metrics.notch {
+                    let iconInset = side - NotchMetrics.artworkSide / 2 - notch.width / 2
+                    #expect(iconInset == 4, "the icons sit immediately outside the camera")
+                }
                 let top = metrics.screen.maxY
                 #expect(frame.contains(CGPoint(x: metrics.centerX - side, y: top)), "the cover opens Media")
                 #expect(!frame.contains(CGPoint(x: metrics.centerX + side, y: top)), "the control never opens Media")

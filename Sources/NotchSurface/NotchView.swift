@@ -72,8 +72,13 @@ struct NotchView: View {
         let presentation = engine.state.presentation
         let resting = engine.state.restingActivity
         let size = metrics.size(for: engine.state, expanded: preferences.expandedSize)
+        let outsideCamera = metrics.notch != nil && resting?.mediaIsPlaying != nil
+        let surfaceSize = outsideCamera ? metrics.compactSize : size
         let open = presentation.openTab != nil
-        let outline = Self.shape(for: presentation, resting: resting != nil, on: metrics, radii: theme.radii)
+        let outline = Self.shape(
+            for: outsideCamera ? .compact : presentation, resting: resting != nil && !outsideCamera,
+            on: metrics, radii: theme.radii)
+        let hitShape = outsideCamera ? NotchShape(topRadius: 0, bottomRadius: 0) : outline
         ZStack(alignment: .top) {
             fill(outline, glass: showsGlass(presentation), open: open)
             if let tab = presentation.openTab {
@@ -82,15 +87,12 @@ struct NotchView: View {
             } else if case .transient(let activity) = presentation {
                 live(activity)
                     .transition(.opacity)
-            } else if let resting, let playing = resting.mediaIsPlaying {
-                compactMedia(resting, playing: playing)
-                    .transition(.identity)
-            } else if let resting {
+            } else if let resting, resting.mediaIsPlaying == nil {
                 live(resting, ongoing: true)
                     .transition(.opacity)
             }
         }
-        .frame(width: size.width, height: size.height, alignment: .top)
+        .frame(width: surfaceSize.width, height: surfaceSize.height, alignment: .top)
         .clipShape(outline)  // content sliding between tabs never shows outside the notch
         .overlay {
             if contrast == .increased {
@@ -98,6 +100,14 @@ struct NotchView: View {
             }
             if dropTargeted {
                 outline.stroke(.themeAccent, lineWidth: 2).shadow(color: theme.color(.accent), radius: 6)
+            }
+        }
+        .frame(width: size.width, height: size.height, alignment: .top)
+        .overlay(alignment: .top) {
+            if let resting, let playing = resting.mediaIsPlaying {
+                compactMedia(resting, playing: playing)
+                    .clipShape(hitShape)
+                    .transition(.identity)
             }
         }
         .keyframeAnimator(initialValue: Squash(), trigger: presentation.openTab != nil) { notch, squash in
@@ -109,7 +119,7 @@ struct NotchView: View {
         .environment(\.colorScheme, open ? theme.appearance.colorScheme : .dark)
         .environment(\.theme, open ? theme : theme.onBlack)
         .gradientSymbols()
-        .contentShape(outline)
+        .contentShape(hitShape)
         // Compact playback has separate hit areas for opening the notch and controlling the player.
         .onHover { inside in
             if resting?.mediaIsPlaying == nil { engine.send(inside ? .pointerEntered : .pointerExited) }
@@ -691,10 +701,15 @@ struct NotchView: View {
                 }
                 .frame(width: NotchMetrics.artworkSide, height: NotchMetrics.artworkSide)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
-                .frame(width: NotchMetrics.mediaWing)
+                .shadow(color: .black.opacity(0.7), radius: 1)
+                .frame(width: metrics.mediaWing)
                 Spacer(minLength: 0)
             }
             .frame(maxHeight: .infinity)
+            // Give the window server pixels to hit in the gaps around the cover.
+            .background(alignment: .leading) {
+                if metrics.notch != nil { Color.black.opacity(0.01).frame(width: metrics.mediaWing) }
+            }
             .contentShape(Rectangle())
             .onHover { inside in
                 guard engine.state.restingActivity?.mediaIsPlaying != nil else { return }
@@ -703,7 +718,7 @@ struct NotchView: View {
             .onTapGesture { engine.send(.clicked) }
             .accessibilityLabel(Text(activity.title))
 
-            CompactPlaybackButton(playing: playing) {
+            CompactPlaybackButton(playing: playing, width: metrics.mediaWing) {
                 guard engine.state.restingActivity?.mediaIsPlaying != nil else { return }
                 content.togglePlayback()
             }
@@ -806,35 +821,44 @@ struct NotchView: View {
 /// Only the indicator animates. Pausing, hovering, or leaving the compact presentation removes it.
 private struct CompactPlaybackButton: View {
     let playing: Bool
+    let width: CGFloat
     let toggle: () -> Void
     @State private var hovered = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button(action: toggle) {
-            Group {
-                if playing && !hovered {
-                    if reduceMotion {
-                        bars(raised: false)
-                    } else {
-                        PhaseAnimator([false, true]) { raised in
-                            bars(raised: raised)
-                        } animation: { _ in
-                            .easeInOut(duration: 0.42)
-                        }
-                    }
-                } else {
-                    Image(systemName: playing ? "pause.fill" : "play.fill")
-                        .font(.system(size: 13, weight: .semibold))
-                }
-            }
-            .frame(width: NotchMetrics.mediaWing)
-            .frame(maxHeight: .infinity)
-            .contentShape(Rectangle())
+            // Keep a single tracking surface under every glyph, even between the moving bars.
+            Rectangle()
+                .fill(.black.opacity(0.01))
+                .frame(width: width)
+                .overlay { indicator.shadow(color: .black.opacity(0.8), radius: 1).allowsHitTesting(false) }
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .onHover { hovered = $0 }
+        .onContinuousHover { phase in
+            switch phase {
+            case .active: hovered = true
+            case .ended: hovered = false
+            @unknown default: hovered = false
+            }
+        }
         .accessibilityLabel(playing ? "Pause" : "Play")
+    }
+
+    @ViewBuilder private var indicator: some View {
+        if !playing || hovered {
+            Image(systemName: playing ? "pause.fill" : "play.fill")
+                .font(.system(size: 13, weight: .semibold))
+        } else if reduceMotion {
+            bars(raised: false)
+        } else {
+            PhaseAnimator([false, true]) { raised in
+                bars(raised: raised)
+            } animation: { _ in
+                .easeInOut(duration: 0.42)
+            }
+        }
     }
 
     private func bars(raised: Bool) -> some View {
