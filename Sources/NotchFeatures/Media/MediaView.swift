@@ -82,13 +82,14 @@ struct MediaView: View {
                     hifiPlayer(now, meters: false, waveform: false, compact: true)
                 }
             default:
-                // Shorter notches shrink the cover and tuck the waveform behind the controls; it's
-                // never dropped.
-                ViewThatFits(in: .vertical) {
-                    player(now, artwork: 108, waveform: true)
-                    player(now, artwork: 84, waveform: false)
-                    player(now, artwork: 64, waveform: false)
-                    player(now, artwork: 52, waveform: false, inline: true)
+                // Fill the content area proportionally at every size: compact heights keep the
+                // controls beside the track while growing the cover to fit, and taller ones stack
+                // the controls and give the live waveform its own row at the bottom.
+                GeometryReader { proxy in
+                    let layout = MediaPlayerLayout(
+                        fitting: proxy.size, hasPermissionHint: media.automationDenied && media.scriptedPlayer != nil)
+                    player(now, layout: layout)
+                        .frame(width: proxy.size.width, height: proxy.size.height, alignment: .top)
                 }
             }
         }
@@ -102,39 +103,44 @@ struct MediaView: View {
     }
 
     /// The cover leads, beside the track and its app, with the panels' buttons stacked on the right.
-    /// `waveform` gives the live waveform a row of its own; without it the waveform sits faintly
-    /// behind the controls. `inline` puts the controls beside the track, and shuffle and repeat
-    /// with the small buttons under it.
-    private func player(_ now: NowPlaying, artwork size: CGFloat, waveform: Bool, inline: Bool = false)
-        -> some View
-    {
+    /// When `layout.waveformHeight > 0` the live waveform gets a row of its own at the bottom;
+    /// otherwise it sits faintly behind the controls (or behind the seek line while `layout.inline`).
+    private func player(_ now: NowPlaying, layout: MediaPlayerLayout) -> some View {
         let animating = now.isPlaying && !reduceMotion
-        return VStack(spacing: 8) {
-            HStack(alignment: .top, spacing: 16) {
-                artwork(size)
-                details(now, inline: inline, large: size >= 84)
-                    .frame(height: size)
-                if inline {
-                    controls(now, modes: false).frame(height: size)
+        return VStack(spacing: layout.spacing) {
+            HStack(alignment: .top, spacing: layout.horizontalSpacing) {
+                artwork(layout.artwork)
+                details(now, layout: layout)
+                    .frame(height: layout.artwork)
+                if layout.inline {
+                    controls(now, modes: false, layout: layout).frame(height: layout.artwork)
                 } else {
-                    VStack(alignment: .trailing, spacing: 6) { panelChips }
+                    VStack(alignment: .trailing, spacing: layout.chipSpacing) {
+                        panelChips(height: layout.chipHeight)
+                    }
                 }
             }
             // One timeline drives the wave, the waveform, and the times, and stops when paused.
             TimelineView(.animation(minimumInterval: 1 / 30, paused: !animating)) { context in
                 let time = context.date.timeIntervalSinceReferenceDate
-                VStack(spacing: 8) {
-                    seekBar(now, at: context.date, phase: time * 2.4)
+                VStack(spacing: layout.spacing) {
+                    seekBar(now, at: context.date, phase: time * 2.4, height: layout.seekBarHeight)
                         .background {
-                            if inline { waveformBars(animating: animating, time: time).opacity(0.3) }
+                            if layout.inline && layout.waveformHeight == 0 {
+                                waveformBars(animating: animating, time: time).opacity(0.3)
+                            }
                         }
-                    if !inline {
-                        controls(now, modes: media.hasModes)
+                    if !layout.inline {
+                        controls(now, modes: media.hasModes, layout: layout)
                             .background {
-                                if !waveform { waveformBars(animating: animating, time: time).opacity(0.3) }
+                                if layout.waveformHeight == 0 {
+                                    waveformBars(animating: animating, time: time).opacity(0.3)
+                                }
                             }
                     }
-                    if waveform { liveWaveform(animating: animating, time: time) }
+                    if layout.waveformHeight > 0 {
+                        waveformBars(animating: animating, time: time).frame(height: layout.waveformHeight)
+                    }
                 }
             }
             if media.automationDenied, let player = media.scriptedPlayer {
@@ -201,26 +207,27 @@ struct MediaView: View {
     }
 
     /// The track in the theme's display face, the artist and album under it, then the app it plays
-    /// in; `large` beside a big cover.
-    private func details(_ now: NowPlaying, inline: Bool, large: Bool) -> some View {
+    /// in; `layout.largeDetails` joins artist and album beside a big cover.
+    private func details(_ now: NowPlaying, layout: MediaPlayerLayout) -> some View {
         let subtitle =
-            large ? [now.artist, now.album].compactMap { $0 }.joined(separator: " · ") : now.artist ?? now.album
+            layout.largeDetails
+            ? [now.artist, now.album].compactMap { $0 }.joined(separator: " · ") : now.artist ?? now.album
         return VStack(alignment: .leading, spacing: 3) {
             Text(now.title)
-                .themeFont(.display, size: large ? 22 : 16, weight: .semibold)
+                .themeFont(.display, size: layout.titleSize, weight: .semibold)
                 .lineLimit(1)
                 .id(now.title)
                 .transition(.push(from: .bottom))
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .themeFont(.body, size: large ? 14 : 13)
+                    .themeFont(.body, size: layout.subtitleSize)
                     .foregroundStyle(.themeInk.opacity(0.6))
                     .lineLimit(1)
                     .id(subtitle)
                     .transition(.push(from: .bottom))
             }
-            accessories(now, inline: inline)
-                .padding(.top, large ? 6 : 2)
+            accessories(now, layout: layout)
+                .padding(.top, layout.accessoryTopPadding)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .clipped()
@@ -234,14 +241,14 @@ struct MediaView: View {
 
     /// Under the track: the app it plays in and the panels' buttons, or, beside inline controls,
     /// shuffle and repeat with the panels' buttons.
-    @ViewBuilder private func accessories(_ now: NowPlaying, inline: Bool) -> some View {
-        if inline {
+    @ViewBuilder private func accessories(_ now: NowPlaying, layout: MediaPlayerLayout) -> some View {
+        if layout.inline {
             HStack(spacing: 6) {
                 if media.hasModes {
-                    shuffleButton(size: 11.5)
-                    repeatButton(size: 11.5)
+                    shuffleButton(size: layout.accessorySize)
+                    repeatButton(size: layout.accessorySize)
                 }
-                panelButtons
+                panelButtons(size: layout.accessorySize)
                 Spacer(minLength: 0)
             }
         } else {
@@ -251,26 +258,28 @@ struct MediaView: View {
 
     /// The panels' buttons as words, stacked beside the track: what plays next (or what played),
     /// lyrics, and where sound plays.
-    @ViewBuilder private var panelChips: some View {
+    @ViewBuilder private func panelChips(height: CGFloat) -> some View {
         if let player = media.scriptedPlayer {
             let spotify = player == .spotify
-            panelChip(spotify ? "History" : "Up next", help: spotify ? "Recently played" : "Up next") { show(.list) }
+            panelChip(spotify ? "History" : "Up next", help: spotify ? "Recently played" : "Up next", height: height) {
+                show(.list)
+            }
         }
         if media.lyrics != nil {
-            panelChip("Lyrics", help: "Lyrics") { show(.lyrics) }
+            panelChip("Lyrics", help: "Lyrics", height: height) { show(.lyrics) }
         }
         if media.outputControl != nil {
-            panelChip("Output", help: "Output and volume") { show(.output) }
+            panelChip("Output", help: "Output and volume", height: height) { show(.output) }
         }
     }
 
-    private func panelChip(_ title: String, help: String, action: @escaping () -> Void) -> some View {
+    private func panelChip(_ title: String, help: String, height: CGFloat, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
                 .themeFont(.body, size: 11, weight: .semibold)
                 .foregroundStyle(.themeInk.opacity(0.75))
                 .padding(.horizontal, 10)
-                .frame(height: 22)
+                .frame(height: height)
                 .themePlatter(0.1, in: Capsule())
                 .contentShape(Capsule())
         }
@@ -278,21 +287,21 @@ struct MediaView: View {
         .help(help)
     }
 
-    @ViewBuilder private var panelButtons: some View {
+    @ViewBuilder private func panelButtons(size: CGFloat) -> some View {
         if media.scriptedPlayer != nil {
-            smallButton(media.scriptedPlayer == .spotify ? "clock.arrow.circlepath" : "list.bullet", size: 11.5) {
+            smallButton(media.scriptedPlayer == .spotify ? "clock.arrow.circlepath" : "list.bullet", size: size) {
                 show(.list)
             }
             .help(media.scriptedPlayer == .spotify ? "Recently played" : "Up next")
             .accessibilityLabel(media.scriptedPlayer == .spotify ? "Recently played" : "Up next")
         }
         if media.lyrics != nil {
-            smallButton("quote.bubble", size: 11.5) { show(.lyrics) }
+            smallButton("quote.bubble", size: size) { show(.lyrics) }
                 .help("Lyrics")
                 .accessibilityLabel("Lyrics")
         }
         if media.outputControl != nil {
-            smallButton("airplayaudio", size: 11.5) { show(.output) }
+            smallButton("airplayaudio", size: size) { show(.output) }
                 .help("Output and volume")
                 .accessibilityLabel("Output and volume")
         }
@@ -315,7 +324,7 @@ struct MediaView: View {
         }
     }
 
-    private func seekBar(_ now: NowPlaying, at date: Date, phase: Double) -> some View {
+    private func seekBar(_ now: NowPlaying, at date: Date, phase: Double, height: CGFloat = 18) -> some View {
         let duration = now.duration ?? 0
         let position = scrub.map { $0 * duration } ?? now.position(at: date) ?? 0
         let canSeek = media.hasControls && duration > 0
@@ -340,13 +349,14 @@ struct MediaView: View {
                         },
                     isEnabled: canSeek)
             }
-            .frame(height: 18)
+            .frame(height: height)
             HStack(spacing: 0) {
                 Text("-")
                 RollingTime(duration - position, countsDown: true)
             }
             .frame(minWidth: 38, alignment: .leading)
         }
+        .frame(height: height)
         .themeFont(.body, .caption2)
         .foregroundStyle(.themeInk.opacity(0.55))
         .opacity(duration > 0 ? 1 : 0.4)
@@ -357,10 +367,13 @@ struct MediaView: View {
 
     /// Back, play or pause, and ahead: by track, or by 15 seconds where the player skips that way
     /// (podcasts, audiobooks). `modes` puts shuffle and repeat at either end.
-    private func controls(_ now: NowPlaying, modes: Bool) -> some View {
+    private func controls(_ now: NowPlaying, modes: Bool, layout: MediaPlayerLayout) -> some View {
         let interval = now.skipsByInterval
-        return HStack(spacing: modes ? 22 : 30) {
-            if modes { shuffleButton(size: 13) }
+        let spacing =
+            layout.inline
+            ? layout.inlineControlSpacing : (modes ? layout.modeControlSpacing : layout.controlSpacing)
+        return HStack(spacing: spacing) {
+            if modes { shuffleButton(size: layout.modeGlyphSize) }
             Button {
                 backTaps += 1
                 media.send(interval ? .skipBackward : .previousTrack)
@@ -373,13 +386,13 @@ struct MediaView: View {
                 media.send(.togglePlayPause)
             } label: {
                 ThemeSymbol(now.isPlaying ? "pause.fill" : "play.fill")
-                    .themeFont(.body, size: 18, weight: .bold)
+                    .themeFont(.body, size: layout.playGlyphSize, weight: .bold)
                     .contentTransition(.symbolEffect(.replace.downUp))
                     // On an ink disc, the glyph is the notch's own color; on accent or artwork, onAccent.
                     .foregroundStyle(
                         theme.seekBar.fill == .ink ? theme.surface.color.color : theme.color(.onAccent)
                     )
-                    .frame(width: 40, height: 40)
+                    .frame(width: layout.playButtonSize, height: layout.playButtonSize)
                     .background(tint, in: Circle())
             }
             .accessibilityLabel(now.isPlaying ? "Pause" : "Play")
@@ -391,9 +404,10 @@ struct MediaView: View {
                     .symbolEffect(.bounce.down, value: forwardTaps)
             }
             .accessibilityLabel(interval ? "Forward 15 seconds" : "Next track")
-            if modes { repeatButton(size: 13) }
+            if modes { repeatButton(size: layout.modeGlyphSize) }
         }
-        .themeFont(.body, size: 17, weight: .semibold)
+        .frame(height: layout.playButtonSize)
+        .themeFont(.body, size: layout.transportGlyphSize, weight: .semibold)
         .buttonStyle(PressableButtonStyle())
         .disabled(!media.hasControls)
     }
@@ -1031,4 +1045,161 @@ private struct SwipeCatcher: NSViewRepresentable {
 func swipeDirection(_ travel: CGSize) -> Bool? {
     guard abs(travel.width) > 60, abs(travel.width) > abs(travel.height) * 2 else { return nil }
     return travel.width < 0
+}
+
+/// Adaptive layout metrics for the default Spotlight music player. Scales artwork, typography,
+/// transport controls, waveform, and row spacing from the content box so every expanded height
+/// fills cleanly down to the notch's bottom margin.
+struct MediaPlayerLayout: Equatable, Sendable {
+    let inline: Bool
+    let artwork: CGFloat
+    let titleSize: CGFloat
+    let subtitleSize: CGFloat
+    let accessorySize: CGFloat
+    let accessoryTopPadding: CGFloat
+    let largeDetails: Bool
+    let playButtonSize: CGFloat
+    let playGlyphSize: CGFloat
+    let transportGlyphSize: CGFloat
+    let modeGlyphSize: CGFloat
+    let controlSpacing: CGFloat
+    let modeControlSpacing: CGFloat
+    let inlineControlSpacing: CGFloat
+    let horizontalSpacing: CGFloat
+    let seekBarHeight: CGFloat
+    let waveformHeight: CGFloat
+    let spacing: CGFloat
+    let chipHeight: CGFloat
+    let chipSpacing: CGFloat
+
+    /// Total height consumed by the player rows and inter-row gaps (excluding any permission hint).
+    var contentHeight: CGFloat {
+        if inline {
+            if waveformHeight > 0 {
+                return artwork + seekBarHeight + waveformHeight + spacing * 2
+            }
+            return artwork + seekBarHeight + spacing
+        }
+        if waveformHeight > 0 {
+            return artwork + seekBarHeight + playButtonSize + waveformHeight + spacing * 3
+        }
+        return artwork + seekBarHeight + playButtonSize + spacing * 2
+    }
+
+    init(fitting size: CGSize, hasPermissionHint: Bool = false) {
+        let hintReserve: CGFloat = hasPermissionHint ? 22 : 0
+        let availableHeight = max(76, size.height - hintReserve)
+        let width = max(280, size.width)
+        let inline = availableHeight < 138
+        self.inline = inline
+
+        if inline {
+            let hSpacing: CGFloat = width < 380 ? 12 : 16
+            let inlineCtrlSpacing: CGFloat = width < 380 ? 22 : 28
+            let controlsEstimate: CGFloat = width < 380 ? 126 : 142
+            let maxInlineArtwork = min(84, max(52, (width - controlsEstimate - hSpacing * 2 - 108).rounded(.down)))
+            let seekHeight: CGFloat = 18
+            let minGap: CGFloat = availableHeight < 80 ? 6 : 8
+
+            let waveHeight: CGFloat
+            let coverSize: CGFloat
+            let rowSpacing: CGFloat
+            if availableHeight >= 114 {
+                waveHeight = (12 + (availableHeight - 114) / 23 * 10).rounded()
+                coverSize = min(
+                    maxInlineArtwork, max(52, (availableHeight - seekHeight - waveHeight - minGap * 2).rounded(.down)))
+                rowSpacing = max(minGap, (availableHeight - coverSize - seekHeight - waveHeight) / 2)
+            } else {
+                waveHeight = 0
+                let targetGap: CGFloat = availableHeight >= 92 ? 10 : minGap
+                coverSize = min(
+                    maxInlineArtwork, max(52, (availableHeight - seekHeight - targetGap).rounded(.down)))
+                rowSpacing = max(minGap, availableHeight - coverSize - seekHeight)
+            }
+
+            let growth = min(1, max(0, (coverSize - 52) / 32))
+            artwork = coverSize
+            titleSize = (16 + growth * 3).rounded()
+            subtitleSize = growth >= 0.5 ? 13.5 : 13
+            accessorySize = growth >= 0.5 ? 12 : 11.5
+            accessoryTopPadding = 2
+            largeDetails = false
+            playButtonSize = (40 + growth * 4).rounded()
+            playGlyphSize = (18 + growth * 2).rounded()
+            transportGlyphSize = (17 + growth * 1.5).rounded()
+            modeGlyphSize = 13
+            controlSpacing = 30
+            modeControlSpacing = 22
+            inlineControlSpacing = inlineCtrlSpacing
+            horizontalSpacing = hSpacing
+            seekBarHeight = seekHeight
+            waveformHeight = waveHeight
+            spacing = rowSpacing
+            chipHeight = 22
+            chipSpacing = 6
+        } else {
+            let maxStackedArtwork = min(
+                176, max(84, min((width * 0.32).rounded(.down), (width - 246).rounded(.down))))
+            let tall: CGFloat
+            let playSize: CGFloat
+            let seekHeight: CGFloat
+            let waveHeight: CGFloat
+            let coverSize: CGFloat
+            let rowSpacing: CGFloat
+
+            if availableHeight < 168 {
+                tall = 0
+                playSize = 40
+                seekHeight = 18
+                waveHeight = 0
+                let minGap: CGFloat = 8
+                coverSize = min(
+                    maxStackedArtwork, max(64, (availableHeight - seekHeight - playSize - minGap * 2).rounded(.down)))
+                rowSpacing = max(minGap, (availableHeight - coverSize - seekHeight - playSize) / 2)
+            } else {
+                tall = min(1, max(0, (availableHeight - 214) / 140))
+                playSize = (40 + tall * 8).rounded()
+                seekHeight = (18 + tall * 4).rounded()
+                if availableHeight < 214 {
+                    waveHeight = (18 + (availableHeight - 168) / 46 * 6).rounded()
+                } else {
+                    waveHeight = (24 + tall * 12).rounded()
+                }
+                let minGap = (8 + tall * 6).rounded()
+                let fixed = seekHeight + playSize + waveHeight + minGap * 3
+                coverSize = min(maxStackedArtwork, max(68, (availableHeight - fixed).rounded(.down)))
+                rowSpacing = max(minGap, (availableHeight - coverSize - seekHeight - playSize - waveHeight) / 3)
+            }
+
+            let large = coverSize >= 80
+            artwork = coverSize
+            largeDetails = large
+            if coverSize < 80 {
+                titleSize = (16 + (coverSize - 64) / 16 * 3).rounded()
+                subtitleSize = 13
+            } else if coverSize <= 108 {
+                titleSize = 22
+                subtitleSize = 14
+            } else {
+                let extra = min(1, (coverSize - 108) / 68)
+                titleSize = (22 + extra * 4).rounded()
+                subtitleSize = (14 + extra * 2).rounded()
+            }
+            accessorySize = 11.5
+            accessoryTopPadding = large ? 6 : 2
+            playButtonSize = playSize
+            playGlyphSize = (playSize * 0.45).rounded()
+            transportGlyphSize = (17 + tall * 3).rounded()
+            modeGlyphSize = (13 + tall * 2).rounded()
+            controlSpacing = (30 + tall * 10).rounded()
+            modeControlSpacing = (22 + tall * 8).rounded()
+            inlineControlSpacing = 28
+            horizontalSpacing = 16
+            seekBarHeight = seekHeight
+            waveformHeight = waveHeight
+            spacing = rowSpacing
+            chipHeight = coverSize < 78 ? 20 : 22
+            chipSpacing = coverSize < 78 ? 2 : 6
+        }
+    }
 }
